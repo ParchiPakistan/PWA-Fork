@@ -78,7 +78,7 @@ const mockHourlyRedemptions = [
 
 const colors = DASHBOARD_COLORS("branch")
 
-export function BranchDashboard() {
+export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("redeem")
   const [parchiIdInput, setParchiIdInput] = useState("")
   const [selectedOffer, setSelectedOffer] = useState<number | null>(null)
@@ -102,7 +102,7 @@ export function BranchDashboard() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <BranchSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <BranchSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={onLogout} />
 
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-8">

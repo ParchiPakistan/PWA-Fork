@@ -60,13 +60,13 @@ const mockOfferPerformance = [
   { name: "Breakfast Combo", redemptions: 85, type: "bottom" },
 ]
 
-export function CorporateDashboard() {
+export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("overview")
   const colors = DASHBOARD_COLORS("corporate")
 
   return (
     <div className="flex min-h-screen bg-background">
-      <CorporateSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <CorporateSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={onLogout} />
 
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-8">

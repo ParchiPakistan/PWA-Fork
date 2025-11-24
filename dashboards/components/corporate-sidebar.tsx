@@ -8,9 +8,10 @@ import { DASHBOARD_COLORS } from "@/lib/colors"
 interface CorporateSidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
+  onLogout: () => void
 }
 
-export function CorporateSidebar({ activeTab, onTabChange }: CorporateSidebarProps) {
+export function CorporateSidebar({ activeTab, onTabChange, onLogout }: CorporateSidebarProps) {
   const colors = DASHBOARD_COLORS("corporate")
   const menuItems = [
     {
@@ -61,7 +62,7 @@ export function CorporateSidebar({ activeTab, onTabChange }: CorporateSidebarPro
       </nav>
 
       <div className="p-4 border-t border-border">
-        <Button variant="outline" className="w-full gap-2 bg-transparent">
+        <Button onClick={onLogout} variant="outline" className="w-full gap-2 bg-transparent">
           <LogOut className="w-4 h-4" />
           Logout
         </Button>

@@ -1,43 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AlertCircle, LogIn } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [username, setUsername] = useState("")
+  const { login, user } = useAuth()
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      const role = user.role
+      if (role === 'admin') {
+        router.push("/admin")
+      } else if (role === 'merchant_corporate') {
+        router.push("/corporate")
+      } else if (role === 'merchant_branch') {
+        router.push("/branch")
+      } else {
+        router.push("/")
+      }
+    }
+  }, [user, router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    // Simulate login validation
-    setTimeout(() => {
-      if (!username || !password) {
-        setError("Please enter both username and password")
+    try {
+      if (!email || !password) {
+        setError("Please enter both email and password")
         setIsLoading(false)
         return
       }
 
-      if (username.toLowerCase().startsWith("admin")) {
-        router.push("/admin")
-      } else if (username.toLowerCase().startsWith("corp")) {
-        router.push("/corporate")
-      } else if (username.toLowerCase().startsWith("branch")) {
-        router.push("/branch")
-      } else {
-        setError("Invalid credentials. Try 'admin_*', 'corp_*' or 'branch_*' for branch accounts.")
-        setIsLoading(false)
-      }
-    }, 600)
+      await login(email, password)
+      // User will be set in context, useEffect will handle redirect
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please check your credentials.")
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -56,13 +68,15 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Username</label>
+              <label className="text-sm font-medium text-foreground">Email</label>
               <Input
-                placeholder="e.g., admin_user, corp_restaurant, or branch_main"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 className="h-10"
+                required
               />
             </div>
 
@@ -75,6 +89,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 className="h-10"
+                required
               />
             </div>
 
@@ -90,14 +105,28 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 p-3 rounded-lg bg-purple-50 border border-purple-200">
-            <p className="text-xs text-purple-700">
-              <strong>Demo accounts:</strong>
-              <br />• <code className="font-mono">admin_demo</code>
-              <br />• <code className="font-mono">corp_demo</code>
-              <br />• <code className="font-mono">branch_demo</code>
-            </p>
+          <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
+            <p className="text-xs font-semibold text-foreground mb-2">Demo Credentials:</p>
+            <div className="space-y-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Admin:</span>
+                <code className="px-2 py-0.5 rounded bg-background text-foreground">admin@example.com</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Corporate:</span>
+                <code className="px-2 py-0.5 rounded bg-background text-foreground">merchant@example.com</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Branch:</span>
+                <code className="px-2 py-0.5 rounded bg-background text-foreground">branch@example.com</code>
+              </div>
+              <div className="mt-2 pt-2 border-t border-border">
+                <span className="font-medium">Password for all:</span>
+                <code className="ml-2 px-2 py-0.5 rounded bg-background text-foreground">password123</code>
+              </div>
+            </div>
           </div>
+
         </CardContent>
       </Card>
     </div>

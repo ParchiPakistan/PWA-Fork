@@ -8,9 +8,10 @@ import { DASHBOARD_COLORS } from "@/lib/colors"
 interface BranchSidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
+  onLogout: () => void
 }
 
-export function BranchSidebar({ activeTab, onTabChange }: BranchSidebarProps) {
+export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSidebarProps) {
   const colors = DASHBOARD_COLORS("branch")
   const menuItems = [
     {
@@ -54,7 +55,7 @@ export function BranchSidebar({ activeTab, onTabChange }: BranchSidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-border">
-        <Button variant="outline" className="w-full gap-2 bg-transparent">
+        <Button onClick={onLogout} variant="outline" className="w-full gap-2 bg-transparent">
           <LogOut className="w-4 h-4" />
           Logout
         </Button>
