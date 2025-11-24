@@ -3,34 +3,32 @@
 import { CheckCircle, Ticket, History, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+import { DASHBOARD_COLORS } from "@/lib/colors"
+
 interface BranchSidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
 }
 
 export function BranchSidebar({ activeTab, onTabChange }: BranchSidebarProps) {
+  const colors = DASHBOARD_COLORS("branch")
   const menuItems = [
     {
-      id: "redemption",
-      label: "Verify & Redeem",
+      id: "redeem",
+      label: "Redeem",
       icon: CheckCircle,
     },
     {
-      id: "offers",
-      label: "Active Offers",
-      icon: Ticket,
-    },
-    {
-      id: "history",
-      label: "History",
-      icon: History,
+      id: "overview",
+      label: "Overview",
+      icon: Ticket, // Using Ticket as a placeholder for Overview or I can import LayoutDashboard
     },
   ]
 
   return (
     <aside className="sticky top-0 w-64 h-screen bg-white border-r border-border flex flex-col overflow-y-auto">
       <div className="p-6 border-b border-border">
-        <h2 className="text-lg font-bold text-foreground">Parchi</h2>
+        <h2 className="text-lg font-bold" style={{ color: colors.primary }}>Parchi</h2>
         <p className="text-xs text-muted-foreground mt-1">Branch Dashboard</p>
       </div>
 
@@ -42,8 +40,11 @@ export function BranchSidebar({ activeTab, onTabChange }: BranchSidebarProps) {
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-left ${
-                activeTab === item.id ? "bg-primary text-white" : "text-foreground hover:bg-muted"
+                activeTab === item.id ? "text-white" : "text-foreground hover:bg-muted"
               }`}
+              style={{
+                backgroundColor: activeTab === item.id ? colors.primary : "transparent",
+              }}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="text-sm font-medium">{item.label}</span>

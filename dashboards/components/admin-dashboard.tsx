@@ -71,7 +71,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="p-4 md:p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Admin Dashboard</h1>
             <p className="text-muted-foreground mt-1">Platform management and oversight</p>
           </div>
 
@@ -87,7 +87,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">1,210</div>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>2,847</div>
                     <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
                       <TrendingUp className="w-3 h-3" /> +8% this week
                     </p>
@@ -102,7 +102,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">142</div>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>142</div>
                     <p className="text-xs text-muted-foreground mt-1">Awaiting review</p>
                   </CardContent>
                 </Card>
@@ -115,7 +115,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">8</div>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>8</div>
                     <p className="text-xs text-muted-foreground mt-1">Pending approval</p>
                   </CardContent>
                 </Card>
@@ -128,7 +128,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">156</div>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>156</div>
                     <p className="text-xs text-muted-foreground mt-1">This month</p>
                   </CardContent>
                 </Card>
@@ -138,7 +138,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <Card>
                   <CardHeader>
-                    <CardTitle>System Activity</CardTitle>
+                    <CardTitle style={{ color: colors.primary }}>Student Growth Trend</CardTitle>
                     <CardDescription>Redemptions and approvals this week</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -159,7 +159,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         <Line
                           type="monotone"
                           dataKey="kyc_approvals"
-                          stroke={colors.chart2}
+                          stroke={colors.primary}
+                          strokeOpacity={0.5}
                           strokeWidth={2}
                           name="KYC Approvals"
                         />
@@ -170,7 +171,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Merchant Registrations</CardTitle>
+                    <CardTitle style={{ color: colors.primary }}>Merchant Distribution</CardTitle>
                     <CardDescription>Applications by type this week</CardDescription>
                   </CardHeader>
                   <CardContent>

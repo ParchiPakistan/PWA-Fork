@@ -60,15 +60,26 @@ const mockRecentRedemptions = [
 ]
 
 const mockTodayStats = [
-  { label: "Today's Redemptions", value: "24", trend: "+3 from yesterday" },
-  { label: "Total Students", value: "142", trend: "+12 new this week" },
-  { label: "Amount Owed to Parchi", value: "Rs. 4,800", trend: "24 × Rs. 200 per redemption" },
+  { label: "Redemptions Today", value: "125", trend: "+15% vs Yesterday" },
+  { label: "Students Served", value: "118", trend: "94% Unique Students" },
+  { label: "Discounts Given", value: "Rs. 25,000", trend: "Avg. Rs. 200/order" },
+  { label: "Current Queue", value: "3", trend: "< 2 min wait time" },
+]
+
+const mockHourlyRedemptions = [
+  { time: "10 AM", count: 5 },
+  { time: "11 AM", count: 12 },
+  { time: "12 PM", count: 28 },
+  { time: "1 PM", count: 35 },
+  { time: "2 PM", count: 22 },
+  { time: "3 PM", count: 15 },
+  { time: "4 PM", count: 8 },
 ]
 
 const colors = DASHBOARD_COLORS("branch")
 
 export function BranchDashboard() {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState("redeem")
   const [parchiIdInput, setParchiIdInput] = useState("")
   const [selectedOffer, setSelectedOffer] = useState<number | null>(null)
   const [recentRedemptions, setRecentRedemptions] = useState(mockRecentRedemptions)
@@ -97,25 +108,26 @@ export function BranchDashboard() {
         <div className="p-4 md:p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Branch Dashboard</h1>
+            <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Branch Dashboard</h1>
             <p className="text-muted-foreground mt-1">Process student redemptions in real-time</p>
           </div>
 
           {activeTab === "overview" && (
             <>
               {/* Key Metrics */}
+              {/* Key Metrics - Daily Performance */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Total Redemptions</span>
-                      <ShoppingCart className="w-4 h-4" style={{ color: colors.primary }} />
+                      <span>Redemptions Today</span>
+                      <CheckCircle className="w-4 h-4" style={{ color: colors.primary }} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">24</div>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>125</div>
                     <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                      <TrendingUp className="w-3 h-3" /> +3 today
+                      <TrendingUp className="w-3 h-3" /> +15% vs Yesterday
                     </p>
                   </CardContent>
                 </Card>
@@ -123,105 +135,136 @@ export function BranchDashboard() {
                 <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Amount Owed</span>
-                      <FileText className="w-4 h-4" style={{ color: colors.primary }} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">Rs. 4,800</div>
-                    <p className="text-xs text-muted-foreground mt-1">24 × Rs. 200/redemption</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Active Students</span>
+                      <span>Students Served</span>
                       <Users className="w-4 h-4" style={{ color: colors.primary }} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">142</div>
-                    <p className="text-xs text-muted-foreground mt-1">Verified accounts</p>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>118</div>
+                    <p className="text-xs text-muted-foreground mt-1">94% Unique Students</p>
                   </CardContent>
                 </Card>
 
                 <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Active Offers</span>
+                      <span>Discounts Given</span>
                       <FileText className="w-4 h-4" style={{ color: colors.primary }} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">4</div>
-                    <p className="text-xs text-muted-foreground mt-1">Managed by corporate</p>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>Rs. 25k</div>
+                    <p className="text-xs text-muted-foreground mt-1">Avg. Rs. 200/order</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      <span>Current Queue</span>
+                      <Clock className="w-4 h-4" style={{ color: colors.primary }} />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>3</div>
+                    <p className="text-xs text-muted-foreground mt-1">&lt; 2 min wait time</p>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Charts */}
+              {/* Charts - Real-time Stats */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Weekly Activity</CardTitle>
-                    <CardDescription>Redemptions and footfall this week</CardDescription>
+                    <CardTitle style={{ color: colors.primary }}>Hourly Redemption Breakdown</CardTitle>
+                    <CardDescription>Redemption volume throughout the day</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={[
-                        { date: "Mon", redemptions: 18, footfall: 120 },
-                        { date: "Tue", redemptions: 22, footfall: 140 },
-                        { date: "Wed", redemptions: 16, footfall: 110 },
-                        { date: "Thu", redemptions: 24, footfall: 160 },
-                        { date: "Fri", redemptions: 28, footfall: 180 },
-                        { date: "Sat", redemptions: 30, footfall: 200 },
-                        { date: "Sun", redemptions: 20, footfall: 130 },
-                      ]}>
+                      <BarChart data={mockHourlyRedemptions}>
                         <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                        <XAxis dataKey="date" stroke={colors.mutedForeground} />
+                        <XAxis dataKey="time" stroke={colors.mutedForeground} />
                         <YAxis stroke={colors.mutedForeground} />
                         <Tooltip />
                         <Legend />
-                        <Line type="monotone" dataKey="redemptions" stroke={colors.primary} strokeWidth={2} name="Redemptions" />
-                        <Line type="monotone" dataKey="footfall" stroke={colors.chart2} strokeWidth={2} name="Footfall" />
-                      </LineChart>
+                        <Bar dataKey="count" fill={colors.primary} name="Redemptions" radius={[4, 4, 0, 0]} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Offer Usage</CardTitle>
-                    <CardDescription>Redemptions per day</CardDescription>
+                    <CardTitle style={{ color: colors.primary }}>Most Active Hours</CardTitle>
+                    <CardDescription>Peak times for student visits</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={[
-                        { date: "Mon", redemptions: 18 },
-                        { date: "Tue", redemptions: 22 },
-                        { date: "Wed", redemptions: 16 },
-                        { date: "Thu", redemptions: 24 },
-                        { date: "Fri", redemptions: 28 },
-                        { date: "Sat", redemptions: 30 },
-                        { date: "Sun", redemptions: 20 },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                        <XAxis dataKey="date" stroke={colors.mutedForeground} />
-                        <YAxis stroke={colors.mutedForeground} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="redemptions" fill={colors.primary} name="Redemptions" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 rounded-full bg-primary/10">
+                            <Clock className="w-6 h-6" style={{ color: colors.primary }} />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-lg">1:00 PM - 2:00 PM</p>
+                            <p className="text-sm text-muted-foreground">Highest Traffic (Lunch Rush)</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold" style={{ color: colors.primary }}>35</p>
+                          <p className="text-xs text-muted-foreground">Redemptions</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground">Other Busy Periods</h4>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">12:00 PM - 1:00 PM</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary" style={{ width: '80%', backgroundColor: colors.primary }} />
+                            </div>
+                            <span className="text-xs font-medium">28</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">2:00 PM - 3:00 PM</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary" style={{ width: '65%', backgroundColor: colors.primary }} />
+                            </div>
+                            <span className="text-xs font-medium">22</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
             </>
           )}
 
-          {activeTab === "redemption" && (
+          {activeTab === "redeem" && (
             <>
+              {/* Today's Redemption Count */}
+              <div className="mb-8">
+                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      <span>Redemptions Today</span>
+                      <CheckCircle className="w-4 h-4" style={{ color: colors.primary }} />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>125</div>
+                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
+                      <TrendingUp className="w-3 h-3" /> +15% vs Yesterday
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
               <div className="mb-8">
                 <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
                   <CardHeader className="pb-4">
@@ -233,7 +276,7 @@ export function BranchDashboard() {
                   <CardContent className="pt-6 space-y-6">
                     {/* Step 1: Parchi ID */}
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-foreground">Step 1: Student Parchi ID</label>
+                      <label className="text-sm font-semibold" style={{ color: colors.primary }}>Step 1: Student Parchi ID</label>
                       <Input
                         placeholder="Enter Parchi ID (e.g., PK-12345)"
                         value={parchiIdInput}
@@ -245,7 +288,7 @@ export function BranchDashboard() {
                     {/* Step 2: Select Offer */}
                     {parchiIdInput && (
                       <div className="space-y-2 animate-in fade-in">
-                        <label className="text-sm font-semibold text-foreground">Step 2: Select Offer</label>
+                        <label className="text-sm font-semibold" style={{ color: colors.primary }}>Step 2: Select Offer</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {mockActiveOffers.map((offer) => (
                             <button
@@ -305,23 +348,6 @@ export function BranchDashboard() {
                 </Card>
               </div>
 
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Today's Metrics</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {mockTodayStats.map((stat, idx) => (
-                    <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{stat.value}</div>
-                        <p className="text-xs text-muted-foreground mt-2">{stat.trend}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
               {/* Recent Activity */}
               <Card>
                 <CardHeader>
@@ -370,34 +396,6 @@ export function BranchDashboard() {
                 </CardContent>
               </Card>
             </>
-          )}
-
-          {activeTab === "offers" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Available Offers</CardTitle>
-                <CardDescription>Offers applicable to this branch</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Managed from corporate account</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === "history" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Redemption History</CardTitle>
-                <CardDescription>All redemptions at this branch</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Detailed history coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
           )}
         </div>
       </main>

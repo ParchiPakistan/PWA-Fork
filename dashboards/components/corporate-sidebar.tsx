@@ -3,12 +3,15 @@
 import { LayoutDashboard, Ticket, Store, BarChart3, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+import { DASHBOARD_COLORS } from "@/lib/colors"
+
 interface CorporateSidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
 }
 
 export function CorporateSidebar({ activeTab, onTabChange }: CorporateSidebarProps) {
+  const colors = DASHBOARD_COLORS("corporate")
   const menuItems = [
     {
       id: "overview",
@@ -35,7 +38,7 @@ export function CorporateSidebar({ activeTab, onTabChange }: CorporateSidebarPro
   return (
     <aside className="sticky top-0 w-64 h-screen bg-white border-r border-border flex flex-col overflow-y-auto">
       <div className="p-6 border-b border-border">
-        <h2 className="text-lg font-bold text-foreground">Parchi</h2>
+        <h2 className="text-lg font-bold" style={{ color: colors.primary }}>Parchi</h2>
         <p className="text-xs text-muted-foreground mt-1">Corporate Dashboard</p>
       </div>
 
