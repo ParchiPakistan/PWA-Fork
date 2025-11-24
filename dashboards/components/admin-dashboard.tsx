@@ -9,6 +9,9 @@ import {
   Line,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,33 +26,43 @@ import { AdminKYC } from "./admin-kyc"
 import { AdminMerchants } from "./admin-merchants"
 import { AdminOffers } from "./admin-offers"
 
-const mockSystemStats = [
-  { date: "Mon", redemptions: 120, kyc_approvals: 15, merchant_reg: 3 },
-  { date: "Tue", redemptions: 150, kyc_approvals: 22, merchant_reg: 5 },
-  { date: "Wed", redemptions: 100, kyc_approvals: 18, merchant_reg: 2 },
-  { date: "Thu", redemptions: 180, kyc_approvals: 28, merchant_reg: 6 },
-  { date: "Fri", redemptions: 220, kyc_approvals: 32, merchant_reg: 8 },
-  { date: "Sat", redemptions: 250, kyc_approvals: 25, merchant_reg: 4 },
-  { date: "Sun", redemptions: 190, kyc_approvals: 20, merchant_reg: 3 },
+const mockPlatformStats = [
+  { label: "Total Active Students", value: "12,450", icon: Users, trend: "+12% MoM" },
+  { label: "Total Verified Merchants", value: "85", icon: ShoppingCart, trend: "+5 this month" },
+  { label: "Total Redemptions", value: "45,200", icon: CheckCircle2, trend: "All Time" },
+  { label: "Platform Growth Rate", value: "18%", icon: TrendingUp, trend: "Month over Month" },
 ]
 
-const mockKycRequests = [
-  { id: 1, name: "Ahmed Ali", university: "FAST-NUCES", status: "pending", submitted: "2 hours ago" },
-  { id: 2, name: "Fatima Khan", university: "IBA", status: "pending", submitted: "45 mins ago" },
-  { id: 3, name: "Hassan Saeed", university: "LUMS", status: "approved", submitted: "1 day ago" },
-  { id: 4, name: "Zara Ahmed", university: "FAST-NUCES", status: "pending", submitted: "30 mins ago" },
+const mockUserManagement = [
+  { label: "Verification Queue", value: "142", subtext: "Pending Requests", icon: Users },
+  { label: "Suspended/Rejected", value: "24", subtext: "Accounts", icon: X },
 ]
 
-const mockMerchantRequests = [
-  { id: 1, name: "Burger Hub Downtown", type: "Corporate", status: "pending", submitted: "3 hours ago" },
-  { id: 2, name: "Pizza Palace - Mall Branch", type: "Branch", status: "pending", submitted: "1 hour ago" },
-  { id: 3, name: "Coffee Corner", type: "Corporate", status: "approved", submitted: "2 days ago" },
+const mockFinancials = [
+  { label: "Corporate Payments Due", value: "Rs. 1.2M", subtext: "Next 30 Days", icon: FileText },
+  { label: "Payment Collection", value: "92%", subtext: "On Time", icon: Check },
+  { label: "Financial Projections", value: "+22%", subtext: "Q4 Growth", icon: TrendingUp },
 ]
 
-const mockOffers = [
-  { id: 1, merchant: "Burger Hub", offer: "20% off", status: "active", revenue: "Rs. 45,000" },
-  { id: 2, merchant: "Pizza Palace", offer: "Rs. 300 off", status: "review", revenue: "N/A" },
-  { id: 3, merchant: "Coffee Corner", offer: "15% off", status: "rejected", revenue: "N/A" },
+const mockTopMerchants = [
+  { name: "Burger Hub", redemptions: 1200, rating: 4.8 },
+  { name: "Pizza Palace", redemptions: 980, rating: 4.5 },
+  { name: "Coffee Corner", redemptions: 850, rating: 4.7 },
+  { name: "Student Station", redemptions: 720, rating: 4.6 },
+  { name: "Tech Gadgets", redemptions: 650, rating: 4.9 },
+]
+
+const mockUniversityDistribution = [
+  { name: "FAST-NUCES", value: 35 },
+  { name: "IBA", value: 25 },
+  { name: "LUMS", value: 20 },
+  { name: "NUST", value: 15 },
+  { name: "Other", value: 5 },
+]
+
+const mockEngagementMetrics = [
+  { label: "Leaderboard Top Performers", value: "50", subtext: "Students" },
+  { label: "Founders Club Members", value: "120", subtext: "Exclusive Members" },
 ]
 
 const mockSystemLogs = [
@@ -77,117 +90,159 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
           {activeTab === "overview" && (
             <>
-              {/* Key Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Total Redemptions</span>
-                      <ShoppingCart className="w-4 h-4" style={{ color: colors.primary }} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>2,847</div>
-                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                      <TrendingUp className="w-3 h-3" /> +8% this week
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>KYC Pending</span>
-                      <Users className="w-4 h-4" style={{ color: colors.primary }} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>142</div>
-                    <p className="text-xs text-muted-foreground mt-1">Awaiting review</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Merchant Requests</span>
-                      <ShoppingCart className="w-4 h-4" style={{ color: colors.primary }} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>8</div>
-                    <p className="text-xs text-muted-foreground mt-1">Pending approval</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Offers Reviewed</span>
-                      <FileText className="w-4 h-4" style={{ color: colors.primary }} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>156</div>
-                    <p className="text-xs text-muted-foreground mt-1">This month</p>
-                  </CardContent>
-                </Card>
+            <>
+              {/* Platform Overview */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Platform Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {mockPlatformStats.map((stat, idx) => {
+                    const Icon = stat.icon
+                    return (
+                      <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                            <span>{stat.label}</span>
+                            <Icon className="w-4 h-4" style={{ color: colors.primary }} />
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stat.value}</div>
+                          <p className="text-xs text-muted-foreground mt-1">{stat.trend}</p>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
               </div>
 
-              {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* User Management & Financial Oversight */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                {/* User Management */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>User Management</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {mockUserManagement.map((stat, idx) => {
+                      const Icon = stat.icon
+                      return (
+                        <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                              <span>{stat.label}</span>
+                              <Icon className="w-4 h-4" style={{ color: colors.primary }} />
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stat.value}</div>
+                            <p className="text-xs text-muted-foreground mt-1">{stat.subtext}</p>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Financial Oversight */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Financial Oversight</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {mockFinancials.map((stat, idx) => {
+                      const Icon = stat.icon
+                      return (
+                        <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                              <span>{stat.label}</span>
+                              <Icon className="w-4 h-4" style={{ color: colors.primary }} />
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stat.value}</div>
+                            <p className="text-xs text-muted-foreground mt-1">{stat.subtext}</p>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Merchant Performance & Student Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                {/* Merchant Performance */}
                 <Card>
                   <CardHeader>
-                    <CardTitle style={{ color: colors.primary }}>Student Growth Trend</CardTitle>
-                    <CardDescription>Redemptions and approvals this week</CardDescription>
+                    <CardTitle style={{ color: colors.primary }}>Top 10 Performing Merchants</CardTitle>
+                    <CardDescription>Based on redemption volume</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={mockSystemStats}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                        <XAxis dataKey="date" stroke={colors.mutedForeground} />
-                        <YAxis stroke={colors.mutedForeground} />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="redemptions"
-                          stroke={colors.primary}
-                          strokeWidth={2}
-                          name="Redemptions"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="kyc_approvals"
-                          stroke={colors.primary}
-                          strokeOpacity={0.5}
-                          strokeWidth={2}
-                          name="KYC Approvals"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div className="space-y-4">
+                      {mockTopMerchants.map((merchant, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="font-bold text-lg w-6 text-muted-foreground">#{idx + 1}</div>
+                            <div>
+                              <p className="font-semibold">{merchant.name}</p>
+                              <p className="text-xs text-muted-foreground">Rating: {merchant.rating} ⭐</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold" style={{ color: colors.primary }}>{merchant.redemptions}</p>
+                            <p className="text-xs text-muted-foreground">Redemptions</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle style={{ color: colors.primary }}>Merchant Distribution</CardTitle>
-                    <CardDescription>Applications by type this week</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={mockSystemStats}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                        <XAxis dataKey="date" stroke={colors.mutedForeground} />
-                        <YAxis stroke={colors.mutedForeground} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="merchant_reg" fill={colors.primary} name="New Applications" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                {/* Student Analytics */}
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle style={{ color: colors.primary }}>University Distribution</CardTitle>
+                      <CardDescription>Student base by university</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <PieChart>
+                          <Pie
+                            data={mockUniversityDistribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {mockUniversityDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={[colors.primary, "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--muted))"][index % 5]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {mockEngagementMetrics.map((metric, idx) => (
+                      <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground">
+                            {metric.label}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>{metric.value}</div>
+                          <p className="text-xs text-muted-foreground mt-1">{metric.subtext}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               </div>
+            </>
             </>
           )}
 

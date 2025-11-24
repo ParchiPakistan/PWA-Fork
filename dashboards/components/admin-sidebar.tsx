@@ -61,8 +61,11 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-left ${
-                activeTab === item.id ? "bg-primary text-white" : "text-foreground hover:bg-muted"
+                activeTab === item.id ? "text-white" : "text-foreground hover:bg-muted"
               }`}
+              style={{
+                backgroundColor: activeTab === item.id ? colors.primary : "transparent",
+              }}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="text-sm font-medium">{item.label}</span>
