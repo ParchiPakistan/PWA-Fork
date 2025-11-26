@@ -81,7 +81,7 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
               {/* Key Metrics */}
               {/* Key Metrics - Financial & Customer Insights */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card className="">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Total Redemptions</span>
@@ -96,7 +96,7 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Total Discounts Given</span>
@@ -109,7 +109,7 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Avg. Discount / Order</span>
@@ -122,7 +122,7 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Unique Students</span>

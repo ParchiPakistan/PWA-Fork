@@ -99,7 +99,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   {mockPlatformStats.map((stat, idx) => {
                     const Icon = stat.icon
                     return (
-                      <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                      <Card key={idx}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                             <span>{stat.label}</span>
@@ -125,7 +125,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     {mockUserManagement.map((stat, idx) => {
                       const Icon = stat.icon
                       return (
-                        <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                        <Card key={idx}>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                               <span>{stat.label}</span>
@@ -149,7 +149,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     {mockFinancials.map((stat, idx) => {
                       const Icon = stat.icon
                       return (
-                        <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                        <Card key={idx}>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                               <span>{stat.label}</span>
@@ -228,7 +228,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                   <div className="grid grid-cols-2 gap-4">
                     {mockEngagementMetrics.map((metric, idx) => (
-                      <Card key={idx} className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                      <Card key={idx}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm font-medium text-muted-foreground">
                             {metric.label}

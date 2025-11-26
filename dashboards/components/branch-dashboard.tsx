@@ -117,7 +117,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               {/* Key Metrics */}
               {/* Key Metrics - Daily Performance */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Redemptions Today</span>
@@ -132,7 +132,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Students Served</span>
@@ -145,7 +145,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Discounts Given</span>
@@ -158,7 +158,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Current Queue</span>
@@ -249,7 +249,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
             <>
               {/* Today's Redemption Count */}
               <div className="mb-8">
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                       <span>Redemptions Today</span>
@@ -266,7 +266,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               </div>
 
               <div className="mb-8">
-                <Card className="border-l-4" style={{ borderLeftColor: colors.primary }}>
+                <Card>
                   <CardHeader className="pb-4">
                     <CardTitle className="text-2xl" style={{ color: colors.primary }}>
                       Quick Redemption
