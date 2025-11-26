@@ -1,6 +1,7 @@
 "use client"
 
-import { CheckCircle, Ticket, History, LogOut } from "lucide-react"
+import { useState } from "react"
+import { CheckCircle, Ticket, History, LogOut, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
@@ -13,6 +14,16 @@ interface BranchSidebarProps {
 
 export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSidebarProps) {
   const colors = DASHBOARD_COLORS("branch")
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await onLogout()
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
   const menuItems = [
     {
       id: "redeem",
@@ -55,9 +66,23 @@ export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSideba
       </nav>
 
       <div className="p-4 border-t border-border">
-        <Button onClick={onLogout} variant="outline" className="w-full gap-2 bg-transparent">
-          <LogOut className="w-4 h-4" />
-          Logout
+        <Button 
+          onClick={handleLogout} 
+          disabled={isLoggingOut}
+          className="w-full gap-2 text-white hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: colors.primary }}
+        >
+          {isLoggingOut ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Logging out...
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4" />
+              Logout
+            </>
+          )}
         </Button>
       </div>
     </aside>

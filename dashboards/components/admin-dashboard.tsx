@@ -25,6 +25,7 @@ import { DASHBOARD_COLORS } from "@/lib/colors"
 import { AdminKYC } from "./admin-kyc"
 import { AdminMerchants } from "./admin-merchants"
 import { AdminOffers } from "./admin-offers"
+import { AccountCreation } from "./account-creation"
 
 const mockPlatformStats = [
   { label: "Total Active Students", value: "12,450", icon: Users, trend: "+12% MoM" },
@@ -292,6 +293,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               </CardContent>
             </Card>
           )}
+
+          {activeTab === "account-creation" && <AccountCreation />}
         </div>
       </main>
     </div>

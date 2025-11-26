@@ -1,6 +1,7 @@
 "use client"
 
-import { LayoutDashboard, Users, FileText, Settings, LogOut, CheckCircle2, ShoppingCart } from "lucide-react"
+import { useState } from "react"
+import { LayoutDashboard, Users, FileText, Settings, LogOut, CheckCircle2, ShoppingCart, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
@@ -13,6 +14,16 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarProps) {
   const colors = DASHBOARD_COLORS("admin")
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await onLogout()
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
   const menuItems = [
     {
       id: "overview",
@@ -43,6 +54,11 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
       id: "settings",
       label: "Settings",
       icon: Settings,
+    },
+    {
+      id: "account-creation",
+      label: "Account Creation",
+      icon: Users,
     },
   ]
 
@@ -75,9 +91,23 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
       </nav>
 
       <div className="p-4 border-t border-border">
-        <Button onClick={onLogout} variant="outline" className="w-full gap-2 bg-transparent">
-          <LogOut className="w-4 h-4" />
-          Logout
+        <Button 
+          onClick={handleLogout} 
+          disabled={isLoggingOut}
+          className="w-full gap-2 text-white hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: colors.primary }}
+        >
+          {isLoggingOut ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Logging out...
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4" />
+              Logout
+            </>
+          )}
         </Button>
       </div>
     </aside>

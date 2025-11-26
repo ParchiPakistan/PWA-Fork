@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge"
 import { Plus, Store, MoreHorizontal, MapPin } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { AccountCreation } from "./account-creation"
 
 // Mock Data
 const mockBranches = [
@@ -106,7 +107,7 @@ export function CorporateBranches() {
 
       {/* Create Branch Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-7xl w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Branch</DialogTitle>
             <DialogDescription>
@@ -114,38 +115,9 @@ export function CorporateBranches() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Branch Name</Label>
-              <Input placeholder="e.g. Downtown Branch" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input placeholder="Full street address" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>City</Label>
-                <Input placeholder="e.g. Karachi" />
-              </div>
-              <div className="space-y-2">
-                <Label>Manager Name</Label>
-                <Input placeholder="Branch Manager" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Contact Phone</Label>
-              <Input placeholder="+92 300 1234567" />
-            </div>
+          <div className="py-4">
+            <AccountCreation role="corporate" corporateId="c1" />
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => setIsCreateOpen(false)}>Add Branch</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
