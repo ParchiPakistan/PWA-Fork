@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, EyeOff, RefreshCw, Building2, Store, Upload, Loader2 } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { SupabaseStorageService } from "@/lib/storage"
+import { corporateSignup, type ApiError } from "@/lib/api-client"
+import { useToast } from "@/hooks/use-toast"
 
 interface AccountCreationProps {
   role?: 'admin' | 'corporate'
@@ -18,6 +20,7 @@ interface AccountCreationProps {
 
 export function AccountCreation({ role = 'admin', corporateId }: AccountCreationProps) {
   const colors = DASHBOARD_COLORS(role === 'corporate' ? 'corporate' : 'admin')
+  const { toast } = useToast()
   const [showPassword, setShowPassword] = useState(false)
   
   // Form states
@@ -102,14 +105,89 @@ export function AccountCreation({ role = 'admin', corporateId }: AccountCreation
     setIsUploading(true)
     
     try {
-      console.log("Creating Corporate Account:", {
-        ...corporateData,
-        email: `${corporateData.emailPrefix}@parchipakistan.com`,
-        logo_path: corporateData.logoUrl
+      // Validate required fields
+      if (!corporateData.name || !corporateData.emailPrefix || !corporateData.contactEmail || 
+          !corporateData.password || !corporateData.contact) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: "Please fill in all required fields.",
+        })
+        setIsUploading(false)
+        return
+      }
+
+      // Validate logo URL
+      if (!corporateData.logoUrl) {
+        toast({
+          variant: "destructive",
+          title: "Logo Required",
+          description: "Please upload a business logo before creating the account.",
+        })
+        setIsUploading(false)
+        return
+      }
+
+      // Calculate email
+      const email = `${corporateData.emailPrefix}@parchipakistan.com`
+
+      // Prepare request data
+      const requestData = {
+        name: corporateData.name,
+        emailPrefix: corporateData.emailPrefix,
+        contactEmail: corporateData.contactEmail,
+        password: corporateData.password,
+        contact: corporateData.contact,
+        email: email,
+        logo_path: corporateData.logoUrl,
+        ...(corporateData.regNumber && { regNumber: corporateData.regNumber }),
+        ...(corporateData.category && { category: corporateData.category }),
+      }
+
+      // Call API
+      const response = await corporateSignup(requestData)
+
+      // Success toast
+      toast({
+        title: "Account Created Successfully",
+        description: response.message || "Corporate account created. Verification pending.",
       })
-      // Add API call here
+
+      // Reset form
+      setCorporateData({
+        name: "",
+        emailPrefix: "",
+        contactEmail: "",
+        password: "",
+        contact: "",
+        regNumber: "",
+        category: "",
+        logo: null,
+        logoUrl: ""
+      })
+
     } catch (error) {
-      console.error("Error creating account:", error)
+      console.error("Error creating corporate account:", error)
+      
+      // Handle API errors
+      if (error && typeof error === 'object' && 'statusCode' in error) {
+        const apiError = error as ApiError
+        const errorMessage = Array.isArray(apiError.message) 
+          ? apiError.message.join(', ') 
+          : apiError.message || 'Failed to create corporate account'
+        
+        toast({
+          variant: "destructive",
+          title: `Error ${apiError.statusCode}`,
+          description: errorMessage,
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to create corporate account. Please try again.",
+        })
+      }
     } finally {
       setIsUploading(false)
     }
