@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,24 +9,72 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Ticket, MoreHorizontal, Calendar } from "lucide-react"
+import { Plus, Ticket, MoreHorizontal, Calendar, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { getOffers, approveRejectOffer, deleteOffer, Offer, getCorporateMerchants, CorporateMerchant } from "@/lib/api-client"
+import { toast } from "sonner"
 
-// Mock Data
-const mockOffers = [
-  { id: 1, title: "20% Off All Items", merchant: "Burger Hub", type: "Percentage", value: "20%", status: "active", expiry: "2024-12-31" },
-  { id: 2, title: "Free Drink with Pizza", merchant: "Pizza Palace", type: "Fixed", value: "Rs. 150", status: "active", expiry: "2024-11-30" },
-  { id: 3, title: "Lunch Deal", merchant: "Burger Hub", type: "Fixed", value: "Rs. 500", status: "expired", expiry: "2023-10-01" },
-]
-
-const mockCorporates = [
-  { id: 1, name: "Burger Hub" },
-  { id: 2, name: "Pizza Palace" },
-  { id: 4, name: "Coffee Corner" },
-]
 
 export function AdminOffers() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [merchants, setMerchants] = useState<CorporateMerchant[]>([])
+  const [filters, setFilters] = useState({
+    status: undefined as 'active' | 'inactive' | undefined,
+    merchantId: undefined as string | undefined
+  })
+
+  const fetchOffers = async () => {
+    try {
+      setLoading(true)
+      const response = await getOffers(filters)
+      setOffers(response.data.data)
+    } catch (error) {
+      toast.error("Failed to fetch offers")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchMerchants = async () => {
+    try {
+      const response = await getCorporateMerchants()
+      setMerchants(response.data)
+    } catch (error) {
+      console.error("Failed to fetch merchants")
+    }
+  }
+
+  useEffect(() => {
+    fetchOffers()
+  }, [filters])
+
+  useEffect(() => {
+    fetchMerchants()
+  }, [])
+
+  const handleApproveReject = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      await approveRejectOffer(id, action)
+      toast.success(`Offer ${action}d successfully`)
+      fetchOffers()
+    } catch (error) {
+      toast.error(`Failed to ${action} offer`)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this offer? This action cannot be undone.")) return
+    
+    try {
+      await deleteOffer(id)
+      toast.success("Offer deleted successfully")
+      fetchOffers()
+    } catch (error) {
+      toast.error("Failed to delete offer")
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -48,11 +96,39 @@ export function AdminOffers() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center py-4">
+          <div className="flex items-center gap-4 py-4">
             <Input
               placeholder="Search offers..."
               className="max-w-sm"
+              disabled // Search API not implemented in this iteration
             />
+            <Select 
+              value={filters.status || "all"} 
+              onValueChange={(val) => setFilters(prev => ({ ...prev, status: val === "all" ? undefined : val as 'active' | 'inactive' }))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select 
+              value={filters.merchantId || "all"} 
+              onValueChange={(val) => setFilters(prev => ({ ...prev, merchantId: val === "all" ? undefined : val }))}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by merchant" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Merchants</SelectItem>
+                {merchants.map(m => (
+                  <SelectItem key={m.id} value={m.id}>{m.businessName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="rounded-md border">
             <Table>
@@ -67,46 +143,68 @@ export function AdminOffers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockOffers.map((offer) => (
-                  <TableRow key={offer.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Ticket className="h-4 w-4 text-primary" />
-                        {offer.title}
-                      </div>
-                    </TableCell>
-                    <TableCell>{offer.merchant}</TableCell>
-                    <TableCell>{offer.value}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {offer.expiry}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={offer.status === "active" ? "default" : "secondary"}>
-                        {offer.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Edit Offer</DropdownMenuItem>
-                          <DropdownMenuItem>View Stats</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : offers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      No offers found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  offers.map((offer) => (
+                    <TableRow key={offer.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Ticket className="h-4 w-4 text-primary" />
+                          {offer.title}
+                        </div>
+                      </TableCell>
+                      <TableCell>{offer.merchant?.businessName || 'Unknown'}</TableCell>
+                      <TableCell>
+                        {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(offer.validUntil).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={offer.status === "active" ? "default" : "secondary"}>
+                          {offer.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleApproveReject(offer.id, 'approve')}>
+                              Approve
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleApproveReject(offer.id, 'reject')}>
+                              Reject
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer.id)}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -131,8 +229,8 @@ export function AdminOffers() {
                   <SelectValue placeholder="Select merchant" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockCorporates.map(corp => (
-                    <SelectItem key={corp.id} value={corp.id.toString()}>{corp.name}</SelectItem>
+                  {merchants.map(corp => (
+                    <SelectItem key={corp.id} value={corp.id}>{corp.businessName}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

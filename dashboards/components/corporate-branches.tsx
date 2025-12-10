@@ -269,7 +269,7 @@ export function CorporateBranches() {
 
       {/* Create Branch Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="w-[98vw] max-w-none max-h-[95vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-none max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Branch</DialogTitle>
             <DialogDescription>

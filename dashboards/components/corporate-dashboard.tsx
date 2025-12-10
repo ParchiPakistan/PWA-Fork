@@ -24,6 +24,10 @@ import { CorporateOffers } from "./corporate-offers"
 import { CorporateBranches } from "./corporate-branches"
 import { DASHBOARD_COLORS, getChartColor } from "@/lib/colors"
 
+import { useEffect } from "react"
+import { getMerchantOffers, Offer } from "@/lib/api-client"
+import { toast } from "sonner"
+
 const mockRedemptionTrend = [
   { date: "Mon", redemptions: 120, discounts: 24000 },
   { date: "Tue", redemptions: 150, discounts: 30000 },
@@ -52,17 +56,26 @@ const mockRedemptionTimeOfDay = [
   { time: "22:00", count: 60 },
 ]
 
-const mockOfferPerformance = [
-  { name: "Student Lunch Deal", redemptions: 1250, type: "top" },
-  { name: "BOGO Coffee", redemptions: 980, type: "top" },
-  { name: "Exam Week Special", redemptions: 850, type: "top" },
-  { name: "Late Night Snack", redemptions: 120, type: "bottom" },
-  { name: "Breakfast Combo", redemptions: 85, type: "bottom" },
-]
-
 export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("overview")
+  const [offers, setOffers] = useState<Offer[]>([])
   const colors = DASHBOARD_COLORS("corporate")
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await getMerchantOffers()
+        setOffers(response.data.data)
+      } catch (error) {
+        console.error("Failed to fetch dashboard data")
+      }
+    }
+    fetchData()
+  }, [])
+
+  const totalRedemptions = offers.reduce((acc, offer) => acc + offer.currentRedemptions, 0)
+  const sortedOffers = [...offers].sort((a, b) => b.currentRedemptions - a.currentRedemptions).slice(0, 5)
+
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -89,9 +102,9 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>2,260</div>
+                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>{totalRedemptions}</div>
                     <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                      <TrendingUp className="w-3 h-3" /> +12% MoM Growth
+                      <TrendingUp className="w-3 h-3" /> Total Redemptions
                     </p>
                   </CardContent>
                 </Card>
@@ -195,27 +208,25 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {mockOfferPerformance.map((offer, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                      {sortedOffers.length > 0 ? sortedOffers.map((offer, i) => (
+                        <div key={offer.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-full ${offer.type === 'top' ? 'bg-green-100' : 'bg-red-100'}`}>
-                              {offer.type === 'top' ? (
-                                <TrendingUp className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />
-                              )}
+                            <div className={`p-2 rounded-full ${i < 3 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                              <TrendingUp className={`w-4 h-4 ${i < 3 ? 'text-green-600' : 'text-gray-600'}`} />
                             </div>
                             <div>
-                              <p className="font-medium text-sm">{offer.name}</p>
-                              <p className="text-xs text-muted-foreground">{offer.type === 'top' ? 'Top Performing' : 'Needs Attention'}</p>
+                              <p className="font-medium text-sm">{offer.title}</p>
+                              <p className="text-xs text-muted-foreground">{offer.status}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold" style={{ color: colors.primary }}>{offer.redemptions}</p>
+                            <p className="font-bold" style={{ color: colors.primary }}>{offer.currentRedemptions}</p>
                             <p className="text-xs text-muted-foreground">Redemptions</p>
                           </div>
                         </div>
-                      ))}
+                      )) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No offers data available</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Building2, Store, MoreHorizontal, Search, Loader2, AlertCircle, RefreshCw, Edit } from "lucide-react"
+import { Plus, Building2, Store, MoreHorizontal, Search, Loader2, AlertCircle, RefreshCw, Edit, Upload, X } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useMerchants } from "@/hooks/use-merchants"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { updateCorporateMerchant, CorporateMerchant } from "@/lib/api-client"
+import { SupabaseStorageService } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 
 export function AdminMerchants() {
@@ -31,8 +32,10 @@ export function AdminMerchants() {
     contactPhone: "",
     contactEmail: "",
     businessRegistrationNumber: "",
+    logoPath: "",
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [isLogoUploading, setIsLogoUploading] = useState(false)
 
   // Filter merchants based on search query
   const filteredMerchants = merchants.filter((merchant) =>
@@ -58,8 +61,39 @@ export function AdminMerchants() {
       contactPhone: merchant.contactPhone,
       contactEmail: merchant.contactEmail,
       businessRegistrationNumber: merchant.businessRegistrationNumber || "",
+      logoPath: merchant.logoPath || "",
     })
     setIsEditOpen(true)
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsLogoUploading(true)
+    try {
+      // Use a temporary name if business name is empty
+      const businessName = editForm.businessName || "temp-upload"
+      const url = await SupabaseStorageService.uploadCorporateLogo(file, businessName)
+      
+      setEditForm(prev => ({ 
+        ...prev, 
+        logoPath: url 
+      }))
+    } catch (error) {
+      console.error("Error uploading logo:", error)
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload logo. Please try again.",
+      })
+    } finally {
+      setIsLogoUploading(false)
+    }
+  }
+
+  const handleRemoveLogo = () => {
+    setEditForm(prev => ({ ...prev, logoPath: "" }))
   }
 
   const handleUpdate = async () => {
@@ -224,6 +258,47 @@ export function AdminMerchants() {
                 value={editForm.businessName}
                 onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Business Logo</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="cursor-pointer"
+                    disabled={isLogoUploading}
+                  />
+                  {isLogoUploading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {editForm.logoPath && (
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-10 h-10 rounded border overflow-hidden bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img 
+                        src={editForm.logoPath} 
+                        alt="Logo" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive/90"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Registration Number</Label>

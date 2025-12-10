@@ -353,3 +353,254 @@ export async function branchSignup(
   });
 }
 
+
+// Admin Offers API Types
+export interface Offer {
+  id: string;
+  merchantId: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscountAmount: number | null;
+  termsConditions: string | null;
+  validFrom: string;
+  validUntil: string;
+  dailyLimit: number | null;
+  totalLimit: number | null;
+  currentRedemptions: number;
+  status: 'active' | 'inactive' | 'expired';
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  branches: {
+    branchId: string;
+    branchName: string;
+    isActive: boolean;
+  }[];
+  merchant: {
+    id: string;
+    businessName: string;
+    logoPath: string | null;
+    category: string;
+  };
+}
+
+export interface OfferFilter {
+  status?: 'active' | 'inactive';
+  merchantId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface OffersResponse {
+  data: {
+    data: Offer[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  };
+  status: number;
+  message: string;
+}
+
+// Admin Offers API Functions
+
+/**
+ * Get all offers with optional filtering
+ */
+export const getOffers = async (filters?: OfferFilter): Promise<OffersResponse> => {
+  const queryParams = new URLSearchParams();
+  if (filters?.status) queryParams.append('status', filters.status);
+  if (filters?.merchantId) queryParams.append('merchantId', filters.merchantId);
+  if (filters?.page) queryParams.append('page', filters.page.toString());
+  if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+
+  const endpoint = `/admin/offers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  
+  return apiRequest(endpoint, {
+    method: 'GET',
+  });
+};
+
+/**
+ * Get a single offer by ID
+ */
+export const getOffer = async (id: string): Promise<Offer> => {
+  const response = await apiRequest(`/admin/offers/${id}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Approve or reject an offer
+ */
+export const approveRejectOffer = async (id: string, action: 'approve' | 'reject', notes?: string): Promise<void> => {
+  await apiRequest(`/admin/offers/${id}/approve-reject`, {
+    method: 'PUT',
+    body: JSON.stringify({ action, notes }),
+  });
+};
+
+/**
+ * Delete an offer
+ */
+export const deleteOffer = async (id: string): Promise<void> => {
+  await apiRequest(`/admin/offers/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+// Corporate Offers API Types
+
+export interface CreateOfferRequest {
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderValue?: number;
+  maxDiscountAmount?: number;
+  termsConditions?: string;
+  validFrom: string;
+  validUntil: string;
+  dailyLimit?: number;
+  totalLimit?: number;
+  branchIds?: string[]; // Optional: assign to specific branches on creation
+}
+
+export interface UpdateOfferRequest {
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  minOrderValue?: number;
+  maxDiscountAmount?: number;
+  termsConditions?: string;
+  validFrom?: string;
+  validUntil?: string;
+  dailyLimit?: number;
+  totalLimit?: number;
+}
+
+export interface OfferAnalytics {
+  offerId: string;
+  totalRedemptions: number;
+  currentRedemptions: number;
+  dailyRedemptions: {
+    date: string;
+    count: number;
+  }[];
+  branchBreakdown: {
+    branchId: string;
+    branchName: string;
+    redemptions: number;
+  }[];
+}
+
+// Corporate Offers API Functions
+
+/**
+ * Create a new offer
+ */
+export const createOffer = async (data: CreateOfferRequest): Promise<Offer> => {
+  return apiRequest('/offers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+/**
+ * Get merchant's own offers
+ */
+export const getMerchantOffers = async (filters?: OfferFilter): Promise<OffersResponse> => {
+  const queryParams = new URLSearchParams();
+  if (filters?.status) queryParams.append('status', filters.status);
+  if (filters?.page) queryParams.append('page', filters.page.toString());
+  if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+
+  const endpoint = `/offers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  
+  return apiRequest(endpoint, {
+    method: 'GET',
+  });
+};
+
+/**
+ * Get merchant's own offer details
+ */
+export const getMerchantOffer = async (id: string): Promise<Offer> => {
+  const response = await apiRequest(`/offers/${id}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Update an offer
+ */
+export const updateOffer = async (id: string, data: UpdateOfferRequest): Promise<Offer> => {
+  const response = await apiRequest(`/offers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  return response.data;
+};
+
+/**
+ * Toggle offer status (active <-> inactive)
+ */
+export const toggleOfferStatus = async (id: string): Promise<Offer> => {
+  const response = await apiRequest(`/offers/${id}/toggle`, {
+    method: 'PATCH',
+  });
+  return response.data;
+};
+
+/**
+ * Delete an offer
+ */
+export const deleteMerchantOffer = async (id: string): Promise<void> => {
+  await apiRequest(`/offers/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+/**
+ * Assign branches to an offer
+ */
+export const assignOfferBranches = async (id: string, branchIds: string[]): Promise<void> => {
+  await apiRequest(`/offers/${id}/branches`, {
+    method: 'POST',
+    body: JSON.stringify({ branchIds }),
+  });
+};
+
+/**
+ * Remove branches from an offer
+ */
+export const removeOfferBranches = async (id: string, branchIds: string[]): Promise<void> => {
+  await apiRequest(`/offers/${id}/branches`, {
+    method: 'DELETE',
+    body: JSON.stringify({ branchIds }),
+  });
+};
+
+/**
+ * Get offer analytics
+ */
+export const getOfferAnalytics = async (id: string): Promise<OfferAnalytics> => {
+  const response = await apiRequest(`/offers/${id}/analytics`, {
+    method: 'GET',
+  });
+  return response.data;
+};

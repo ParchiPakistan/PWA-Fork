@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,25 +10,186 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Ticket, MoreHorizontal, Calendar } from "lucide-react"
+import { Plus, Ticket, MoreHorizontal, Calendar, Loader2, Store } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { getMerchantOffers, createOffer, updateOffer, toggleOfferStatus, deleteMerchantOffer, Offer, CreateOfferRequest, getBranches, AdminBranch, assignOfferBranches, removeOfferBranches } from "@/lib/api-client"
+import { toast } from "sonner"
+import { useAuth } from "@/contexts/AuthContext"
 
-// Mock Data
-const mockOffers = [
-  { id: 1, title: "20% Off All Items", type: "Percentage", value: "20%", status: "active", expiry: "2024-12-31" },
-  { id: 2, title: "Lunch Deal", type: "Fixed", value: "Rs. 500", status: "expired", expiry: "2023-10-01" },
-]
-
-const mockBranches = [
-  { id: 1, name: "Downtown Branch" },
-  { id: 2, name: "Mall Branch" },
-  { id: 3, name: "University Road" },
-]
 
 export function CorporateOffers() {
+  const { user } = useAuth()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [branches, setBranches] = useState<AdminBranch[]>([])
+  
+  // Form State
+  const [formData, setFormData] = useState<Partial<CreateOfferRequest>>({
+    discountType: 'percentage',
+    validFrom: new Date().toISOString().split('T')[0],
+    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  })
   const [isBranchSpecific, setIsBranchSpecific] = useState(false)
-  const [selectedBranches, setSelectedBranches] = useState<number[]>([])
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Manage Branches State
+  const [isManageBranchesOpen, setIsManageBranchesOpen] = useState(false)
+  const [managingOffer, setManagingOffer] = useState<Offer | null>(null)
+  const [manageBranchIds, setManageBranchIds] = useState<string[]>([])
+  const [isManageBranchSpecific, setIsManageBranchSpecific] = useState(false)
+
+  const fetchOffers = async () => {
+    try {
+      setLoading(true)
+      const response = await getMerchantOffers()
+      setOffers(response.data.data)
+    } catch (error) {
+      toast.error("Failed to fetch offers")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchBranches = async () => {
+    try {
+      const data = await getBranches()
+      setBranches(data)
+    } catch (error) {
+      console.error("Failed to fetch branches")
+    }
+  }
+
+  useEffect(() => {
+    fetchOffers()
+    fetchBranches()
+  }, [])
+
+  const handleCreateOffer = async () => {
+    if (!formData.title || !formData.discountValue || !formData.validFrom || !formData.validUntil) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
+    // Validation
+    if (formData.discountValue < 0) {
+      toast.error("Discount value cannot be negative")
+      return
+    }
+    if (formData.discountType === 'percentage' && formData.discountValue > 100) {
+      toast.error("Percentage discount cannot exceed 100%")
+      return
+    }
+    if (formData.discountType === 'fixed' && formData.discountValue > 99999999) {
+      toast.error("Fixed discount value is too large")
+      return
+    }
+    if (formData.minOrderValue && formData.minOrderValue > 99999999) {
+      toast.error("Minimum order value is too large")
+      return
+    }
+    if (formData.maxDiscountAmount && formData.maxDiscountAmount > 99999999) {
+      toast.error("Max discount amount is too large")
+      return
+    }
+    if (formData.dailyLimit && formData.dailyLimit > 2147483647) {
+      toast.error("Daily limit is too large")
+      return
+    }
+    if (formData.totalLimit && formData.totalLimit > 2147483647) {
+      toast.error("Total limit is too large")
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      await createOffer({
+        ...formData as CreateOfferRequest,
+        branchIds: isBranchSpecific ? selectedBranches : undefined
+      })
+      toast.success("Offer created successfully")
+      setIsCreateOpen(false)
+      fetchOffers()
+      // Reset form
+      setFormData({
+        discountType: 'percentage',
+        validFrom: new Date().toISOString().split('T')[0],
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      })
+      setSelectedBranches([])
+      setIsBranchSpecific(false)
+    } catch (error) {
+      toast.error("Failed to create offer. Please check your inputs.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const openManageBranches = (offer: Offer) => {
+    setManagingOffer(offer)
+    const currentBranchIds = offer.branches.map(b => b.branchId)
+    setManageBranchIds(currentBranchIds)
+    setIsManageBranchSpecific(currentBranchIds.length > 0)
+    setIsManageBranchesOpen(true)
+  }
+
+  const handleSaveBranches = async () => {
+    if (!managingOffer) return
+
+    try {
+      setIsSubmitting(true)
+      const currentIds = managingOffer.branches.map(b => b.branchId)
+      
+      // If switching to "All Branches" (not specific), remove all assignments
+      if (!isManageBranchSpecific) {
+        if (currentIds.length > 0) {
+          await removeOfferBranches(managingOffer.id, currentIds)
+        }
+      } else {
+        // Calculate additions and removals
+        const toAdd = manageBranchIds.filter(id => !currentIds.includes(id))
+        const toRemove = currentIds.filter(id => !manageBranchIds.includes(id))
+
+        if (toAdd.length > 0) {
+          await assignOfferBranches(managingOffer.id, toAdd)
+        }
+        if (toRemove.length > 0) {
+          await removeOfferBranches(managingOffer.id, toRemove)
+        }
+      }
+
+      toast.success("Branch assignments updated successfully")
+      setIsManageBranchesOpen(false)
+      fetchOffers()
+    } catch (error) {
+      toast.error("Failed to update branch assignments")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    try {
+      await toggleOfferStatus(id)
+      toast.success(`Offer ${currentStatus === 'active' ? 'deactivated' : 'activated'} successfully`)
+      fetchOffers()
+    } catch (error) {
+      toast.error("Failed to update offer status")
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this offer? This action cannot be undone.")) return
+    
+    try {
+      await deleteMerchantOffer(id)
+      toast.success("Offer deleted successfully")
+      fetchOffers()
+    } catch (error) {
+      toast.error("Failed to delete offer")
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -54,6 +215,7 @@ export function CorporateOffers() {
             <Input
               placeholder="Search offers..."
               className="max-w-sm"
+              disabled
             />
           </div>
           <div className="rounded-md border">
@@ -68,45 +230,67 @@ export function CorporateOffers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockOffers.map((offer) => (
-                  <TableRow key={offer.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Ticket className="h-4 w-4 text-primary" />
-                        {offer.title}
-                      </div>
-                    </TableCell>
-                    <TableCell>{offer.value}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {offer.expiry}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={offer.status === "active" ? "default" : "secondary"}>
-                        {offer.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Edit Offer</DropdownMenuItem>
-                          <DropdownMenuItem>View Stats</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : offers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      No offers found. Create your first offer!
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  offers.map((offer) => (
+                    <TableRow key={offer.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Ticket className="h-4 w-4 text-primary" />
+                          {offer.title}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(offer.validUntil).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={offer.status === "active" ? "default" : "secondary"}>
+                          {offer.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openManageBranches(offer)}>
+                              <Store className="mr-2 h-4 w-4" /> Manage Branches
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(offer.id, offer.status)}>
+                              {offer.status === 'active' ? 'Deactivate' : 'Activate'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer.id)}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -126,13 +310,20 @@ export function CorporateOffers() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Offer Title</Label>
-              <Input placeholder="e.g. Flat 20% Off" />
+              <Input 
+                placeholder="e.g. Flat 20% Off" 
+                value={formData.title || ''}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Discount Type</Label>
-                <Select defaultValue="percentage">
+                <Select 
+                  value={formData.discountType} 
+                  onValueChange={(val: 'percentage' | 'fixed') => setFormData({...formData, discountType: val})}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -144,24 +335,88 @@ export function CorporateOffers() {
               </div>
               <div className="space-y-2">
                 <Label>Value</Label>
-                <Input type="number" placeholder="e.g. 20" />
+                <Input 
+                  type="number" 
+                  placeholder="e.g. 20" 
+                  value={formData.discountValue || ''}
+                  onChange={(e) => setFormData({...formData, discountValue: Number(e.target.value)})}
+                  min={0}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Min Order Value (Optional)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="e.g. 500" 
+                  value={formData.minOrderValue || ''}
+                  onChange={(e) => setFormData({...formData, minOrderValue: e.target.value ? Number(e.target.value) : undefined})}
+                  min={0}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Max Discount (Optional)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="e.g. 1000" 
+                  value={formData.maxDiscountAmount || ''}
+                  onChange={(e) => setFormData({...formData, maxDiscountAmount: e.target.value ? Number(e.target.value) : undefined})}
+                  min={0}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Daily Limit (Optional)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="e.g. 50" 
+                  value={formData.dailyLimit || ''}
+                  onChange={(e) => setFormData({...formData, dailyLimit: e.target.value ? Number(e.target.value) : undefined})}
+                  min={0}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Total Limit (Optional)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="e.g. 1000" 
+                  value={formData.totalLimit || ''}
+                  onChange={(e) => setFormData({...formData, totalLimit: e.target.value ? Number(e.target.value) : undefined})}
+                  min={0}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Valid From</Label>
-                <Input type="date" />
+                <Input 
+                  type="date" 
+                  value={formData.validFrom || ''}
+                  onChange={(e) => setFormData({...formData, validFrom: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Valid Until</Label>
-                <Input type="date" />
+                <Input 
+                  type="date" 
+                  value={formData.validUntil || ''}
+                  onChange={(e) => setFormData({...formData, validUntil: e.target.value})}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Description</Label>
-              <Input placeholder="Brief description of the offer" />
+              <Input 
+                placeholder="Brief description of the offer" 
+                value={formData.description || ''}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+              />
             </div>
 
             <div className="space-y-4 pt-4 border-t">
@@ -183,7 +438,7 @@ export function CorporateOffers() {
                 <div className="space-y-2 pl-6">
                   <Label>Select Branches</Label>
                   <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                    {mockBranches.map((branch) => (
+                    {branches.map((branch) => (
                       <div key={branch.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={`branch-${branch.id}`}
@@ -197,7 +452,7 @@ export function CorporateOffers() {
                           }}
                         />
                         <Label htmlFor={`branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
-                          {branch.name}
+                          {branch.branch_name}
                         </Label>
                       </div>
                     ))}
@@ -214,7 +469,87 @@ export function CorporateOffers() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => setIsCreateOpen(false)}>Create Offer</Button>
+            <Button onClick={handleCreateOffer} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Create Offer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Branches Dialog */}
+      <Dialog open={isManageBranchesOpen} onOpenChange={setIsManageBranchesOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Offer Availability</DialogTitle>
+            <DialogDescription>
+              Select which branches this offer is available at.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="manage-branch-specific" 
+                checked={isManageBranchSpecific}
+                onCheckedChange={(checked) => {
+                  setIsManageBranchSpecific(checked as boolean)
+                  if (!checked) setManageBranchIds([])
+                }}
+              />
+              <Label htmlFor="manage-branch-specific" className="text-sm font-normal cursor-pointer">
+                Limit to specific branches
+              </Label>
+            </div>
+
+            {!isManageBranchSpecific && (
+              <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+                This offer is currently available at <strong>All Branches</strong>.
+              </div>
+            )}
+
+            {isManageBranchSpecific && (
+              <div className="space-y-2 pl-6">
+                <Label>Select Branches</Label>
+                <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                  {branches.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No branches found.</p>
+                  ) : (
+                    branches.map((branch) => (
+                      <div key={branch.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`manage-branch-${branch.id}`}
+                          checked={manageBranchIds.includes(branch.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setManageBranchIds([...manageBranchIds, branch.id])
+                            } else {
+                              setManageBranchIds(manageBranchIds.filter(id => id !== branch.id))
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`manage-branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
+                          {branch.branch_name}
+                        </Label>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {manageBranchIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {manageBranchIds.length} branch{manageBranchIds.length > 1 ? 'es' : ''} selected
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsManageBranchesOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveBranches} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save Changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -505,7 +505,7 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full mx-auto">
       <div className="mb-8">
         <h2 className="text-2xl font-bold" style={{ color: colors.primary }}>Account Creation</h2>
         <p className="text-muted-foreground mt-1">Create new corporate and branch accounts</p>
