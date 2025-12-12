@@ -96,38 +96,89 @@ export async function apiRequest(
     ? localStorage.getItem('access_token') 
     : null;
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-  });
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-  const data = await response.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+    });
 
-  if (!response.ok) {
-    // If unauthorized, remove token
-    if (response.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
+    // Handle non-JSON responses
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // If response is not JSON, try to get text
+      const text = await response.text();
+      data = text ? { message: text } : { message: 'Request failed' };
+    }
+
+    if (!response.ok) {
+      // If unauthorized, remove token
+      if (response.status === 401 && typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+      }
+      
+      // Handle different error response formats
+      const errorMessage = Array.isArray(data.message) 
+        ? data.message.join(', ') 
+        : data.message || 'Request failed';
+      
+      const error: ApiError = {
+        statusCode: response.status,
+        message: errorMessage,
+        error: data.error || 'Error',
+      };
+      
+      throw error;
+    }
+
+    return data;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    // Handle network errors and timeouts
+    if (error.name === 'AbortError') {
+      const timeoutError: ApiError = {
+        statusCode: 408,
+        message: 'Request timeout - Please try again',
+        error: 'Timeout',
+      };
+      throw timeoutError;
     }
     
-    // Handle different error response formats
-    const errorMessage = Array.isArray(data.message) 
-      ? data.message.join(', ') 
-      : data.message || 'Request failed';
+    // Handle network failures (no internet, CORS, etc.)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      const networkError: ApiError = {
+        statusCode: 0,
+        message: 'Network error - Please check your internet connection',
+        error: 'NetworkError',
+      };
+      throw networkError;
+    }
     
-    const error: ApiError = {
-      statusCode: response.status,
-      message: errorMessage,
-      error: data.error || 'Error',
+    // Re-throw API errors (already formatted)
+    if (error.statusCode) {
+      throw error;
+    }
+    
+    // Unknown error
+    const unknownError: ApiError = {
+      statusCode: 0,
+      message: error.message || 'An unexpected error occurred',
+      error: 'UnknownError',
     };
-    
-    throw error;
+    throw unknownError;
   }
-
-  return data;
 }
 
 /**
@@ -418,7 +469,7 @@ export interface OfferFilter {
 
 export interface OffersResponse {
   data: {
-    data: Offer[];
+    items: Offer[];
     pagination: {
       page: number;
       limit: number;
@@ -622,6 +673,143 @@ export const removeOfferBranches = async (id: string, branchIds: string[]): Prom
 export const getOfferAnalytics = async (id: string): Promise<OfferAnalytics> => {
   const response = await apiRequest(`/offers/${id}/analytics`, {
     method: 'GET',
+  });
+  return response.data;
+};
+
+// ========== Student KYC API Types ==========
+
+export interface StudentKYC {
+  id: string;
+  studentIdImagePath: string;
+  selfieImagePath: string;
+  submittedAt: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewNotes: string | null;
+  isAnnualRenewal: boolean;
+  createdAt: string | null;
+  reviewer?: {
+    id: string;
+    email: string;
+  } | null;
+}
+
+export interface Student {
+  id: string;
+  userId: string;
+  parchiId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  university: string;
+  graduationYear: number | null;
+  isFoundersClub: boolean;
+  totalSavings: number;
+  totalRedemptions: number;
+  verificationStatus: 'pending' | 'approved' | 'rejected' | 'expired';
+  verifiedAt: string | null;
+  verificationExpiresAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  kyc?: StudentKYC | null;
+}
+
+export interface StudentDetail extends Student {
+  kyc: StudentKYC;
+}
+
+export interface PaginatedResponse<T> {
+  data: {
+    items: T[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  };
+  status: number;
+  message: string;
+}
+
+export interface ApproveRejectStudentRequest {
+  action: 'approve' | 'reject';
+  reviewNotes?: string;
+}
+
+export interface StudentsFilter {
+  status?: 'pending' | 'approved' | 'rejected' | 'expired';
+  page?: number;
+  limit?: number;
+  search?: string; // Server-side search query
+}
+
+// ========== Student KYC API Functions ==========
+
+/**
+ * Get pending approval students
+ * Requires admin authentication
+ */
+export const getPendingStudents = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<PaginatedResponse<Student>> => {
+  const queryParams = new URLSearchParams();
+  queryParams.append('page', page.toString());
+  queryParams.append('limit', limit.toString());
+
+  return apiRequest(`/admin/students/pending?${queryParams.toString()}`, {
+    method: 'GET',
+  });
+};
+
+/**
+ * Get all students with optional status filter
+ * Requires admin authentication
+ */
+export const getAllStudents = async (
+  filters?: StudentsFilter
+): Promise<PaginatedResponse<Student>> => {
+  const queryParams = new URLSearchParams();
+  if (filters?.status) queryParams.append('status', filters.status);
+  if (filters?.page) queryParams.append('page', filters.page.toString());
+  if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+  if (filters?.search && filters.search.trim()) {
+    queryParams.append('search', filters.search.trim());
+  }
+
+  const endpoint = `/admin/students${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return apiRequest(endpoint, {
+    method: 'GET',
+  });
+};
+
+/**
+ * Get student details for review (includes KYC images)
+ * Requires admin authentication
+ */
+export const getStudentDetailsForReview = async (id: string): Promise<StudentDetail> => {
+  const response = await apiRequest(`/admin/students/${id}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Approve or reject a student KYC submission
+ * Requires admin authentication
+ */
+export const approveRejectStudent = async (
+  id: string,
+  data: ApproveRejectStudentRequest
+): Promise<Student> => {
+  const response = await apiRequest(`/admin/students/${id}/approve-reject`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
   });
   return response.data;
 };

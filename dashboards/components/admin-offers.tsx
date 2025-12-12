@@ -29,15 +29,19 @@ export function AdminOffers() {
     try {
       setLoading(true)
       const response = await getOffers(filters)
-      setOffers(response.data.data)
+      setOffers(response?.data?.items || [])
     } catch (error) {
       toast.error("Failed to fetch offers")
+      setOffers([]) // Set to empty array on error
     } finally {
       setLoading(false)
     }
   }
 
   const fetchMerchants = async () => {
+    // Prevent refetch if merchants are already loaded
+    if (merchants.length > 0) return
+    
     try {
       const response = await getCorporateMerchants()
       setMerchants(response.data)
@@ -52,6 +56,7 @@ export function AdminOffers() {
 
   useEffect(() => {
     fetchMerchants()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleApproveReject = async (id: string, action: 'approve' | 'reject') => {
@@ -149,7 +154,7 @@ export function AdminOffers() {
                       <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
-                ) : offers.length === 0 ? (
+                ) : !offers || offers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       No offers found.
