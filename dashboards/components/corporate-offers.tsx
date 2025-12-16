@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Ticket, MoreHorizontal, Calendar, Loader2, Store } from "lucide-react"
+import { Plus, Ticket, MoreHorizontal, Calendar, Loader2, Store, Pencil, Upload } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { getMerchantOffers, createOffer, updateOffer, toggleOfferStatus, deleteMerchantOffer, Offer, CreateOfferRequest, getBranches, AdminBranch, assignOfferBranches, removeOfferBranches } from "@/lib/api-client"
+import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -33,6 +34,8 @@ export function CorporateOffers() {
   const [isBranchSpecific, setIsBranchSpecific] = useState(false)
   const [selectedBranches, setSelectedBranches] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
+  const [isImageUploading, setIsImageUploading] = useState(false)
 
   // Manage Branches State
   const [isManageBranchesOpen, setIsManageBranchesOpen] = useState(false)
@@ -44,9 +47,10 @@ export function CorporateOffers() {
     try {
       setLoading(true)
       const response = await getMerchantOffers()
-      setOffers(response.data.data)
+      setOffers(response.data.items || [])
     } catch (error) {
       toast.error("Failed to fetch offers")
+      setOffers([]) // Set to empty array on error
     } finally {
       setLoading(false)
     }
@@ -65,6 +69,25 @@ export function CorporateOffers() {
     fetchOffers()
     fetchBranches()
   }, [])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // If no title is set, use a temp name, but warn user or handle it
+    const title = formData.title || "untitled-offer"
+
+    setIsImageUploading(true)
+    try {
+      const url = await SupabaseStorageService.uploadOfferImage(file, title)
+      setFormData(prev => ({ ...prev, imageUrl: url }))
+      toast.success("Image uploaded successfully")
+    } catch (error) {
+      toast.error("Failed to upload image")
+    } finally {
+      setIsImageUploading(false)
+    }
+  }
 
   const handleCreateOffer = async () => {
     if (!formData.title || !formData.discountValue || !formData.validFrom || !formData.validUntil) {
@@ -104,11 +127,32 @@ export function CorporateOffers() {
 
     try {
       setIsSubmitting(true)
-      await createOffer({
-        ...formData as CreateOfferRequest,
-        branchIds: isBranchSpecific ? selectedBranches : undefined
-      })
-      toast.success("Offer created successfully")
+      
+      if (editingOffer) {
+        // Update existing offer
+        await updateOffer(editingOffer.id, {
+          title: formData.title,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          discountType: formData.discountType,
+          discountValue: formData.discountValue,
+          minOrderValue: formData.minOrderValue,
+          maxDiscountAmount: formData.maxDiscountAmount,
+          validFrom: formData.validFrom,
+          validUntil: formData.validUntil,
+          dailyLimit: formData.dailyLimit,
+          totalLimit: formData.totalLimit,
+        })
+        toast.success("Offer updated successfully")
+      } else {
+        // Create new offer
+        await createOffer({
+          ...formData as CreateOfferRequest,
+          branchIds: isBranchSpecific ? selectedBranches : undefined
+        })
+        toast.success("Offer created successfully")
+      }
+
       setIsCreateOpen(false)
       fetchOffers()
       // Reset form
@@ -119,11 +163,32 @@ export function CorporateOffers() {
       })
       setSelectedBranches([])
       setIsBranchSpecific(false)
+      setEditingOffer(null)
     } catch (error) {
-      toast.error("Failed to create offer. Please check your inputs.")
+      toast.error(editingOffer ? "Failed to update offer" : "Failed to create offer. Please check your inputs.")
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const openEditOffer = (offer: Offer) => {
+    setEditingOffer(offer)
+    setFormData({
+      title: offer.title,
+      description: offer.description || undefined,
+      imageUrl: offer.imageUrl || undefined,
+      discountType: offer.discountType,
+      discountValue: offer.discountValue,
+      minOrderValue: offer.minOrderValue || undefined,
+      maxDiscountAmount: offer.maxDiscountAmount || undefined,
+      validFrom: new Date(offer.validFrom).toISOString().split('T')[0],
+      validUntil: new Date(offer.validUntil).toISOString().split('T')[0],
+      dailyLimit: offer.dailyLimit || undefined,
+      totalLimit: offer.totalLimit || undefined,
+    })
+    // For editing, we don't handle branch selection in the same modal currently
+    // Branch management is done via "Manage Branches"
+    setIsCreateOpen(true)
   }
 
   const openManageBranches = (offer: Offer) => {
@@ -198,7 +263,15 @@ export function CorporateOffers() {
           <h2 className="text-2xl font-bold tracking-tight">My Offers</h2>
           <p className="text-muted-foreground">Manage your discount offers</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
+        <Button onClick={() => {
+          setEditingOffer(null)
+          setFormData({
+            discountType: 'percentage',
+            validFrom: new Date().toISOString().split('T')[0],
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          })
+          setIsCreateOpen(true)
+        }}>
           <Plus className="mr-2 h-4 w-4" /> Create Offer
         </Button>
       </div>
@@ -236,7 +309,7 @@ export function CorporateOffers() {
                       <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
-                ) : offers.length === 0 ? (
+                ) : !offers || offers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
                       No offers found. Create your first offer!
@@ -278,6 +351,9 @@ export function CorporateOffers() {
                             <DropdownMenuItem onClick={() => openManageBranches(offer)}>
                               <Store className="mr-2 h-4 w-4" /> Manage Branches
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditOffer(offer)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleToggleStatus(offer.id, offer.status)}>
                               {offer.status === 'active' ? 'Deactivate' : 'Activate'}
                             </DropdownMenuItem>
@@ -301,13 +377,39 @@ export function CorporateOffers() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create New Offer</DialogTitle>
+            <DialogTitle>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</DialogTitle>
             <DialogDescription>
-              Set up a new discount offer for your customers.
+              {editingOffer ? 'Update offer details.' : 'Set up a new discount offer for your customers.'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Offer Image</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="cursor-pointer"
+                    disabled={isImageUploading}
+                  />
+                  {isImageUploading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {formData.imageUrl && (
+                  <div className="text-xs text-green-600 flex items-center gap-1">
+                    <Upload className="w-3 h-3" />
+                    Uploaded
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Offer Title</Label>
               <Input 
@@ -419,59 +521,62 @@ export function CorporateOffers() {
               />
             </div>
 
-            <div className="space-y-4 pt-4 border-t">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="branch-specific" 
-                  checked={isBranchSpecific}
-                  onCheckedChange={(checked) => {
-                    setIsBranchSpecific(checked as boolean)
-                    if (!checked) setSelectedBranches([])
-                  }}
-                />
-                <Label htmlFor="branch-specific" className="text-sm font-normal cursor-pointer">
-                  Make this offer branch-specific
-                </Label>
-              </div>
-
-              {isBranchSpecific && (
-                <div className="space-y-2 pl-6">
-                  <Label>Select Branches</Label>
-                  <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                    {branches.map((branch) => (
-                      <div key={branch.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`branch-${branch.id}`}
-                          checked={selectedBranches.includes(branch.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedBranches([...selectedBranches, branch.id])
-                            } else {
-                              setSelectedBranches(selectedBranches.filter(id => id !== branch.id))
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
-                          {branch.branch_name}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                  {selectedBranches.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedBranches.length} branch{selectedBranches.length > 1 ? 'es' : ''} selected
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
-          </div>
+            
+            {!editingOffer && (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="branch-specific" 
+                    checked={isBranchSpecific}
+                    onCheckedChange={(checked) => {
+                      setIsBranchSpecific(checked as boolean)
+                      if (!checked) setSelectedBranches([])
+                    }}
+                  />
+                  <Label htmlFor="branch-specific" className="text-sm font-normal cursor-pointer">
+                    Make this offer branch-specific
+                  </Label>
+                </div>
+
+                {isBranchSpecific && (
+                  <div className="space-y-2 pl-6">
+                    <Label>Select Branches</Label>
+                    <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                      {branches.map((branch) => (
+                        <div key={branch.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`branch-${branch.id}`}
+                            checked={selectedBranches.includes(branch.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedBranches([...selectedBranches, branch.id])
+                              } else {
+                                setSelectedBranches(selectedBranches.filter(id => id !== branch.id))
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
+                            {branch.branch_name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedBranches.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedBranches.length} branch{selectedBranches.length > 1 ? 'es' : ''} selected
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateOffer} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Create Offer
+              {editingOffer ? 'Update Offer' : 'Create Offer'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -547,6 +547,7 @@ export interface CreateOfferRequest {
   dailyLimit?: number;
   totalLimit?: number;
   branchIds?: string[]; // Optional: assign to specific branches on creation
+  merchantId?: string; // Required for admin creating offers for merchants
 }
 
 export interface UpdateOfferRequest {

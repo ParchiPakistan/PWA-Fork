@@ -65,16 +65,17 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
     const fetchData = async () => {
       try {
         const response = await getMerchantOffers()
-        setOffers(response.data.data)
+        setOffers(response.data.items || [])
       } catch (error) {
         console.error("Failed to fetch dashboard data")
+        setOffers([]) // Set to empty array on error
       }
     }
     fetchData()
   }, [])
 
-  const totalRedemptions = offers.reduce((acc, offer) => acc + offer.currentRedemptions, 0)
-  const sortedOffers = [...offers].sort((a, b) => b.currentRedemptions - a.currentRedemptions).slice(0, 5)
+  const totalRedemptions = offers?.reduce((acc, offer) => acc + offer.currentRedemptions, 0) || 0
+  const sortedOffers = offers ? [...offers].sort((a, b) => b.currentRedemptions - a.currentRedemptions).slice(0, 5) : []
 
 
   return (
