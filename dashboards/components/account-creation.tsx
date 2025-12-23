@@ -57,32 +57,23 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
   // Fetch real corporate accounts from API
   const { merchants: corporateAccounts, loading: merchantsLoading, error: merchantsError } = useMerchants()
 
-  // Show error if fetching merchants fails
   if (merchantsError && role === 'admin') {
-    // We use a useEffect to avoid rendering side-effects, or just log it. 
-    // Better to show it in the UI near the dropdown or use a toast.
-    // Since we can't call hooks conditionally or inside render easily without useEffect, 
-    // let's just log it for now or rely on the dropdown showing "No corporations" 
-    // but we can also display an alert.
     console.error("Failed to fetch merchants:", merchantsError)
   }
 
   const getCorporateSlug = () => {
-    // If emailPrefix is provided (e.g. for logged in corporate user), use it
     if (emailPrefix) {
       return `${emailPrefix}-`
     }
 
     const selectedId = role === 'corporate' && corporateId ? corporateId : branchData.linkedCorporate
     const corporate = corporateAccounts.find(c => c.id === selectedId)
-    // Generate a slug from business name
     if (corporate) {
-      // Convert business name to slug: lowercase, replace spaces/special chars with hyphens, remove multiple hyphens
       const slug = corporate.businessName
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+        .replace(/^-+|-+$/g, '')
       return slug ? `${slug}-` : ""
     }
     return ""
@@ -108,7 +99,6 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
 
     setIsLogoUploading(true)
     try {
-      // Use a temporary name if business name is empty
       const businessName = corporateData.name || "temp-upload"
       const url = await SupabaseStorageService.uploadCorporateLogo(file, businessName)
       
@@ -129,7 +119,6 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
     setIsUploading(true)
     
     try {
-      // Validate required fields
       if (!corporateData.name || !corporateData.emailPrefix || !corporateData.contactEmail || 
           !corporateData.password || !corporateData.contact) {
         toast({
@@ -141,7 +130,6 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         return
       }
 
-      // Validate logo URL
       if (!corporateData.logoUrl) {
         toast({
           variant: "destructive",
@@ -152,10 +140,8 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         return
       }
 
-      // Calculate email
       const email = `${corporateData.emailPrefix}@parchipakistan.com`
 
-      // Prepare request data
       const requestData = {
         name: corporateData.name,
         emailPrefix: corporateData.emailPrefix,
@@ -168,16 +154,13 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         ...(corporateData.category && { category: corporateData.category }),
       }
 
-      // Call API
       const response = await corporateSignup(requestData)
 
-      // Success toast
       toast({
         title: "Account Created Successfully",
         description: response.message || "Corporate account created. Verification pending.",
       })
 
-      // Reset form
       setCorporateData({
         name: "",
         emailPrefix: "",
@@ -192,8 +175,6 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
 
     } catch (error) {
       console.error("Error creating corporate account:", error)
-      
-      // Handle API errors
       if (error && typeof error === 'object' && 'statusCode' in error) {
         const apiError = error as ApiError
         const errorMessage = Array.isArray(apiError.message) 
@@ -222,7 +203,6 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
     setIsBranchUploading(true)
     
     try {
-      // Validate required fields
       if (!branchData.name || !branchData.emailPrefix || !branchData.password || 
           !branchData.address || !branchData.city || !branchData.contact) {
         toast({
@@ -234,30 +214,19 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         return
       }
 
-      // Validate linked corporate
       if (!branchData.linkedCorporate) {
-        if (role === 'admin') {
-          toast({
-            variant: "destructive",
-            title: "Corporate Account Required",
-            description: "Please select a corporate account to link this branch to.",
-          })
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Corporate Account Required",
-            description: "Corporate account ID is missing. Please contact support.",
-          })
-        }
+        toast({
+          variant: "destructive",
+          title: "Corporate Account Required",
+          description: role === 'admin' ? "Please select a corporate account." : "Corporate ID missing.",
+        })
         setIsBranchUploading(false)
         return
       }
 
-      // Calculate email with corporate slug prefix: {corporateSlug}{emailPrefix}@parchipakistan.com
       const corporateSlug = getCorporateSlug()
       const email = `${corporateSlug}${branchData.emailPrefix}@parchipakistan.com`
 
-      // Prepare request data
       const requestData = {
         name: branchData.name,
         emailPrefix: branchData.emailPrefix,
@@ -271,16 +240,13 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         ...(branchData.longitude && { longitude: branchData.longitude }),
       }
 
-      // Call API
       const response = await branchSignup(requestData)
 
-      // Success toast
       toast({
         title: "Branch Account Created Successfully",
         description: response.message || "Branch account created. Verification pending.",
       })
 
-      // Reset form
       setBranchData({
         name: "",
         emailPrefix: "",
@@ -295,8 +261,6 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
 
     } catch (error) {
       console.error("Error creating branch account:", error)
-      
-      // Handle API errors
       if (error && typeof error === 'object' && 'statusCode' in error) {
         const apiError = error as ApiError
         const errorMessage = Array.isArray(apiError.message) 
@@ -320,7 +284,8 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
     }
   }
 
-  const BranchForm = () => (
+  // FIXED: Changed from a component to a regular render function
+  const renderBranchForm = () => (
     <Card>
       <CardHeader>
         <CardTitle>New Branch Account</CardTitle>
@@ -499,7 +464,7 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
   if (role === 'corporate') {
     return (
       <div className="w-full mx-auto">
-        <BranchForm />
+        {renderBranchForm()}
       </div>
     )
   }
@@ -683,7 +648,7 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         </TabsContent>
 
         <TabsContent value="branch">
-          <BranchForm />
+          {renderBranchForm()}
         </TabsContent>
       </Tabs>
     </div>
