@@ -50,7 +50,7 @@ export function CorporateSidebar({ activeTab, onTabChange, onLogout }: Corporate
   return (
     <aside className="sticky top-0 w-64 h-screen bg-white border-r border-border flex flex-col overflow-y-auto">
       <div className="p-6 border-b border-border">
-        <h2 className="text-lg font-bold" style={{ color: colors.primary }}>Parchi</h2>
+        <img src="/ParchiFullText.svg" alt="Parchi" className="h-8 w-auto mb-2" />
         <p className="text-xs text-muted-foreground mt-1">Corporate Dashboard</p>
       </div>
 

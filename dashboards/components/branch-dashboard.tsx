@@ -25,12 +25,7 @@ import { DASHBOARD_COLORS } from "@/lib/colors"
 import { getStudentByParchiId, createRedemption, StudentVerificationResponse } from "@/lib/api-client"
 import { toast } from "sonner"
 
-const mockActiveOffers = [
-  { id: 1, title: "Weekend Special", discount: "20% off", description: "All items", icon: "🎉" },
-  { id: 2, title: "Student Combo", discount: "Rs. 300 off", description: "Min order Rs. 1000", icon: "🍽️" },
-  { id: 3, title: "Happy Hour", discount: "15% off", description: "Beverages only", icon: "☕" },
-  { id: 4, title: "Lunch Deal", discount: "25% off", description: "12pm-3pm", icon: "🍱" },
-]
+
 
 const mockRecentRedemptions = [
   {
@@ -85,21 +80,30 @@ const colors = DASHBOARD_COLORS("branch")
 export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("redeem")
   const [parchiIdInput, setParchiIdInput] = useState("")
-  const [selectedOffer, setSelectedOffer] = useState<number | null>(null)
+  const [applicableOffer, setApplicableOffer] = useState<any>(null)
   const [recentRedemptions, setRecentRedemptions] = useState(mockRecentRedemptions)
   const [studentDetails, setStudentDetails] = useState<StudentVerificationResponse | null>(null)
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false)
   const [isLoadingStudent, setIsLoadingStudent] = useState(false)
   const [isCreatingRedemption, setIsCreatingRedemption] = useState(false)
 
+
+
   const handleRedemptionClick = async () => {
-    if (!parchiIdInput || !selectedOffer) return
+    if (!parchiIdInput) return
 
     setIsLoadingStudent(true)
     try {
       const student = await getStudentByParchiId(parchiIdInput)
       setStudentDetails(student)
-      setIsVerificationDialogOpen(true)
+      
+      if (student.offer) {
+        setApplicableOffer(student.offer)
+        setIsVerificationDialogOpen(true)
+      } else {
+        toast.error("No active offer found for this student")
+      }
+
     } catch (error) {
       toast.error("Student not found or error fetching details")
     } finally {
@@ -108,28 +112,26 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   }
 
   const handleConfirmRedemption = async () => {
-    if (parchiIdInput && selectedOffer && studentDetails) {
+    if (parchiIdInput && applicableOffer && studentDetails) {
       setIsCreatingRedemption(true)
       try {
-        const offer = mockActiveOffers.find((o) => o.id === selectedOffer)
-        
         // Call API to create redemption
         await createRedemption({
           parchiId: parchiIdInput,
-          offerId: selectedOffer.toString(), // Assuming offer IDs are strings in backend, but numbers in mock. Adjust as needed.
-          notes: "Quick redemption from dashboard"
+          offerId: applicableOffer.id,
+          notes: applicableOffer.isBonus ? "Bonus Redemption" : "Standard Redemption"
         })
 
         const newRedemption = {
           id: recentRedemptions.length + 1,
           parchiId: parchiIdInput,
           studentName: `${studentDetails.firstName} ${studentDetails.lastName}`,
-          offer: `${offer?.title} - ${offer?.discount}`,
+          offer: `${applicableOffer.title} - ${applicableOffer.discountValue}${applicableOffer.discountType === 'percentage' ? '%' : ''}`,
           timestamp: "just now",
         }
         setRecentRedemptions([newRedemption, ...recentRedemptions])
         setParchiIdInput("")
-        setSelectedOffer(null)
+        setApplicableOffer(null)
         setStudentDetails(null)
         setIsVerificationDialogOpen(false)
         toast.success("Redemption processed successfully")
@@ -308,7 +310,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                           onChange={(e) => setParchiIdInput(e.target.value.toUpperCase())}
                           className="text-lg font-mono h-12"
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && parchiIdInput && selectedOffer) {
+                            if (e.key === 'Enter' && parchiIdInput) {
                               handleRedemptionClick()
                             }
                           }}
@@ -317,42 +319,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
 
                     {/* Step 2: Select Offer */}
-                    {parchiIdInput && (
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-sm font-semibold" style={{ color: colors.primary }}>Step 2: Select Offer</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {mockActiveOffers.map((offer) => (
-                            <button
-                              key={offer.id}
-                              onClick={() => setSelectedOffer(offer.id)}
-                              className={`p-4 rounded-lg border-2 transition-all text-left relative overflow-hidden group ${
-                                selectedOffer === offer.id
-                                  ? "bg-opacity-10 shadow-md"
-                                  : "border-border hover:border-opacity-50 hover:bg-muted/50"
-                              }`}
-                              style={{
-                                borderColor: selectedOffer === offer.id ? colors.primary : "currentColor",
-                                backgroundColor: selectedOffer === offer.id ? `${colors.primary}10` : undefined,
-                              }}
-                            >
-                              <div className="flex items-start justify-between relative z-10">
-                                <div className="flex-1">
-                                  <p className="font-semibold text-foreground text-lg">{offer.title}</p>
-                                  <p className="text-sm text-muted-foreground">{offer.description}</p>
-                                </div>
-                                <span className="text-3xl ml-2 group-hover:scale-110 transition-transform">{offer.icon}</span>
-                              </div>
-                              <p className="font-bold mt-2 text-xl" style={{ color: colors.primary }}>
-                                {offer.discount}
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+
 
                     {/* Redemption Button */}
-                    {parchiIdInput && selectedOffer && (
+                    {parchiIdInput && (
                       <div className="flex gap-2 pt-4 border-t animate-in fade-in slide-in-from-top-2">
                         <Button
                           onClick={handleRedemptionClick}
@@ -372,7 +342,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                           variant="outline"
                           onClick={() => {
                             setParchiIdInput("")
-                            setSelectedOffer(null)
+                            setApplicableOffer(null)
                           }}
                           className="px-6 h-12"
                           disabled={isLoadingStudent}
@@ -495,10 +465,17 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Selected Offer</p>
-                  <p className="font-medium mt-1">
-                    {mockActiveOffers.find(o => o.id === selectedOffer)?.discount}
-                  </p>
+                  <p className="text-muted-foreground">Applicable Offer</p>
+                  <div className="mt-1">
+                    <p className="font-medium">{applicableOffer?.title}</p>
+                    <p className="text-sm text-muted-foreground">{applicableOffer?.description}</p>
+                    <p className="text-sm font-semibold mt-1" style={{ color: colors.primary }}>
+                      {applicableOffer?.discountValue}{applicableOffer?.discountType === 'percentage' ? '% OFF' : ' OFF'}
+                    </p>
+                  </div>
+                  {applicableOffer?.isBonus && (
+                    <Badge className="mt-1 bg-yellow-500 hover:bg-yellow-600">Bonus Unlocked! 🎉</Badge>
+                  )}
                 </div>
               </div>
 

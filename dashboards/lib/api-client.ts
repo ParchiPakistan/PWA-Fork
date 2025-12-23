@@ -797,6 +797,16 @@ export interface StudentVerificationResponse {
   university: string;
   verificationStatus: string;
   profilePicture: string | null;
+  verificationSelfie: string | null;
+  offer: {
+    id: string;
+    title: string;
+    description: string;
+    discountType: string;
+    discountValue: number;
+    maxDiscountAmount: number;
+    isBonus: boolean;
+  };
 }
 
 /**

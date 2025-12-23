@@ -1,14 +1,14 @@
 export const ROLE_COLORS = {
   admin: {
-    primary: "hsla(241, 70%, 28%, 1.00)", // Deep indigo
+    primary: "#326295", 
     name: "Admin",
   },
   corporate: {
-    primary: "hsl(265, 95%, 42%)", // Deep indigo
+    primary: "#326295", 
     name: "Corporate",
   },
   branch: {
-    primary: "hsl(280, 85%, 45%)", // Vivid purple
+    primary: "#326295", 
     name: "Branch",
   },
 }
