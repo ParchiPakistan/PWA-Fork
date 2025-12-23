@@ -267,9 +267,10 @@ export function CorporateBranches() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Branch Dialog */}
+      {/* Create Branch Dialog - FIXED WIDTH HERE */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="w-[95vw] max-w-none max-h-[95vh] overflow-y-auto">
+        {/* Added sm:max-w-5xl to forcefully override the default narrow width */}
+        <DialogContent className="sm:max-w-5xl w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Branch</DialogTitle>
             <DialogDescription>
