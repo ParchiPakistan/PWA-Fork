@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { CheckCircle, Clock, TrendingUp, Users, FileText, ShoppingCart, Loader2, XCircle, AlertCircle } from "lucide-react"
 import {
-  LineChart,
+  LineChart,  
   Line,
   BarChart,
   Bar,
@@ -22,7 +23,7 @@ import {
 } from "recharts"
 import { BranchSidebar } from "./branch-sidebar"
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { getStudentByParchiId, createRedemption, StudentVerificationResponse } from "@/lib/api-client"
+import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats } from "@/lib/api-client"
 import { toast } from "sonner"
 
 
@@ -86,6 +87,19 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false)
   const [isLoadingStudent, setIsLoadingStudent] = useState(false)
   const [isCreatingRedemption, setIsCreatingRedemption] = useState(false)
+  const [dailyStats, setDailyStats] = useState<DailyRedemptionStats | null>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const stats = await getDailyRedemptionStats()
+        setDailyStats(stats)
+      } catch (error) {
+        console.error("Failed to fetch daily stats:", error)
+      }
+    }
+    fetchStats()
+  }, [])
 
 
 
@@ -130,6 +144,11 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
           timestamp: "just now",
         }
         setRecentRedemptions([newRedemption, ...recentRedemptions])
+        
+        // Refresh stats after successful redemption
+        const stats = await getDailyRedemptionStats()
+        setDailyStats(stats)
+
         setParchiIdInput("")
         setApplicableOffer(null)
         setStudentDetails(null)
@@ -168,10 +187,24 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>125</div>
-                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                      <TrendingUp className="w-3 h-3" /> +15% vs Yesterday
-                    </p>
+                    {dailyStats ? (
+                      <>
+                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                          {dailyStats.todayCount}
+                        </div>
+                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
+                          <TrendingUp className={`w-3 h-3 ${dailyStats.trend === 'down' ? 'rotate-180' : ''}`} /> 
+                          <span className={dailyStats.trend === 'up' ? "text-green-600" : dailyStats.trend === 'down' ? "text-red-600" : "text-gray-600"}>
+                            {dailyStats.trend === 'up' ? '+' : ''}{dailyStats.percentageChange}%
+                          </span> vs Yesterday
+                        </p>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Skeleton className="h-9 w-16" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -355,7 +388,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                 </Card>
               </div>
 
-              {/* Today's Redemption Count */}
+              {/* Today's Redemption Count - UPDATED TO USE REAL DATA */}
               <div className="mb-8">
                 <Card>
                   <CardHeader className="pb-2">
@@ -365,10 +398,24 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>125</div>
-                    <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                      <TrendingUp className="w-3 h-3" /> +15% vs Yesterday
-                    </p>
+                    {dailyStats ? (
+                      <>
+                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                          {dailyStats.todayCount}
+                        </div>
+                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
+                          <TrendingUp className={`w-3 h-3 ${dailyStats.trend === 'down' ? 'rotate-180' : ''}`} /> 
+                          <span className={dailyStats.trend === 'up' ? "text-green-600" : dailyStats.trend === 'down' ? "text-red-600" : "text-gray-600"}>
+                            {dailyStats.trend === 'up' ? '+' : ''}{dailyStats.percentageChange}%
+                          </span> vs Yesterday
+                        </p>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Skeleton className="h-9 w-16" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

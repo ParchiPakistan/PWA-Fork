@@ -893,3 +893,19 @@ export const approveRejectStudent = async (
   });
   return response.data;
 };
+export interface DailyRedemptionStats {
+  todayCount: number;
+  yesterdayCount: number;
+  percentageChange: number;
+  trend: 'up' | 'down' | 'neutral';
+}
+
+/**
+ * Get daily redemption statistics for the branch
+ */
+export const getDailyRedemptionStats = async (): Promise<DailyRedemptionStats> => {
+  const response = await apiRequest('/admin/redemptions/stats/daily', {
+    method: 'GET',
+  });
+  return response.data;
+};
