@@ -916,6 +916,7 @@ export interface DailyRedemptionDetail {
   offerTitle: string;
   discountDetails: string;
   createdAt: string;
+  notes?: string;
 }
 
 /**
@@ -923,6 +924,29 @@ export interface DailyRedemptionDetail {
  */
 export const getDailyRedemptionDetails = async (): Promise<DailyRedemptionDetail[]> => {
   const response = await apiRequest('/admin/redemptions/stats/daily-details', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export interface HourlyDataPoint {
+  hour: number;
+  count: number;
+  label: string;
+}
+
+export interface AggregatedStats {
+  uniqueStudents: number;
+  bonusDealsCount: number;
+  peakHour: string;
+  hourlyData: HourlyDataPoint[];
+}
+
+/**
+ * Get aggregated redemption stats for the branch
+ */
+export const getAggregatedRedemptionStats = async (): Promise<AggregatedStats> => {
+  const response = await apiRequest('/admin/redemptions/stats/aggregated', {
     method: 'GET',
   });
   return response.data;

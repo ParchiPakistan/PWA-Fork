@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,73 +8,20 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CheckCircle, Clock, TrendingUp, Users, FileText, ShoppingCart, Loader2, XCircle, AlertCircle } from "lucide-react"
+import { CheckCircle, Clock, TrendingUp, Users, Zap, Loader2, XCircle, AlertCircle, Sparkles } from "lucide-react"
 import {
-  LineChart,  
-  Line,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts"
 import { BranchSidebar } from "./branch-sidebar"
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail } from "@/lib/api-client"
+import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
 import { toast } from "sonner"
-
-
-
-const mockRecentRedemptions = [
-  {
-    id: 1,
-    parchiId: "PK-11111",
-    studentName: "Fatima Ahmed",
-    offer: "Weekend Special - 20% off",
-    timestamp: "15 mins ago",
-  },
-  {
-    id: 2,
-    parchiId: "PK-22222",
-    studentName: "Ali Hassan",
-    offer: "Student Combo - Rs. 300 off",
-    timestamp: "22 mins ago",
-  },
-  {
-    id: 3,
-    parchiId: "PK-33333",
-    studentName: "Zara Khan",
-    offer: "Happy Hour - 15% off",
-    timestamp: "35 mins ago",
-  },
-  {
-    id: 4,
-    parchiId: "PK-44444",
-    studentName: "Omar Saeed",
-    offer: "Lunch Deal - 25% off",
-    timestamp: "1 hour ago",
-  },
-]
-
-const mockTodayStats = [
-  { label: "Redemptions Today", value: "125", trend: "+15% vs Yesterday" },
-  { label: "Students Served", value: "118", trend: "94% Unique Students" },
-  { label: "Discounts Given", value: "Rs. 25,000", trend: "Avg. Rs. 200/order" },
-  { label: "Current Queue", value: "3", trend: "< 2 min wait time" },
-]
-
-const mockHourlyRedemptions = [
-  { time: "10 AM", count: 5 },
-  { time: "11 AM", count: 12 },
-  { time: "12 PM", count: 28 },
-  { time: "1 PM", count: 35 },
-  { time: "2 PM", count: 22 },
-  { time: "3 PM", count: 15 },
-  { time: "4 PM", count: 8 },
-]
 
 const colors = DASHBOARD_COLORS("branch")
 
@@ -82,31 +29,45 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("redeem")
   const [parchiIdInput, setParchiIdInput] = useState("")
   const [applicableOffer, setApplicableOffer] = useState<any>(null)
-  const [recentRedemptions, setRecentRedemptions] = useState(mockRecentRedemptions)
+  
+  // State for data
   const [studentDetails, setStudentDetails] = useState<StudentVerificationResponse | null>(null)
+  const [dailyStats, setDailyStats] = useState<DailyRedemptionStats | null>(null)
+  const [dailyRedemptionDetails, setDailyRedemptionDetails] = useState<DailyRedemptionDetail[]>([])
+  const [aggregatedStats, setAggregatedStats] = useState<AggregatedStats | null>(null)
+
+  // Loading states
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false)
   const [isLoadingStudent, setIsLoadingStudent] = useState(false)
   const [isCreatingRedemption, setIsCreatingRedemption] = useState(false)
-  const [dailyStats, setDailyStats] = useState<DailyRedemptionStats | null>(null)
-  const [dailyRedemptionDetails, setDailyRedemptionDetails] = useState<DailyRedemptionDetail[]>([])
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [stats, details] = await Promise.all([
+        const [stats, details, aggregated] = await Promise.all([
           getDailyRedemptionStats(),
-          getDailyRedemptionDetails()
+          getDailyRedemptionDetails(),
+          getAggregatedRedemptionStats()
         ])
         setDailyStats(stats)
         setDailyRedemptionDetails(details)
+        setAggregatedStats(aggregated)
       } catch (error) {
-        console.error("Failed to fetch daily stats or details:", error)
+        console.error("Failed to fetch stats:", error)
       }
     }
     fetchStats()
   }, [])
 
+  // ------------------------------------------------------------------
+  //  DYNAMIC STATS CALCULATION
+  // ------------------------------------------------------------------
 
+
+
+  // ------------------------------------------------------------------
+  //  HANDLERS
+  // ------------------------------------------------------------------
 
   const handleRedemptionClick = async () => {
     if (!parchiIdInput) return
@@ -134,29 +95,21 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
     if (parchiIdInput && applicableOffer && studentDetails) {
       setIsCreatingRedemption(true)
       try {
-        // Call API to create redemption
         await createRedemption({
           parchiId: parchiIdInput,
           offerId: applicableOffer.id,
           notes: applicableOffer.isBonus ? "Bonus Redemption" : "Standard Redemption"
         })
-
-        const newRedemption = {
-          id: recentRedemptions.length + 1,
-          parchiId: parchiIdInput,
-          studentName: `${studentDetails.firstName} ${studentDetails.lastName}`,
-          offer: `${applicableOffer.title} - ${applicableOffer.discountValue}${applicableOffer.discountType === 'percentage' ? '%' : ''}`,
-          timestamp: "just now",
-        }
-        setRecentRedemptions([newRedemption, ...recentRedemptions])
         
-        // Refresh stats and details after successful redemption
-        const [stats, details] = await Promise.all([
+        // Refresh data
+        const [stats, details, aggregated] = await Promise.all([
           getDailyRedemptionStats(),
-          getDailyRedemptionDetails()
+          getDailyRedemptionDetails(),
+          getAggregatedRedemptionStats()
         ])
         setDailyStats(stats)
         setDailyRedemptionDetails(details)
+        setAggregatedStats(aggregated)
 
         setParchiIdInput("")
         setApplicableOffer(null)
@@ -185,9 +138,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
           {activeTab === "overview" && (
             <>
-              {/* Key Metrics */}
-              {/* Key Metrics - Daily Performance */}
+              {/* Key Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                
+                {/* 1. Total Redemptions */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
@@ -209,70 +163,101 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                         </p>
                       </>
                     ) : (
-                      <div className="space-y-2">
-                        <Skeleton className="h-9 w-16" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
+                      <Skeleton className="h-10 w-24 bg-primary/5" />
                     )}
                   </CardContent>
                 </Card>
 
+                {/* 2. Unique Students */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Students Served</span>
+                      <span>Unique Students</span>
                       <Users className="w-4 h-4" style={{ color: colors.primary }} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>118</div>
-                    <p className="text-xs text-muted-foreground mt-1">94% Unique Students</p>
+                    {aggregatedStats ? (
+                      <>
+                         <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                           {aggregatedStats.uniqueStudents}
+                         </div>
+                         <p className="text-xs text-muted-foreground mt-1">Unique Parchi IDs today</p>
+                      </>
+                    ) : (
+                      <Skeleton className="h-10 w-24 bg-primary/5" />
+                    )}
                   </CardContent>
                 </Card>
 
+                {/* 3. Bonus Deals Unlocked (NEW STAT) */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Discounts Given</span>
-                      <FileText className="w-4 h-4" style={{ color: colors.primary }} />
+                      <span>Bonus Deals Unlocked</span>
+                      <Sparkles className="w-4 h-4" style={{ color: colors.primary }} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>Rs. 25k</div>
-                    <p className="text-xs text-muted-foreground mt-1">Avg. Rs. 200/order</p>
+                    {aggregatedStats ? (
+                      <>
+                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                          {aggregatedStats.bonusDealsCount}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {dailyStats && dailyStats.todayCount > 0 
+                            ? Math.round((aggregatedStats.bonusDealsCount / dailyStats.todayCount) * 100) 
+                            : 0}% of total redemptions
+                        </p>
+                      </>
+                    ) : (
+                      <Skeleton className="h-10 w-32 bg-primary/5" />
+                    )}
                   </CardContent>
                 </Card>
 
+                {/* 4. Peak Activity */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Current Queue</span>
-                      <Clock className="w-4 h-4" style={{ color: colors.primary }} />
+                      <span>Peak Activity</span>
+                      <Zap className="w-4 h-4" style={{ color: colors.primary }} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold" style={{ color: colors.primary }}>3</div>
-                    <p className="text-xs text-muted-foreground mt-1">&lt; 2 min wait time</p>
+                     {aggregatedStats ? (
+                      <>
+                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                          {aggregatedStats.peakHour}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                           Busiest hour today
+                        </p>
+                      </>
+                     ) : (
+                      <Skeleton className="h-10 w-24 bg-primary/5" />
+                     )}
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Charts */}
-              {/* Charts - Real-time Stats */}
+              {/* Charts Area */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <Card>
                   <CardHeader>
-                    <CardTitle style={{ color: colors.primary }}>Hourly Redemption Breakdown</CardTitle>
+                    <CardTitle style={{ color: colors.primary }}>Hourly Traffic</CardTitle>
                     <CardDescription>Redemption volume throughout the day</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={mockHourlyRedemptions}>
+                      <BarChart data={aggregatedStats?.hourlyData || []}>
                         <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                        <XAxis dataKey="time" stroke={colors.mutedForeground} />
-                        <YAxis stroke={colors.mutedForeground} />
-                        <Tooltip />
-                        <Legend />
+                        <XAxis dataKey="label" stroke={colors.mutedForeground} fontSize={12} />
+                        <YAxis stroke={colors.mutedForeground} fontSize={12} allowDecimals={false} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px' }}
+                          cursor={{ fill: 'transparent' }}
+                        />
                         <Bar dataKey="count" fill={colors.primary} name="Redemptions" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -281,8 +266,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle style={{ color: colors.primary }}>Most Active Hours</CardTitle>
-                    <CardDescription>Peak times for student visits</CardDescription>
+                    <CardTitle style={{ color: colors.primary }}>Insights</CardTitle>
+                    <CardDescription>Key observations for today</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
@@ -292,35 +277,33 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                             <Clock className="w-6 h-6" style={{ color: colors.primary }} />
                           </div>
                           <div>
-                            <p className="font-semibold text-lg">1:00 PM - 2:00 PM</p>
-                            <p className="text-sm text-muted-foreground">Highest Traffic (Lunch Rush)</p>
+                            <p className="font-semibold text-lg">
+                              {aggregatedStats?.peakHour || "N/A"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">Busiest Hour</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold" style={{ color: colors.primary }}>35</p>
+                          <p className="text-2xl font-bold" style={{ color: colors.primary }}>
+                            {aggregatedStats?.hourlyData.reduce((max, curr) => curr.count > max ? curr.count : max, 0) || 0}
+                          </p>
                           <p className="text-xs text-muted-foreground">Redemptions</p>
                         </div>
                       </div>
 
                       <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-muted-foreground">Other Busy Periods</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground">Activity Summary</h4>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">12:00 PM - 1:00 PM</span>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-primary" style={{ width: '80%', backgroundColor: colors.primary }} />
-                            </div>
-                            <span className="text-xs font-medium">28</span>
-                          </div>
+                          <span className="text-sm">Total Transactions</span>
+                          <span className="font-semibold">{dailyStats?.todayCount || 0}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">2:00 PM - 3:00 PM</span>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-primary" style={{ width: '65%', backgroundColor: colors.primary }} />
-                            </div>
-                            <span className="text-xs font-medium">22</span>
-                          </div>
+                          <span className="text-sm">Unique Students</span>
+                          <span className="font-semibold">{aggregatedStats?.uniqueStudents || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Bonus Unlocked</span>
+                          <span className="font-semibold">{aggregatedStats?.bonusDealsCount || 0}</span>
                         </div>
                       </div>
                     </div>
@@ -332,6 +315,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
           {activeTab === "redeem" && (
             <>
+              {/* Quick Redemption Card */}
               <div className="mb-8">
                 <Card className="border-2" style={{ borderColor: `${colors.primary}40` }}>
                   <CardHeader className="pb-4 bg-muted/20">
@@ -339,12 +323,11 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                       <CheckCircle className="w-6 h-6" />
                       Quick Redemption
                     </CardTitle>
-                    <CardDescription>Enter Parchi ID and select an offer to process redemption</CardDescription>
+                    <CardDescription>Enter Parchi ID to process redemption</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
-                    {/* Step 1: Parchi ID */}
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold" style={{ color: colors.primary }}>Step 1: Student Parchi ID</label>
+                      <label className="text-sm font-semibold" style={{ color: colors.primary }}>Student Parchi ID</label>
                       <div className="flex gap-2">
                         <Input
                           placeholder="Enter Parchi ID (e.g., PK-12345)"
@@ -360,10 +343,6 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                       </div>
                     </div>
 
-                    {/* Step 2: Select Offer */}
-
-
-                    {/* Redemption Button */}
                     {parchiIdInput && (
                       <div className="flex gap-2 pt-4 border-t animate-in fade-in slide-in-from-top-2">
                         <Button
@@ -397,39 +376,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                 </Card>
               </div>
 
-              {/* Today's Redemption Count - UPDATED TO USE REAL DATA */}
-              <div className="mb-8">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                      <span>Redemptions Today</span>
-                      <CheckCircle className="w-4 h-4" style={{ color: colors.primary }} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {dailyStats ? (
-                      <>
-                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
-                          {dailyStats.todayCount}
-                        </div>
-                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                          <TrendingUp className={`w-3 h-3 ${dailyStats.trend === 'down' ? 'rotate-180' : ''}`} /> 
-                          <span className={dailyStats.trend === 'up' ? "text-green-600" : dailyStats.trend === 'down' ? "text-red-600" : "text-gray-600"}>
-                            {dailyStats.trend === 'up' ? '+' : ''}{dailyStats.percentageChange}%
-                          </span> vs Yesterday
-                        </p>
-                      </>
-                    ) : (
-                      <div className="space-y-2">
-                        <Skeleton className="h-9 w-16" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Recent Activity */}
+              {/* Recent Activity Table */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -462,7 +409,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground">{item.parchiId}</p>
-                            <p className="text-sm text-muted-foreground truncate">{item.offerTitle} - {item.discountDetails}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                                {item.offerTitle} 
+                                {item.notes?.includes('Bonus') && <span className="ml-2 text-yellow-600 text-xs font-bold">(Bonus)</span>}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-4">
