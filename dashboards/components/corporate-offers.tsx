@@ -9,74 +9,93 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Ticket, MoreHorizontal, Calendar, Loader2, Store, Pencil, Upload } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Save, Settings, Upload } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { getMerchantOffers, createOffer, updateOffer, toggleOfferStatus, deleteMerchantOffer, Offer, CreateOfferRequest, getBranches, AdminBranch, assignOfferBranches, removeOfferBranches } from "@/lib/api-client"
+import { 
+  getMerchantOffers, createOffer, updateOffer, deleteMerchantOffer, 
+  Offer, CreateOfferRequest, 
+  getBranchAssignments, assignBranchOffers, getBranchBonusSettings, updateBranchBonusSettings, 
+  BranchAssignment, BonusSettings 
+} from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
-
 export function CorporateOffers() {
   const { user } = useAuth()
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [offers, setOffers] = useState<Offer[]>([])
-  const [loading, setLoading] = useState(true)
-  const [branches, setBranches] = useState<AdminBranch[]>([])
   
+  // Data State
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [assignments, setAssignments] = useState<BranchAssignment[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // UI State
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
+  const [isImageUploading, setIsImageUploading] = useState(false)
+  
+  // Bonus Settings State
+  const [isBonusSettingsOpen, setIsBonusSettingsOpen] = useState(false)
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
+  const [selectedBranchName, setSelectedBranchName] = useState<string>("")
+  const [bonusSettings, setBonusSettings] = useState<BonusSettings>({
+    redemptionsRequired: 5,
+    discountType: 'percentage',
+    discountValue: 10,
+    maxDiscountAmount: null,
+    validityDays: 30,
+    isActive: true,
+    imageUrl: null
+  })
+  const [isBonusLoading, setIsBonusLoading] = useState(false)
+  const [isBonusSaving, setIsBonusSaving] = useState(false)
+
   // Form State
   const [formData, setFormData] = useState<Partial<CreateOfferRequest>>({
     discountType: 'percentage',
     validFrom: new Date().toISOString().split('T')[0],
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   })
-  const [isBranchSpecific, setIsBranchSpecific] = useState(false)
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
-  const [isImageUploading, setIsImageUploading] = useState(false)
 
-  // Manage Branches State
-  const [isManageBranchesOpen, setIsManageBranchesOpen] = useState(false)
-  const [managingOffer, setManagingOffer] = useState<Offer | null>(null)
-  const [manageBranchIds, setManageBranchIds] = useState<string[]>([])
-  const [isManageBranchSpecific, setIsManageBranchSpecific] = useState(false)
-
-  const fetchOffers = async () => {
+  // Fetch Initial Data
+  const fetchData = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const response = await getMerchantOffers()
-      setOffers(response.data.items || [])
-    } catch (error) {
-      toast.error("Failed to fetch offers")
-      setOffers([]) // Set to empty array on error
+      // Fetch offers
+      try {
+        const offersRes = await getMerchantOffers()
+        setOffers(offersRes.data.items || [])
+      } catch (error) {
+        console.error("Failed to fetch offers:", error)
+        toast.error("Failed to load offers")
+      }
+
+      // Fetch assignments
+      try {
+        const assignmentsRes = await getBranchAssignments()
+        setAssignments(assignmentsRes)
+      } catch (error) {
+        console.error("Failed to fetch assignments:", error)
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchBranches = async () => {
-    try {
-      const data = await getBranches()
-      setBranches(data)
-    } catch (error) {
-      console.error("Failed to fetch branches")
-    }
-  }
-
   useEffect(() => {
-    fetchOffers()
-    fetchBranches()
+    fetchData()
   }, [])
+
+  // ------------------------------------------------------------------
+  //  OFFER CRUD HANDLERS
+  // ------------------------------------------------------------------
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // If no title is set, use a temp name, but warn user or handle it
     const title = formData.title || "untitled-offer"
-
     setIsImageUploading(true)
     try {
       const url = await SupabaseStorageService.uploadOfferImage(file, title)
@@ -94,566 +113,569 @@ export function CorporateOffers() {
       toast.error("Please fill in all required fields")
       return
     }
-
-    // Validation
     if (formData.discountValue < 0) {
       toast.error("Discount value cannot be negative")
       return
     }
-    if (formData.discountType === 'percentage' && formData.discountValue > 100) {
-      toast.error("Percentage discount cannot exceed 100%")
-      return
-    }
-    if (formData.discountType === 'fixed' && formData.discountValue > 99999999) {
-      toast.error("Fixed discount value is too large")
-      return
-    }
-    if (formData.minOrderValue && formData.minOrderValue > 99999999) {
-      toast.error("Minimum order value is too large")
-      return
-    }
-    if (formData.maxDiscountAmount && formData.maxDiscountAmount > 99999999) {
-      toast.error("Max discount amount is too large")
-      return
-    }
-    if (formData.dailyLimit && formData.dailyLimit > 2147483647) {
-      toast.error("Daily limit is too large")
-      return
-    }
-    if (formData.totalLimit && formData.totalLimit > 2147483647) {
-      toast.error("Total limit is too large")
-      return
-    }
 
+    setIsSubmitting(true)
     try {
-      setIsSubmitting(true)
-      
-      if (editingOffer) {
-        // Update existing offer
-        await updateOffer(editingOffer.id, {
-          title: formData.title,
-          description: formData.description,
-          imageUrl: formData.imageUrl,
-          discountType: formData.discountType,
-          discountValue: formData.discountValue,
-          minOrderValue: formData.minOrderValue,
-          maxDiscountAmount: formData.maxDiscountAmount,
-          validFrom: formData.validFrom,
-          validUntil: formData.validUntil,
-          dailyLimit: formData.dailyLimit,
-          totalLimit: formData.totalLimit,
-        })
-        toast.success("Offer updated successfully")
-      } else {
-        // Create new offer
-        await createOffer({
-          ...formData as CreateOfferRequest,
-          branchIds: isBranchSpecific ? selectedBranches : undefined
-        })
-        toast.success("Offer created successfully")
+      const payload: CreateOfferRequest = {
+        title: formData.title,
+        description: formData.description || "",
+        discountType: formData.discountType === 'percentage' ? 'percentage' : 'fixed',
+        discountValue: Number(formData.discountValue),
+        minOrderValue: Number(formData.minOrderValue) || 0,
+        maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
+        validFrom: formData.validFrom,
+        validUntil: formData.validUntil,
+        dailyLimit: Number(formData.dailyLimit) || undefined,
+        totalLimit: Number(formData.totalLimit) || undefined,
+        imageUrl: formData.imageUrl,
+        branchIds: [] 
       }
 
+      if (editingOffer) {
+        await updateOffer(editingOffer.id, payload)
+        toast.success("Offer updated successfully")
+      } else {
+        await createOffer(payload)
+        toast.success("Offer created successfully")
+      }
+      
       setIsCreateOpen(false)
-      fetchOffers()
-      // Reset form
+      setEditingOffer(null)
       setFormData({
         discountType: 'percentage',
         validFrom: new Date().toISOString().split('T')[0],
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       })
-      setSelectedBranches([])
-      setIsBranchSpecific(false)
-      setEditingOffer(null)
+      fetchData()
     } catch (error) {
-      toast.error(editingOffer ? "Failed to update offer" : "Failed to create offer. Please check your inputs.")
+      toast.error(editingOffer ? "Failed to update offer" : "Failed to create offer")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const openEditOffer = (offer: Offer) => {
+  const handleEditClick = (offer: Offer) => {
     setEditingOffer(offer)
     setFormData({
       title: offer.title,
       description: offer.description || undefined,
-      imageUrl: offer.imageUrl || undefined,
       discountType: offer.discountType,
       discountValue: offer.discountValue,
       minOrderValue: offer.minOrderValue || undefined,
       maxDiscountAmount: offer.maxDiscountAmount || undefined,
-      validFrom: new Date(offer.validFrom).toISOString().split('T')[0],
-      validUntil: new Date(offer.validUntil).toISOString().split('T')[0],
+      validFrom: offer.validFrom.split('T')[0],
+      validUntil: offer.validUntil.split('T')[0],
       dailyLimit: offer.dailyLimit || undefined,
       totalLimit: offer.totalLimit || undefined,
+      imageUrl: offer.imageUrl || undefined
     })
-    // For editing, we don't handle branch selection in the same modal currently
-    // Branch management is done via "Manage Branches"
     setIsCreateOpen(true)
   }
 
-  const openManageBranches = (offer: Offer) => {
-    setManagingOffer(offer)
-    const currentBranchIds = offer.branches.map(b => b.branchId)
-    setManageBranchIds(currentBranchIds)
-    setIsManageBranchSpecific(currentBranchIds.length > 0)
-    setIsManageBranchesOpen(true)
-  }
-
-  const handleSaveBranches = async () => {
-    if (!managingOffer) return
-
-    try {
-      setIsSubmitting(true)
-      const currentIds = managingOffer.branches.map(b => b.branchId)
-      
-      // If switching to "All Branches" (not specific), remove all assignments
-      if (!isManageBranchSpecific) {
-        if (currentIds.length > 0) {
-          await removeOfferBranches(managingOffer.id, currentIds)
-        }
-      } else {
-        // Calculate additions and removals
-        const toAdd = manageBranchIds.filter(id => !currentIds.includes(id))
-        const toRemove = currentIds.filter(id => !manageBranchIds.includes(id))
-
-        if (toAdd.length > 0) {
-          await assignOfferBranches(managingOffer.id, toAdd)
-        }
-        if (toRemove.length > 0) {
-          await removeOfferBranches(managingOffer.id, toRemove)
-        }
+  const handleDeleteOffer = async (offerId: string) => {
+    if (confirm("Are you sure you want to delete this offer?")) {
+      try {
+        await deleteMerchantOffer(offerId)
+        toast.success("Offer deleted successfully")
+        fetchData()
+      } catch (error) {
+        toast.error("Failed to delete offer")
       }
-
-      toast.success("Branch assignments updated successfully")
-      setIsManageBranchesOpen(false)
-      fetchOffers()
-    } catch (error) {
-      toast.error("Failed to update branch assignments")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
+  // ------------------------------------------------------------------
+  //  BONUS SETTINGS HANDLERS
+  // ------------------------------------------------------------------
+
+  const handleOpenBonusSettings = async (branchId: string, branchName: string) => {
+    setSelectedBranchId(branchId)
+    setSelectedBranchName(branchName)
+    setIsBonusSettingsOpen(true)
+    setIsBonusLoading(true)
     try {
-      await toggleOfferStatus(id)
-      toast.success(`Offer ${currentStatus === 'active' ? 'deactivated' : 'activated'} successfully`)
-      fetchOffers()
+      const settings = await getBranchBonusSettings(branchId)
+      // Ensure defaults if fields are missing
+      setBonusSettings({
+        redemptionsRequired: settings.redemptionsRequired || 5,
+        discountType: settings.discountType || 'percentage',
+        discountValue: settings.discountValue || 0,
+        maxDiscountAmount: settings.maxDiscountAmount,
+        validityDays: settings.validityDays || 30,
+        isActive: settings.isActive ?? true,
+        imageUrl: settings.imageUrl
+      })
     } catch (error) {
-      toast.error("Failed to update offer status")
+      console.error("Failed to fetch bonus settings:", error)
+      toast.error("Failed to load bonus settings")
+      // Reset to defaults
+      setBonusSettings({
+        redemptionsRequired: 5,
+        discountType: 'percentage',
+        discountValue: 10,
+        maxDiscountAmount: null,
+        validityDays: 30,
+        isActive: true,
+        imageUrl: null
+      })
+    } finally {
+      setIsBonusLoading(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this offer? This action cannot be undone.")) return
+  const handleBonusImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImageUploading(true)
+    try {
+      const url = await SupabaseStorageService.uploadOfferImage(file, `bonus-${selectedBranchId}`)
+      setBonusSettings(prev => ({ ...prev, imageUrl: url }))
+      toast.success("Image uploaded successfully")
+    } catch (error) {
+      toast.error("Failed to upload image")
+    } finally {
+      setIsImageUploading(false)
+    }
+  }
+
+  const handleSaveBonusSettings = async () => {
+    if (!selectedBranchId) return
+    setIsBonusSaving(true)
+    try {
+      await updateBranchBonusSettings(selectedBranchId, bonusSettings)
+      toast.success("Bonus settings updated")
+      setIsBonusSettingsOpen(false)
+    } catch (error) {
+      toast.error("Failed to update bonus settings")
+    } finally {
+      setIsBonusSaving(false)
+    }
+  }
+
+  // ------------------------------------------------------------------
+  //  BRANCH ASSIGNMENT HANDLERS
+  // ------------------------------------------------------------------
+
+  const handleAssignmentChange = (branchId: string, value: string) => {
+    setAssignments(prev => prev.map(a => 
+      a.id === branchId ? { ...a, standardOfferId: value === "none" ? null : value } : a
+    ))
+  }
+
+  const handleSaveAssignment = async (assignment: BranchAssignment) => {
+    if (!assignment.standardOfferId) {
+      toast.error("A standard offer is required")
+      return
+    }
     
     try {
-      await deleteMerchantOffer(id)
-      toast.success("Offer deleted successfully")
-      fetchOffers()
+      await assignBranchOffers(assignment.id, assignment.standardOfferId)
+      toast.success(`Offer assigned to ${assignment.branchName}`)
     } catch (error) {
-      toast.error("Failed to delete offer")
+      toast.error("Failed to assign offer")
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 p-8">
+      
+      {/* SECTION 1: OFFERS MANAGEMENT */}
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">My Offers</h2>
-          <p className="text-muted-foreground">Manage your discount offers</p>
+          <h2 className="text-3xl font-bold tracking-tight">Offers Management</h2>
+          <p className="text-muted-foreground">Create and manage your pool of offers</p>
         </div>
-        <Button onClick={() => {
-          setEditingOffer(null)
-          setFormData({
-            discountType: 'percentage',
-            validFrom: new Date().toISOString().split('T')[0],
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          })
-          setIsCreateOpen(true)
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) {
+            setEditingOffer(null)
+            setFormData({
+              discountType: 'percentage',
+              validFrom: new Date().toISOString().split('T')[0],
+              validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            })
+          }
         }}>
-          <Plus className="mr-2 h-4 w-4" /> Create Offer
-        </Button>
-      </div>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Create Offer
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</DialogTitle>
+              <DialogDescription>
+                Add details for the offer. You can assign this offer to branches later.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-6 py-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Offer Title *</Label>
+                  <Input 
+                    placeholder="e.g. Student Lunch Deal" 
+                    value={formData.title || ''}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Discount Type</Label>
+                  <Select 
+                    value={formData.discountType} 
+                    onValueChange={(val: any) => setFormData({...formData, discountType: val})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Active & Past Offers</CardTitle>
-          <CardDescription>
-            A list of all offers created for your branches.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center py-4">
-            <Input
-              placeholder="Search offers..."
-              className="max-w-sm"
-              disabled
-            />
-          </div>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Discount</TableHead>
-                  <TableHead>Validity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                ) : !offers || offers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      No offers found. Create your first offer!
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  offers.map((offer) => (
-                    <TableRow key={offer.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Ticket className="h-4 w-4 text-primary" />
-                          {offer.title}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(offer.validUntil).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={offer.status === "active" ? "default" : "secondary"}>
-                          {offer.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openManageBranches(offer)}>
-                              <Store className="mr-2 h-4 w-4" /> Manage Branches
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEditOffer(offer)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleStatus(offer.id, offer.status)}>
-                              {offer.status === 'active' ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer.id)}>
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+              {/* Discount Values */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Discount Value *</Label>
+                  <Input 
+                    type="number" 
+                    placeholder={formData.discountType === 'percentage' ? "e.g. 20" : "e.g. 500"}
+                    value={formData.discountValue || ''}
+                    onChange={(e) => setFormData({...formData, discountValue: Number(e.target.value)})}
+                  />
+                </div>
+                {formData.discountType === 'percentage' && (
+                  <div className="space-y-2">
+                    <Label>Max Discount Amount (Optional)</Label>
+                    <Input 
+                      type="number" 
+                      placeholder="e.g. 1000"
+                      value={formData.maxDiscountAmount || ''}
+                      onChange={(e) => setFormData({...formData, maxDiscountAmount: Number(e.target.value)})}
+                    />
+                  </div>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+              </div>
 
-      {/* Create Offer Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</DialogTitle>
-            <DialogDescription>
-              {editingOffer ? 'Update offer details.' : 'Set up a new discount offer for your customers.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Offer Image</Label>
-              <div className="flex items-center gap-4">
-                <div className="relative">
+              {/* Limits */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Min Order Value (Optional)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="e.g. 1000"
+                    value={formData.minOrderValue || ''}
+                    onChange={(e) => setFormData({...formData, minOrderValue: Number(e.target.value)})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Daily Limit (Optional)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="e.g. 50"
+                    value={formData.dailyLimit || ''}
+                    onChange={(e) => setFormData({...formData, dailyLimit: Number(e.target.value)})}
+                  />
+                </div>
+              </div>
+
+              {/* Validity */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Valid From *</Label>
+                  <Input 
+                    type="date"
+                    value={formData.validFrom}
+                    onChange={(e) => setFormData({...formData, validFrom: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valid Until *</Label>
+                  <Input 
+                    type="date"
+                    value={formData.validUntil}
+                    onChange={(e) => setFormData({...formData, validUntil: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label>Offer Image</Label>
+                <div className="flex items-center gap-4">
                   <Input 
                     type="file" 
                     accept="image/*"
                     onChange={handleImageUpload}
-                    className="cursor-pointer"
                     disabled={isImageUploading}
                   />
-                  {isImageUploading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
+                  {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
                 </div>
                 {formData.imageUrl && (
-                  <div className="text-xs text-green-600 flex items-center gap-1">
-                    <Upload className="w-3 h-3" />
-                    Uploaded
-                  </div>
+                  <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
                 )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Offer Title</Label>
-              <Input 
-                placeholder="e.g. Flat 20% Off" 
-                value={formData.title || ''}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-              />
-            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateOffer} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editingOffer ? 'Update Offer' : 'Create Offer'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Discount Type</Label>
-                <Select 
-                  value={formData.discountType} 
-                  onValueChange={(val: 'percentage' | 'fixed') => setFormData({...formData, discountType: val})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed Amount (Rs)</SelectItem>
-                  </SelectContent>
-                </Select>
+      {/* Offers Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {offers.map((offer) => (
+          <Card key={offer.id}>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle className="text-base font-semibold">{offer.title}</CardTitle>
+                <CardDescription className="text-xs">
+                  {offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `Rs. ${offer.discountValue} OFF`}
+                </CardDescription>
               </div>
-              <div className="space-y-2">
-                <Label>Value</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 20" 
-                  value={formData.discountValue || ''}
-                  onChange={(e) => setFormData({...formData, discountValue: Number(e.target.value)})}
-                  min={0}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Min Order Value (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 500" 
-                  value={formData.minOrderValue || ''}
-                  onChange={(e) => setFormData({...formData, minOrderValue: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Max Discount (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 1000" 
-                  value={formData.maxDiscountAmount || ''}
-                  onChange={(e) => setFormData({...formData, maxDiscountAmount: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Daily Limit (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 50" 
-                  value={formData.dailyLimit || ''}
-                  onChange={(e) => setFormData({...formData, dailyLimit: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total Limit (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 1000" 
-                  value={formData.totalLimit || ''}
-                  onChange={(e) => setFormData({...formData, totalLimit: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Valid From</Label>
-                <Input 
-                  type="date" 
-                  value={formData.validFrom || ''}
-                  onChange={(e) => setFormData({...formData, validFrom: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Valid Until</Label>
-                <Input 
-                  type="date" 
-                  value={formData.validUntil || ''}
-                  onChange={(e) => setFormData({...formData, validUntil: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input 
-                placeholder="Brief description of the offer" 
-                value={formData.description || ''}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
-            </div>
-
-            </div>
-            
-            {!editingOffer && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="branch-specific" 
-                    checked={isBranchSpecific}
-                    onCheckedChange={(checked) => {
-                      setIsBranchSpecific(checked as boolean)
-                      if (!checked) setSelectedBranches([])
-                    }}
-                  />
-                  <Label htmlFor="branch-specific" className="text-sm font-normal cursor-pointer">
-                    Make this offer branch-specific
-                  </Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleEditClick(offer)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-red-600"
+                    onClick={() => handleDeleteOffer(offer.id)}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center">
+                  <Calendar className="mr-2 h-3 w-3" />
+                  {new Date(offer.validUntil).toLocaleDateString()}
                 </div>
-
-                {isBranchSpecific && (
-                  <div className="space-y-2 pl-6">
-                    <Label>Select Branches</Label>
-                    <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                      {branches.map((branch) => (
-                        <div key={branch.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`branch-${branch.id}`}
-                            checked={selectedBranches.includes(branch.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedBranches([...selectedBranches, branch.id])
-                              } else {
-                                setSelectedBranches(selectedBranches.filter(id => id !== branch.id))
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
-                            {branch.branch_name}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedBranches.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {selectedBranches.length} branch{selectedBranches.length > 1 ? 'es' : ''} selected
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={offer.status === 'active' ? 'default' : 'secondary'}>
+                    {offer.status}
+                  </Badge>
+                </div>
               </div>
-            )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateOffer} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {editingOffer ? 'Update Offer' : 'Create Offer'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <div className="border-t my-8" />
 
-      {/* Manage Branches Dialog */}
-      <Dialog open={isManageBranchesOpen} onOpenChange={setIsManageBranchesOpen}>
-        <DialogContent className="max-w-md">
+      {/* SECTION 2: BRANCH ASSIGNMENTS & BONUS SETTINGS */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Branch Assignments</h2>
+          <p className="text-muted-foreground">Assign Standard Offers and configure Bonus Settings for each branch</p>
+        </div>
+
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">Branch Name</TableHead>
+                <TableHead>Standard Offer (Required)</TableHead>
+                <TableHead>Bonus Settings</TableHead>
+                <TableHead className="w-[100px]">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {assignments.map((assignment) => (
+                <TableRow key={assignment.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Store className="h-4 w-4 text-muted-foreground" />
+                      {assignment.branchName}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Select 
+                      value={assignment.standardOfferId || "none"} 
+                      onValueChange={(val) => handleAssignmentChange(assignment.id, val)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Standard Offer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
+                        {offers.filter(o => o.status === 'active').map(offer => (
+                          <SelectItem key={offer.id} value={offer.id}>
+                            {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
+                    >
+                      <Settings className="mr-2 h-4 w-4" /> Configure Bonus
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSaveAssignment(assignment)}
+                    >
+                      Save
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {assignments.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    No branches found. Create branches first.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      {/* Bonus Settings Dialog */}
+      <Dialog open={isBonusSettingsOpen} onOpenChange={setIsBonusSettingsOpen}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Manage Offer Availability</DialogTitle>
+            <DialogTitle>Bonus Settings - {selectedBranchName}</DialogTitle>
             <DialogDescription>
-              Select which branches this offer is available at.
+              Configure the bonus deal for this branch.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="manage-branch-specific" 
-                checked={isManageBranchSpecific}
-                onCheckedChange={(checked) => {
-                  setIsManageBranchSpecific(checked as boolean)
-                  if (!checked) setManageBranchIds([])
-                }}
-              />
-              <Label htmlFor="manage-branch-specific" className="text-sm font-normal cursor-pointer">
-                Limit to specific branches
-              </Label>
+
+          {isBonusLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-
-            {!isManageBranchSpecific && (
-              <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
-                This offer is currently available at <strong>All Branches</strong>.
+          ) : (
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="bonus-active">Enable Bonus Deal</Label>
+                <Switch 
+                  id="bonus-active"
+                  checked={bonusSettings.isActive || false}
+                  onCheckedChange={(checked) => setBonusSettings(prev => ({ ...prev, isActive: checked }))}
+                />
               </div>
-            )}
 
-            {isManageBranchSpecific && (
-              <div className="space-y-2 pl-6">
-                <Label>Select Branches</Label>
-                <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
-                  {branches.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No branches found.</p>
-                  ) : (
-                    branches.map((branch) => (
-                      <div key={branch.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`manage-branch-${branch.id}`}
-                          checked={manageBranchIds.includes(branch.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setManageBranchIds([...manageBranchIds, branch.id])
-                            } else {
-                              setManageBranchIds(manageBranchIds.filter(id => id !== branch.id))
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`manage-branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
-                          {branch.branch_name}
-                        </Label>
-                      </div>
-                    ))
-                  )}
+              <div className="space-y-2">
+                <Label>Redemptions Required</Label>
+                <Input 
+                  type="number"
+                  min={1}
+                  value={bonusSettings.redemptionsRequired}
+                  onChange={(e) => setBonusSettings(prev => ({ ...prev, redemptionsRequired: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted-foreground">Number of standard redemptions to unlock this bonus.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Discount Type</Label>
+                  <Select 
+                    value={bonusSettings.discountType} 
+                    onValueChange={(val: any) => setBonusSettings(prev => ({ ...prev, discountType: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                {manageBranchIds.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {manageBranchIds.length} branch{manageBranchIds.length > 1 ? 'es' : ''} selected
-                  </p>
+                <div className="space-y-2">
+                  <Label>Value</Label>
+                  <Input 
+                    type="number"
+                    value={bonusSettings.discountValue}
+                    onChange={(e) => setBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+
+              {bonusSettings.discountType === 'percentage' && (
+                <div className="space-y-2">
+                  <Label>Max Discount Amount (Optional)</Label>
+                  <Input 
+                    type="number"
+                    value={bonusSettings.maxDiscountAmount || ''}
+                    onChange={(e) => setBonusSettings(prev => ({ ...prev, maxDiscountAmount: Number(e.target.value) }))}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Validity (Days)</Label>
+                <Input 
+                  type="number"
+                  value={bonusSettings.validityDays || 30}
+                  onChange={(e) => setBonusSettings(prev => ({ ...prev, validityDays: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted-foreground">How long the bonus remains valid after unlocking.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Bonus Image</Label>
+                <div className="flex items-center gap-4">
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleBonusImageUpload}
+                    disabled={isImageUploading}
+                  />
+                  {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                {bonusSettings.imageUrl && (
+                  <img src={bonusSettings.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsManageBranchesOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveBranches} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save Changes
+            <Button variant="outline" onClick={() => setIsBonusSettingsOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveBonusSettings} disabled={isBonusSaving}>
+              {isBonusSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Settings
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -951,3 +951,52 @@ export const getAggregatedRedemptionStats = async (): Promise<AggregatedStats> =
   });
   return response.data;
 };
+
+// ------------------------------------------------------------------
+//  BRANCH ASSIGNMENTS & BONUS SETTINGS
+// ------------------------------------------------------------------
+
+export interface BranchAssignment {
+  id: string; // branchId
+  branchName: string;
+  standardOfferId: string | null;
+  bonusOfferId: string | null; // Deprecated/Unused
+}
+
+export interface BonusSettings {
+  redemptionsRequired: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  maxDiscountAmount: number | null;
+  validityDays: number | null;
+  isActive: boolean | null;
+  imageUrl: string | null;
+}
+
+export const getBranchAssignments = async (): Promise<BranchAssignment[]> => {
+  const response = await apiRequest('/merchants/branches/assignments', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export const assignBranchOffers = async (branchId: string, standardOfferId: string) => {
+  return apiRequest(`/merchants/branches/${branchId}/assign`, {
+    method: 'POST',
+    body: JSON.stringify({ standardOfferId, bonusOfferId: null }),
+  });
+};
+
+export const getBranchBonusSettings = async (branchId: string): Promise<BonusSettings> => {
+  const response = await apiRequest(`/merchants/branches/${branchId}/bonus-settings`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export const updateBranchBonusSettings = async (branchId: string, settings: BonusSettings) => {
+  return apiRequest(`/merchants/branches/${branchId}/bonus-settings`, {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+};
