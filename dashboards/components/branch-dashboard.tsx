@@ -17,10 +17,14 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts"
 import { BranchSidebar } from "./branch-sidebar"
-import { DASHBOARD_COLORS } from "@/lib/colors"
-import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
+import { DASHBOARD_COLORS, getChartColor } from "@/lib/colors"
+import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats, getOfferPerformance, OfferPerformance } from "@/lib/api-client"
 import { toast } from "sonner"
 
 const colors = DASHBOARD_COLORS("branch")
@@ -29,12 +33,13 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("redeem")
   const [parchiIdInput, setParchiIdInput] = useState("")
   const [applicableOffer, setApplicableOffer] = useState<any>(null)
-  
+
   // State for data
   const [studentDetails, setStudentDetails] = useState<StudentVerificationResponse | null>(null)
   const [dailyStats, setDailyStats] = useState<DailyRedemptionStats | null>(null)
   const [dailyRedemptionDetails, setDailyRedemptionDetails] = useState<DailyRedemptionDetail[]>([])
   const [aggregatedStats, setAggregatedStats] = useState<AggregatedStats | null>(null)
+  const [offerPerformance, setOfferPerformance] = useState<OfferPerformance[]>([])
 
   // Loading states
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false)
@@ -44,14 +49,16 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [stats, details, aggregated] = await Promise.all([
+        const [stats, details, aggregated, offers] = await Promise.all([
           getDailyRedemptionStats(),
           getDailyRedemptionDetails(),
-          getAggregatedRedemptionStats()
+          getAggregatedRedemptionStats(),
+          getOfferPerformance()
         ])
         setDailyStats(stats)
         setDailyRedemptionDetails(details)
         setAggregatedStats(aggregated)
+        setOfferPerformance(offers)
       } catch (error) {
         console.error("Failed to fetch stats:", error)
       }
@@ -76,7 +83,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
     try {
       const student = await getStudentByParchiId(parchiIdInput)
       setStudentDetails(student)
-      
+
       if (student.offer) {
         setApplicableOffer(student.offer)
         setIsVerificationDialogOpen(true)
@@ -100,7 +107,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
           offerId: applicableOffer.id,
           notes: applicableOffer.isBonus ? "Bonus Redemption" : "Standard Redemption"
         })
-        
+
         // Refresh data
         const [stats, details, aggregated] = await Promise.all([
           getDailyRedemptionStats(),
@@ -140,7 +147,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
             <>
               {/* Key Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                
+
                 {/* 1. Total Redemptions */}
                 <Card>
                   <CardHeader className="pb-2">
@@ -156,7 +163,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                           {dailyStats.todayCount}
                         </div>
                         <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                          <TrendingUp className={`w-3 h-3 ${dailyStats.trend === 'down' ? 'rotate-180' : ''}`} /> 
+                          <TrendingUp className={`w-3 h-3 ${dailyStats.trend === 'down' ? 'rotate-180' : ''}`} />
                           <span className={dailyStats.trend === 'up' ? "text-green-600" : dailyStats.trend === 'down' ? "text-red-600" : "text-gray-600"}>
                             {dailyStats.trend === 'up' ? '+' : ''}{dailyStats.percentageChange}%
                           </span> vs Yesterday
@@ -179,10 +186,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                   <CardContent>
                     {aggregatedStats ? (
                       <>
-                         <div className="text-3xl font-bold" style={{ color: colors.primary }}>
-                           {aggregatedStats.uniqueStudents}
-                         </div>
-                         <p className="text-xs text-muted-foreground mt-1">Unique Parchi IDs today</p>
+                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                          {aggregatedStats.uniqueStudents}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Unique Parchi IDs today</p>
                       </>
                     ) : (
                       <Skeleton className="h-10 w-24 bg-primary/5" />
@@ -205,8 +212,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                           {aggregatedStats.bonusDealsCount}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {dailyStats && dailyStats.todayCount > 0 
-                            ? Math.round((aggregatedStats.bonusDealsCount / dailyStats.todayCount) * 100) 
+                          {dailyStats && dailyStats.todayCount > 0
+                            ? Math.round((aggregatedStats.bonusDealsCount / dailyStats.todayCount) * 100)
                             : 0}% of total redemptions
                         </p>
                       </>
@@ -225,18 +232,18 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                     {aggregatedStats ? (
+                    {aggregatedStats ? (
                       <>
                         <div className="text-3xl font-bold" style={{ color: colors.primary }}>
                           {aggregatedStats.peakHour}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                           Busiest hour today
+                          Busiest hour today
                         </p>
                       </>
-                     ) : (
+                    ) : (
                       <Skeleton className="h-10 w-24 bg-primary/5" />
-                     )}
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -254,7 +261,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                         <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
                         <XAxis dataKey="label" stroke={colors.mutedForeground} fontSize={12} />
                         <YAxis stroke={colors.mutedForeground} fontSize={12} allowDecimals={false} />
-                        <Tooltip 
+                        <Tooltip
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px' }}
                           cursor={{ fill: 'transparent' }}
                         />
@@ -307,6 +314,73 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts Row 2: Offer Performance & Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle style={{ color: colors.primary }}>Offer Performance</CardTitle>
+                    <CardDescription>Top performing offers</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {offerPerformance.length > 0 ? offerPerformance.slice(0, 5).map((offer, i) => (
+                        <div key={offer.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${i < 3 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                              <TrendingUp className={`w-4 h-4 ${i < 3 ? 'text-green-600' : 'text-gray-600'}`} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{offer.title}</p>
+                              <p className="text-xs text-muted-foreground">{offer.status}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold" style={{ color: colors.primary }}>{offer.currentRedemptions}</p>
+                            <p className="text-xs text-muted-foreground">Redemptions</p>
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No offers data available</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle style={{ color: colors.primary }}>Redemption Distribution</CardTitle>
+                    <CardDescription>By branch percentage</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      {offerPerformance.length > 0 ? (
+                        <PieChart>
+                          <Pie
+                            data={offerPerformance.slice(0, 5) as any[]}
+                            dataKey="currentRedemptions"
+                            nameKey="title"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label={({ name, percent }) => `${(name || 'Unknown').substring(0, 15)}... ${((percent || 0) * 100).toFixed(0)}%`}
+                          >
+                            {offerPerformance.slice(0, 5).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={getChartColor("branch", index)} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted-foreground">
+                          No data available
+                        </div>
+                      )}
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
               </div>
@@ -410,8 +484,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground">{item.parchiId}</p>
                             <p className="text-sm text-muted-foreground truncate">
-                                {item.offerTitle} 
-                                {item.notes?.includes('Bonus') && <span className="ml-2 text-yellow-600 text-xs font-bold">(Bonus)</span>}
+                              {item.offerTitle}
+                              {item.notes?.includes('Bonus') && <span className="ml-2 text-yellow-600 text-xs font-bold">(Bonus)</span>}
                             </p>
                           </div>
                         </div>
@@ -495,15 +569,15 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsVerificationDialogOpen(false)}
               className="flex-1"
             >
               <XCircle className="w-4 h-4 mr-2" />
               Reject
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmRedemption}
               className="flex-1"
               style={{ backgroundColor: colors.primary }}

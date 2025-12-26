@@ -92,8 +92,8 @@ export async function apiRequest(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<any> {
-  const token = typeof window !== 'undefined' 
-    ? localStorage.getItem('access_token') 
+  const token = typeof window !== 'undefined'
+    ? localStorage.getItem('access_token')
     : null;
 
   // Create AbortController for timeout
@@ -127,25 +127,25 @@ export async function apiRequest(
       if (response.status === 401 && typeof window !== 'undefined') {
         localStorage.removeItem('access_token');
       }
-      
+
       // Handle different error response formats
-      const errorMessage = Array.isArray(data.message) 
-        ? data.message.join(', ') 
+      const errorMessage = Array.isArray(data.message)
+        ? data.message.join(', ')
         : data.message || 'Request failed';
-      
+
       const error: ApiError = {
         statusCode: response.status,
         message: errorMessage,
         error: data.error || 'Error',
       };
-      
+
       throw error;
     }
 
     return data;
   } catch (error: any) {
     clearTimeout(timeoutId);
-    
+
     // Handle network errors and timeouts
     if (error.name === 'AbortError') {
       const timeoutError: ApiError = {
@@ -155,7 +155,7 @@ export async function apiRequest(
       };
       throw timeoutError;
     }
-    
+
     // Handle network failures (no internet, CORS, etc.)
     if (error instanceof TypeError && error.message.includes('fetch')) {
       const networkError: ApiError = {
@@ -165,12 +165,12 @@ export async function apiRequest(
       };
       throw networkError;
     }
-    
+
     // Re-throw API errors (already formatted)
     if (error.statusCode) {
       throw error;
     }
-    
+
     // Unknown error
     const unknownError: ApiError = {
       statusCode: 0,
@@ -204,7 +204,7 @@ export async function getCorporateMerchants(search?: string): Promise<CorporateM
   if (search) {
     queryParams.append('search', search);
   }
-  
+
   const endpoint = `/merchants/corporate${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   return apiRequest(endpoint, {
     method: 'GET',
@@ -356,13 +356,13 @@ export const getBranches = async (filters?: BranchFilter): Promise<AdminBranch[]
   if (filters?.search) {
     queryParams.append('search', filters.search);
   }
-  
+
   const endpoint = `/merchants/branches${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  
+
   const response = await apiRequest(endpoint, {
     method: 'GET',
   })
-  
+
   const branches = response.data || []
   return branches.map(transformBranchResponse)
 }
@@ -496,7 +496,7 @@ export const getOffers = async (filters?: OfferFilter): Promise<OffersResponse> 
   if (filters?.limit) queryParams.append('limit', filters.limit.toString());
 
   const endpoint = `/admin/offers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  
+
   return apiRequest(endpoint, {
     method: 'GET',
   });
@@ -602,7 +602,7 @@ export const getMerchantOffers = async (filters?: OfferFilter): Promise<OffersRe
   if (filters?.limit) queryParams.append('limit', filters.limit.toString());
 
   const endpoint = `/offers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  
+
   return apiRequest(endpoint, {
     method: 'GET',
   });
@@ -999,4 +999,61 @@ export const updateBranchBonusSettings = async (branchId: string, settings: Bonu
     method: 'PUT',
     body: JSON.stringify(settings),
   });
+};
+
+// Dashboard API Types
+
+export interface DashboardStats {
+  totalRedemptions: number;
+  uniqueStudents: number;
+}
+
+export interface DashboardAnalytics {
+  time: string;
+  count: number;
+  [key: string]: any;
+}
+
+export interface BranchPerformance {
+  branch: string;
+  redemptions: number;
+  growth: string;
+  [key: string]: any;
+}
+
+export interface OfferPerformance {
+  id: string;
+  title: string;
+  status: string;
+  currentRedemptions: number;
+}
+
+// Dashboard API Functions
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const response = await apiRequest('/merchants/dashboard/stats', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export const getDashboardAnalytics = async (): Promise<DashboardAnalytics[]> => {
+  const response = await apiRequest('/merchants/dashboard/analytics', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export const getBranchPerformance = async (): Promise<BranchPerformance[]> => {
+  const response = await apiRequest('/merchants/dashboard/branch-performance', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export const getOfferPerformance = async (): Promise<OfferPerformance[]> => {
+  const response = await apiRequest('/merchants/dashboard/offer-performance', {
+    method: 'GET',
+  });
+  return response.data;
 };
