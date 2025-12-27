@@ -140,7 +140,7 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                           <Legend />
                           <Line
                             type="monotone"
-                            dataKey="count"
+                            dataKey="redemptions"
                             stroke={colors.primary}
                             strokeWidth={2}
                             name="Redemptions"
@@ -167,7 +167,7 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                         <BarChart data={branchPerformance} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} horizontal={false} />
                           <XAxis type="number" stroke={colors.mutedForeground} />
-                          <YAxis dataKey="branch" type="category" width={100} stroke={colors.mutedForeground} />
+                          <YAxis dataKey="branchName" type="category" width={100} stroke={colors.mutedForeground} />
                           <Tooltip />
                           <Legend />
                           <Bar dataKey="redemptions" fill={colors.primary} name="Redemptions" radius={[0, 4, 4, 0]} />
@@ -222,31 +222,49 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                      {branchPerformance.length > 0 ? (
-                        <PieChart>
-                          <Pie
-                            data={branchPerformance}
-                            dataKey="redemptions"
-                            nameKey="branch"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            label={(props: any) => `${props.name} ${((props.percent || 0) * 100).toFixed(0)}%`}
-                          >
-                            {branchPerformance.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={getChartColor("corporate", index)} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value, name) => [value, branchPerformance.find(b => b.redemptions === value)?.branch || name]} />
-                          <Legend
-                            formatter={(value, entry: any) => entry.payload?.branch || value}
-                          />
-                        </PieChart>
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-muted-foreground">
-                          No data available
-                        </div>
-                      )}
+                      {(() => {
+                        // Filter to only show branches with redemptions
+                        const activeBranches = branchPerformance.filter(b => b.redemptions > 0);
+
+                        return activeBranches.length > 0 ? (
+                          <PieChart>
+                            <Pie
+                              data={activeBranches}
+                              dataKey="redemptions"
+                              nameKey="branchName"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              label={(props: any) => {
+                                // Only show label if percentage > 5%
+                                const percentage = ((props.percent || 0) * 100);
+                                return percentage > 5 ? `${props.branchName} ${percentage.toFixed(0)}%` : '';
+                              }}
+                            >
+                              {activeBranches.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={getChartColor("corporate", index)} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value: any, name: any) => [`${value} redemptions`, name]}
+                            />
+                            <Legend
+                              layout="horizontal"
+                              verticalAlign="bottom"
+                              align="center"
+                              wrapperStyle={{ paddingTop: '20px' }}
+                              formatter={(value: string) => {
+                                // Truncate long branch names in legend
+                                return value.length > 15 ? value.substring(0, 15) + '...' : value;
+                              }}
+                            />
+                          </PieChart>
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-muted-foreground">
+                            No redemption data available
+                          </div>
+                        );
+                      })()}
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>

@@ -1015,7 +1015,7 @@ export interface DashboardAnalytics {
 }
 
 export interface BranchPerformance {
-  branch: string;
+  branchName: string;
   redemptions: number;
   growth: string;
   [key: string]: any;
