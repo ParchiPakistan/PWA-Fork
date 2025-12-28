@@ -1058,3 +1058,105 @@ export const getOfferPerformance = async (): Promise<OfferPerformance[]> => {
   });
   return response.data;
 };
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+// Audit Log Interfaces
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: string;
+  tableName: string | null;
+  recordId: string | null;
+  oldValues: any | null;
+  newValues: any | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  user?: {
+    email: string;
+    role: string;
+  };
+}
+
+export interface AuditStatistics {
+  total: number;
+  byAction: {
+    action: string;
+    count: number;
+  }[];
+  byTable: {
+    tableName: string | null;
+    count: number;
+  }[];
+  recentActivity: {
+    id: string;
+    action: string;
+    tableName: string | null;
+    user: {
+      id: string;
+      email: string;
+      role: string;
+    } | null;
+    createdAt: string;
+  }[];
+}
+
+export interface AuditLogsQuery {
+  userId?: string;
+  action?: string;
+  tableName?: string;
+  recordId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  sort?: 'newest' | 'oldest';
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Get audit logs with filters and pagination
+ */
+export const getAuditLogs = async (query: AuditLogsQuery = {}): Promise<PaginatedResponse<AuditLog>> => {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      params.append(key, String(value));
+    }
+  });
+
+  const queryString = params.toString();
+  const response = await apiRequest(`/admin/audit-logs${queryString ? `?${queryString}` : ''}`, {
+    method: 'GET',
+  });
+
+  return response;
+};
+
+/**
+ * Get audit statistics for a date range
+ */
+export const getAuditStatistics = async (startDate?: string, endDate?: string): Promise<AuditStatistics> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+
+  const queryString = params.toString();
+  const response = await apiRequest(`/admin/audit-logs/statistics${queryString ? `?${queryString}` : ''}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Get single audit log by ID
+ */
+export const getAuditLogById = async (id: string): Promise<AuditLog> => {
+  const response = await apiRequest(`/admin/audit-logs/${id}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
