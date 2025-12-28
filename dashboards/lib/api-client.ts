@@ -917,6 +917,7 @@ export interface DailyRedemptionDetail {
   discountDetails: string;
   createdAt: string;
   notes?: string;
+  isBonusApplied?: boolean;
 }
 
 /**

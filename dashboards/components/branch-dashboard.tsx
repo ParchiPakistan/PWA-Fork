@@ -397,22 +397,42 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     dailyRedemptionDetails.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        className={`flex items-center justify-between p-4 rounded-lg transition-colors ${item.isBonusApplied
+                            ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 hover:from-yellow-100 hover:to-orange-100'
+                            : 'bg-muted/50 hover:bg-muted'
+                          }`}
                       >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="flex-shrink-0">
                             <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center"
-                              style={{ backgroundColor: `${colors.primary}20` }}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center ${item.isBonusApplied
+                                  ? 'bg-gradient-to-br from-yellow-400 to-orange-500'
+                                  : ''
+                                }`}
+                              style={{ backgroundColor: item.isBonusApplied ? undefined : `${colors.primary}20` }}
                             >
-                              <CheckCircle className="w-5 h-5" style={{ color: colors.primary }} />
+                              {item.isBonusApplied ? (
+                                <Sparkles className="w-5 h-5 text-white" />
+                              ) : (
+                                <CheckCircle className="w-5 h-5" style={{ color: colors.primary }} />
+                              )}
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground">{item.parchiId}</p>
-                            <p className="text-sm text-muted-foreground truncate">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-foreground">{item.parchiId}</p>
+                              {item.isBonusApplied && (
+                                <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 text-xs">
+                                  🎉 Bonus
+                                </Badge>
+                              )}
+                            </div>
+                            <p className={`text-sm truncate ${item.isBonusApplied ? 'text-orange-700 font-medium' : 'text-muted-foreground'
+                              }`}>
                               {item.offerTitle}
-                              {item.notes?.includes('Bonus') && <span className="ml-2 text-yellow-600 text-xs font-bold">(Bonus)</span>}
+                              {item.discountDetails && (
+                                <span className="ml-2">• {item.discountDetails}</span>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -444,8 +464,30 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
           {studentDetails && (
             <div className="py-4 space-y-6">
+              {/* BONUS CELEBRATION BANNER */}
+              {applicableOffer?.isBonus && (
+                <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 p-6 text-white animate-in fade-in slide-in-from-top-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <Sparkles className="w-12 h-12 drop-shadow-lg animate-pulse" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold drop-shadow-md">🎉 BONUS REDEMPTION!</h3>
+                      <p className="text-yellow-100 text-sm mt-1">
+                        This student has unlocked a loyalty bonus reward!
+                      </p>
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-60">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div className="absolute bottom-2 right-10 opacity-40">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col items-center text-center space-y-3">
-                <Avatar 
+                <Avatar
                   className="w-36 h-36 border-4 border-background shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => setIsImagePreviewOpen(true)}
                 >
@@ -463,7 +505,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm border rounded-lg p-4 bg-muted/20">
+              <div className={`grid grid-cols-2 gap-4 text-sm border rounded-lg p-4 ${applicableOffer?.isBonus
+                ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300'
+                : 'bg-muted/20'
+                }`}>
                 <div>
                   <p className="text-muted-foreground">Status</p>
                   <div className="flex items-center gap-2 mt-1">
@@ -477,14 +522,22 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                 <div>
                   <p className="text-muted-foreground">Applicable Offer</p>
                   <div className="mt-1">
-                    <p className="font-medium">{applicableOffer?.title}</p>
-                    <p className="text-sm text-muted-foreground">{applicableOffer?.description}</p>
-                    <p className="text-sm font-semibold mt-1" style={{ color: colors.primary }}>
-                      {applicableOffer?.discountValue}{applicableOffer?.discountType === 'percentage' ? '% OFF' : ' OFF'}
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{applicableOffer?.title}</p>
+                      {applicableOffer?.isBonus && (
+                        <Sparkles className="w-4 h-4 text-yellow-600" />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{applicableOffer?.description}</p>
+                    <p className={`text-sm font-semibold mt-2 ${applicableOffer?.isBonus ? 'text-orange-600 text-base' : ''
+                      }`} style={{ color: applicableOffer?.isBonus ? undefined : colors.primary }}>
+                      {applicableOffer?.discountValue}{applicableOffer?.discountType === 'percentage' ? '% OFF' : ' PKR OFF'}
                     </p>
                   </div>
                   {applicableOffer?.isBonus && (
-                    <Badge className="mt-1 bg-yellow-500 hover:bg-yellow-600">Bonus Unlocked! 🎉</Badge>
+                    <Badge className="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white border-0">
+                      🎉 Bonus Unlocked!
+                    </Badge>
                   )}
                 </div>
               </div>
