@@ -74,7 +74,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
     setIsLoadingStudent(true)
     try {
-      const student = await getStudentByParchiId(parchiIdInput)
+      const fullParchiId = `PK-${parchiIdInput}`
+      const student = await getStudentByParchiId(fullParchiId)
       setStudentDetails(student)
 
       if (student.offer) {
@@ -95,8 +96,9 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
     if (parchiIdInput && applicableOffer && studentDetails) {
       setIsCreatingRedemption(true)
       try {
+        const fullParchiId = `PK-${parchiIdInput}`
         await createRedemption({
-          parchiId: parchiIdInput,
+          parchiId: fullParchiId,
           offerId: applicableOffer.id,
           notes: applicableOffer.isBonus ? "Bonus Redemption" : "Standard Redemption"
         })
@@ -330,17 +332,26 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold" style={{ color: colors.primary }}>Student Parchi ID</label>
                       <div className="flex gap-2">
-                        <Input
-                          placeholder="Enter Parchi ID (e.g., PK-12345)"
-                          value={parchiIdInput}
-                          onChange={(e) => setParchiIdInput(e.target.value.toUpperCase())}
-                          className="text-lg font-mono h-12"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && parchiIdInput) {
-                              handleRedemptionClick()
-                            }
-                          }}
-                        />
+                        <div className="flex items-center border rounded-md overflow-hidden bg-background">
+                          <span className="px-3 py-3 text-lg font-mono font-semibold bg-muted/50 border-r" style={{ color: colors.primary }}>
+                            PK-
+                          </span>
+                          <Input
+                            placeholder="Enter numbers only (e.g., 12345)"
+                            value={parchiIdInput}
+                            onChange={(e) => {
+                              // Only allow numbers
+                              const numbersOnly = e.target.value.replace(/\D/g, '')
+                              setParchiIdInput(numbersOnly)
+                            }}
+                            className="text-lg font-mono h-12 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && parchiIdInput) {
+                                handleRedemptionClick()
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
 
