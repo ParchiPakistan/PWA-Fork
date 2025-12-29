@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -42,6 +43,9 @@ export function AdminMerchants() {
     contactEmail: "",
     businessRegistrationNumber: "",
     logoPath: "",
+    category: "",
+    bannerUrl: "",
+    termsAndConditions: "",
   })
   const [isSaving, setIsSaving] = useState(false)
   const [isLogoUploading, setIsLogoUploading] = useState(false)
@@ -67,6 +71,9 @@ export function AdminMerchants() {
       contactEmail: merchant.contactEmail,
       businessRegistrationNumber: merchant.businessRegistrationNumber || "",
       logoPath: merchant.logoPath || "",
+      category: merchant.category || "",
+      bannerUrl: merchant.bannerUrl || "",
+      termsAndConditions: merchant.termsAndConditions || "",
     })
     setIsEditOpen(true)
   }
@@ -271,7 +278,7 @@ export function AdminMerchants() {
 
       {/* Edit Merchant Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Merchant Details</DialogTitle>
             <DialogDescription>Update corporate merchant information.</DialogDescription>
@@ -283,6 +290,42 @@ export function AdminMerchants() {
                 value={editForm.businessName}
                 onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Registration Number</Label>
+                <Input 
+                  value={editForm.businessRegistrationNumber}
+                  onChange={(e) => setEditForm({...editForm, businessRegistrationNumber: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Input 
+                  value={editForm.category}
+                  onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                  placeholder="e.g., Food & Beverage, Retail"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Contact Email</Label>
+                <Input 
+                  type="email"
+                  value={editForm.contactEmail}
+                  onChange={(e) => setEditForm({...editForm, contactEmail: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact Phone</Label>
+                <Input 
+                  value={editForm.contactPhone}
+                  onChange={(e) => setEditForm({...editForm, contactPhone: e.target.value})}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -324,26 +367,52 @@ export function AdminMerchants() {
                   </div>
                 )}
               </div>
+              {editForm.logoPath && !editForm.logoPath.includes("file://") && (
+                <div className="mt-2">
+                  <Label className="text-xs text-muted-foreground">Logo URL</Label>
+                  <Input 
+                    value={editForm.logoPath}
+                    onChange={(e) => setEditForm({...editForm, logoPath: e.target.value})}
+                    placeholder="Or enter logo URL directly"
+                    className="text-xs"
+                  />
+                </div>
+              )}
             </div>
+
             <div className="space-y-2">
-              <Label>Registration Number</Label>
+              <Label>Banner URL</Label>
               <Input 
-                value={editForm.businessRegistrationNumber}
-                onChange={(e) => setEditForm({...editForm, businessRegistrationNumber: e.target.value})}
+                type="url"
+                value={editForm.bannerUrl}
+                onChange={(e) => setEditForm({...editForm, bannerUrl: e.target.value})}
+                placeholder="https://example.com/banner.jpg"
               />
+              {editForm.bannerUrl && (
+                <div className="mt-2">
+                  <div className="relative w-full h-32 rounded border overflow-hidden bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={editForm.bannerUrl} 
+                      alt="Banner preview" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="space-y-2">
-              <Label>Contact Email</Label>
-              <Input 
-                value={editForm.contactEmail}
-                onChange={(e) => setEditForm({...editForm, contactEmail: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Phone</Label>
-              <Input 
-                value={editForm.contactPhone}
-                onChange={(e) => setEditForm({...editForm, contactPhone: e.target.value})}
+              <Label>Terms and Conditions</Label>
+              <Textarea 
+                value={editForm.termsAndConditions}
+                onChange={(e) => setEditForm({...editForm, termsAndConditions: e.target.value})}
+                placeholder="Enter terms and conditions text here..."
+                rows={6}
+                className="resize-none"
               />
             </div>
           </div>
