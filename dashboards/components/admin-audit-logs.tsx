@@ -457,6 +457,29 @@ export function AdminAuditLogs() {
                                                         {log.recordId && (
                                                             <div className="font-mono text-xs">{log.recordId.slice(0, 8)}...</div>
                                                         )}
+                                                        {/* Show student details for student approval actions */}
+                                                        {log.action === 'APPROVE_REJECT_STUDENT' && log.newValues && (
+                                                            <div className="mt-1 text-xs">
+                                                                {log.newValues.parchiId && (
+                                                                    <div className="font-semibold text-blue-600">
+                                                                        {log.newValues.parchiId}
+                                                                    </div>
+                                                                )}
+                                                                {log.newValues.firstName && log.newValues.lastName && (
+                                                                    <div className="text-foreground">
+                                                                        {log.newValues.firstName} {log.newValues.lastName}
+                                                                    </div>
+                                                                )}
+                                                                {log.newValues.verificationStatus && (
+                                                                    <Badge
+                                                                        variant={log.newValues.verificationStatus === 'approved' ? 'default' : 'destructive'}
+                                                                        className="text-xs mt-1"
+                                                                    >
+                                                                        {log.newValues.verificationStatus}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -572,6 +595,48 @@ export function AdminAuditLogs() {
                                     <p className="text-sm mt-1 font-mono">{selectedLog.recordId || "N/A"}</p>
                                 </div>
                             </div>
+
+                            {/* Student Details Section for Student Approvals */}
+                            {selectedLog.action === 'APPROVE_REJECT_STUDENT' && selectedLog.newValues && (
+                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 className="font-semibold mb-3 text-blue-900">Student Details</h4>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        {selectedLog.newValues.parchiId && (
+                                            <div>
+                                                <span className="text-muted-foreground">Parchi ID:</span>{' '}
+                                                <span className="font-semibold text-blue-600">
+                                                    {selectedLog.newValues.parchiId}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {selectedLog.newValues.firstName && selectedLog.newValues.lastName && (
+                                            <div>
+                                                <span className="text-muted-foreground">Student Name:</span>{' '}
+                                                <span className="font-semibold">
+                                                    {selectedLog.newValues.firstName} {selectedLog.newValues.lastName}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {selectedLog.newValues.university && (
+                                            <div>
+                                                <span className="text-muted-foreground">University:</span>{' '}
+                                                <span className="font-medium">{selectedLog.newValues.university}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.newValues.verificationStatus && (
+                                            <div>
+                                                <span className="text-muted-foreground">Status:</span>{' '}
+                                                <Badge
+                                                    variant={selectedLog.newValues.verificationStatus === 'approved' ? 'default' : 'destructive'}
+                                                    className="ml-2"
+                                                >
+                                                    {selectedLog.newValues.verificationStatus}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {selectedLog.oldValues && (
                                 <div>
