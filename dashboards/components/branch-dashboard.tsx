@@ -485,7 +485,11 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     <div className="flex-1">
                       <h3 className="text-2xl font-bold drop-shadow-md">🎉 BONUS REDEMPTION!</h3>
                       <p className="text-yellow-100 text-sm mt-1">
-                        This student has unlocked a loyalty bonus reward!
+                        {applicableOffer?.discountType === 'item' && applicableOffer?.additionalItem ? (
+                          <>This student has unlocked: <span className="font-bold text-white">{applicableOffer.additionalItem}</span>!</>
+                        ) : (
+                          <>This student has unlocked a loyalty bonus reward!</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -542,7 +546,15 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                     <p className="text-sm text-muted-foreground mt-1">{applicableOffer?.description}</p>
                     <p className={`text-sm font-semibold mt-2 ${applicableOffer?.isBonus ? 'text-orange-600 text-base' : ''
                       }`} style={{ color: applicableOffer?.isBonus ? undefined : colors.primary }}>
-                      {applicableOffer?.discountValue}{applicableOffer?.discountType === 'percentage' ? '% OFF' : ' PKR OFF'}
+                      {applicableOffer?.discountType === 'item' && applicableOffer?.additionalItem ? (
+                        <span className="flex items-center gap-2">
+                          <span>🎁 {applicableOffer.additionalItem}</span>
+                        </span>
+                      ) : (
+                        <span>
+                          {applicableOffer?.discountValue}{applicableOffer?.discountType === 'percentage' ? '% OFF' : ' PKR OFF'}
+                        </span>
+                      )}
                     </p>
                   </div>
                   {applicableOffer?.isBonus && (
