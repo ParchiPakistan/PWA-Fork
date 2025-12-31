@@ -7,25 +7,75 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Ticket, MoreHorizontal, Calendar, Loader2, Store, Pencil, Upload } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Separator } from "@/components/ui/separator"
+import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { getOffers, approveRejectOffer, deleteOffer, Offer, getCorporateMerchants, CorporateMerchant, CreateOfferRequest, createOffer, getBranches, AdminBranch, assignOfferBranches, removeOfferBranches, updateOffer, UpdateOfferRequest } from "@/lib/api-client"
+import {
+  getOffers, createOffer, updateOffer, deleteOffer,
+  Offer, CreateOfferRequest,
+  getCorporateMerchants, CorporateMerchant,
+  getBranches, AdminBranch,
+  getBranchAssignments, assignBranchOffers,
+  getBranchBonusSettings, updateBranchBonusSettings,
+  BranchAssignment, BonusSettings
+} from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
 
+// Combined interface for branches with assignment data
+interface BranchWithAssignment {
+  id: string
+  branchName: string
+  standardOfferId: string | null
+}
 
 export function AdminOffers() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [offers, setOffers] = useState<Offer[]>([])
-  const [loading, setLoading] = useState(true)
+  // Data State
   const [merchants, setMerchants] = useState<CorporateMerchant[]>([])
-  const [filters, setFilters] = useState({
-    status: undefined as 'active' | 'inactive' | undefined,
-    merchantId: undefined as string | undefined
+  const [expandedMerchants, setExpandedMerchants] = useState<string[]>([])
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [branchAssignments, setBranchAssignments] = useState<{ [merchantId: string]: BranchWithAssignment[] }>({})
+  const [loading, setLoading] = useState(true)
+
+
+  // UI State
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
+  const [isImageUploading, setIsImageUploading] = useState(false)
+
+  // Bonus Settings State
+  const [isBonusSettingsOpen, setIsBonusSettingsOpen] = useState(false)
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
+  const [selectedBranchName, setSelectedBranchName] = useState<string>("")
+  const [bonusSettings, setBonusSettings] = useState<BonusSettings>({
+    redemptionsRequired: 5,
+    discountType: 'percentage',
+    discountValue: 10,
+    maxDiscountAmount: null,
+    validityDays: 30,
+    isActive: true,
+    imageUrl: null
   })
+  const [isBonusLoading, setIsBonusLoading] = useState(false)
+  const [isBonusSaving, setIsBonusSaving] = useState(false)
+
+  // Global Bonus Settings State
+  const [isGlobalBonusOpen, setIsGlobalBonusOpen] = useState(false)
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null)
+  const [globalBonusSettings, setGlobalBonusSettings] = useState<BonusSettings>({
+    redemptionsRequired: 5,
+    discountType: 'percentage',
+    discountValue: 10,
+    maxDiscountAmount: null,
+    validityDays: 30,
+    isActive: true,
+    imageUrl: null
+  })
+  const [isGlobalBonusSaving, setIsGlobalBonusSaving] = useState(false)
 
   // Form State
   const [formData, setFormData] = useState<Partial<CreateOfferRequest>>({
@@ -33,77 +83,111 @@ export function AdminOffers() {
     validFrom: new Date().toISOString().split('T')[0],
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   })
-  const [isBranchSpecific, setIsBranchSpecific] = useState(false)
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [merchantBranches, setMerchantBranches] = useState<AdminBranch[]>([])
-  const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
-  const [isImageUploading, setIsImageUploading] = useState(false)
 
-  // Manage Branches State
-  const [isManageBranchesOpen, setIsManageBranchesOpen] = useState(false)
-  const [managingOffer, setManagingOffer] = useState<Offer | null>(null)
-  const [manageBranchIds, setManageBranchIds] = useState<string[]>([])
-  const [isManageBranchSpecific, setIsManageBranchSpecific] = useState(false)
-
-  const fetchOffers = async () => {
+  // Fetch Initial Data
+  const fetchData = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const response = await getOffers(filters)
-      setOffers(response?.data?.items || [])
+      // Fetch merchants
+      const merchantsRes = await getCorporateMerchants()
+      setMerchants(merchantsRes.data)
+
+      // Fetch all offers
+      const offersRes = await getOffers()
+      setOffers(offersRes.data.items || [])
     } catch (error) {
-      toast.error("Failed to fetch offers")
-      setOffers([]) // Set to empty array on error
+      console.error("Failed to fetch data:", error)
+      toast.error("Failed to load data")
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchMerchants = async () => {
-    // Prevent refetch if merchants are already loaded
-    if (merchants.length > 0) return
-    
-    try {
-      const response = await getCorporateMerchants()
-      setMerchants(response.data)
-    } catch (error) {
-      console.error("Failed to fetch merchants")
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  // Merchant expansion
+  const toggleMerchant = async (merchantId: string) => {
+    const isExpanding = !expandedMerchants.includes(merchantId)
+
+    if (isExpanding) {
+      setExpandedMerchants(prev => [...prev, merchantId])
+      // Fetch branches if not already loaded
+      if (!branchAssignments[merchantId]) {
+        await fetchMerchantBranches(merchantId)
+      }
+    } else {
+      setExpandedMerchants(prev => prev.filter(id => id !== merchantId))
     }
   }
-
-  useEffect(() => {
-    fetchOffers()
-  }, [filters])
-
-  useEffect(() => {
-    fetchMerchants()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const fetchMerchantBranches = async (merchantId: string) => {
     try {
-      const data = await getBranches({ corporateAccountId: merchantId })
-      setMerchantBranches(data)
-    } catch (error) {
-      console.error("Failed to fetch merchant branches")
-      setMerchantBranches([])
+      // Fetch branches for this specific merchant
+      const branches = await getBranches({ corporateAccountId: merchantId })
+      console.log(`Fetched ${branches.length} branches for merchant ${merchantId}`, branches)
+
+      // Fetch all branch assignments to get offer mappings
+      const assignments = await getBranchAssignments()
+
+      // Create a map of branchId -> standardOfferId
+      const assignmentMap = new Map<string, string | null>()
+      assignments.forEach(assignment => {
+        assignmentMap.set(assignment.id, assignment.standardOfferId)
+      })
+
+      // Combine branch data with assignment data
+      const branchesWithAssignments: BranchWithAssignment[] = branches.map(branch => ({
+        id: branch.id,
+        branchName: branch.branch_name,
+        standardOfferId: assignmentMap.get(branch.id) || null
+      }))
+
+      setBranchAssignments(prev => ({
+        ...prev,
+        [merchantId]: branchesWithAssignments
+      }))
+    } catch (error: any) {
+      console.error("=== BRANCH FETCH ERROR ===")
+      console.error("Raw error:", error)
+      console.error("Error type:", typeof error)
+      console.error("Error constructor:", error?.constructor?.name)
+      console.error("Error keys:", Object.keys(error || {}))
+      console.error("Stringified error:", JSON.stringify(error, null, 2))
+      console.error("Error details:", {
+        message: error?.message,
+        response: error?.response,
+        responseData: error?.response?.data,
+        status: error?.status || error?.response?.status,
+        statusText: error?.statusText || error?.response?.statusText,
+        merchantId
+      })
+      console.error("=== END ERROR ===")
+
+      toast.error(`Failed to load branches: ${error?.message || 'Unknown error'}`)
+      // Set empty array on error so we don't keep trying
+      setBranchAssignments(prev => ({
+        ...prev,
+        [merchantId]: []
+      }))
     }
   }
 
-  const handleMerchantChange = (merchantId: string) => {
-    setFormData({ ...formData, merchantId })
-    fetchMerchantBranches(merchantId)
-    setSelectedBranches([])
-    setIsBranchSpecific(false)
+  // Helper functions
+  const getOffersByMerchant = (merchantId: string) => {
+    return offers.filter(o => o.merchantId === merchantId)
   }
 
+  const getBranchesByMerchant = (merchantId: string) => {
+    return branchAssignments[merchantId] || []
+  }
+
+  // Offer CRUD
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // If no title is set, use a temp name, but warn user or handle it
     const title = formData.title || "untitled-offer"
-
     setIsImageUploading(true)
     try {
       const url = await SupabaseStorageService.uploadOfferImage(file, title)
@@ -126,630 +210,807 @@ export function AdminOffers() {
       return
     }
 
-    // Validation
-    if (formData.discountValue < 0) {
-      toast.error("Discount value cannot be negative")
-      return
-    }
-    if (formData.discountType === 'percentage' && formData.discountValue > 100) {
-      toast.error("Percentage discount cannot exceed 100%")
-      return
-    }
-    if (formData.discountType === 'fixed' && formData.discountValue > 99999999) {
-      toast.error("Fixed discount value is too large")
-      return
-    }
-    if (formData.minOrderValue && formData.minOrderValue > 99999999) {
-      toast.error("Minimum order value is too large")
-      return
-    }
-    if (formData.maxDiscountAmount && formData.maxDiscountAmount > 99999999) {
-      toast.error("Max discount amount is too large")
-      return
-    }
-    if (formData.dailyLimit && formData.dailyLimit > 2147483647) {
-      toast.error("Daily limit is too large")
-      return
-    }
-    if (formData.totalLimit && formData.totalLimit > 2147483647) {
-      toast.error("Total limit is too large")
-      return
-    }
-
+    setIsSubmitting(true)
     try {
-      setIsSubmitting(true)
-      
+      const payload: CreateOfferRequest = {
+        merchantId: formData.merchantId,
+        title: formData.title,
+        description: formData.description || "",
+        discountType: formData.discountType === 'percentage' ? 'percentage' : 'fixed',
+        discountValue: Number(formData.discountValue),
+        minOrderValue: Number(formData.minOrderValue) || 0,
+        maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
+        validFrom: formData.validFrom,
+        validUntil: formData.validUntil,
+        dailyLimit: Number(formData.dailyLimit) || undefined,
+        totalLimit: Number(formData.totalLimit) || undefined,
+        imageUrl: formData.imageUrl,
+        branchIds: []
+      }
+
       if (editingOffer) {
-        // Update existing offer
-        await updateOffer(editingOffer.id, {
-          title: formData.title,
-          description: formData.description,
-          imageUrl: formData.imageUrl,
-          discountType: formData.discountType,
-          discountValue: formData.discountValue,
-          minOrderValue: formData.minOrderValue,
-          maxDiscountAmount: formData.maxDiscountAmount,
-          validFrom: formData.validFrom,
-          validUntil: formData.validUntil,
-          dailyLimit: formData.dailyLimit,
-          totalLimit: formData.totalLimit,
-        })
+        await updateOffer(editingOffer.id, payload)
         toast.success("Offer updated successfully")
       } else {
-        // Create new offer
-        await createOffer({
-          ...formData as CreateOfferRequest,
-          branchIds: isBranchSpecific ? selectedBranches : undefined
-        })
+        await createOffer(payload)
         toast.success("Offer created successfully")
       }
-      
+
       setIsCreateOpen(false)
-      fetchOffers()
-      // Reset form
+      setEditingOffer(null)
       setFormData({
         discountType: 'percentage',
         validFrom: new Date().toISOString().split('T')[0],
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       })
-      setSelectedBranches([])
-      setIsBranchSpecific(false)
-      setMerchantBranches([])
-      setEditingOffer(null)
+      fetchData()
     } catch (error) {
-      toast.error(editingOffer ? "Failed to update offer" : "Failed to create offer. Please check your inputs.")
+      toast.error(editingOffer ? "Failed to update offer" : "Failed to create offer")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const openEditOffer = (offer: Offer) => {
+  const handleEditClick = (offer: Offer) => {
     setEditingOffer(offer)
     setFormData({
       merchantId: offer.merchantId,
       title: offer.title,
       description: offer.description || undefined,
-      imageUrl: offer.imageUrl || undefined,
       discountType: offer.discountType,
       discountValue: offer.discountValue,
       minOrderValue: offer.minOrderValue || undefined,
       maxDiscountAmount: offer.maxDiscountAmount || undefined,
-      validFrom: new Date(offer.validFrom).toISOString().split('T')[0],
-      validUntil: new Date(offer.validUntil).toISOString().split('T')[0],
+      validFrom: offer.validFrom.split('T')[0],
+      validUntil: offer.validUntil.split('T')[0],
       dailyLimit: offer.dailyLimit || undefined,
       totalLimit: offer.totalLimit || undefined,
+      imageUrl: offer.imageUrl || undefined
     })
-    // For editing, we don't handle branch selection in the same modal currently
-    // Branch management is done via "Manage Branches"
     setIsCreateOpen(true)
   }
 
-  const openManageBranches = async (offer: Offer) => {
-    setManagingOffer(offer)
-    const currentBranchIds = offer.branches.map(b => b.branchId)
-    setManageBranchIds(currentBranchIds)
-    setIsManageBranchSpecific(currentBranchIds.length > 0)
-    
-    try {
-      // Fetch branches for this offer's merchant
-      const branches = await getBranches({ corporateAccountId: offer.merchantId })
-      setMerchantBranches(branches)
-      setIsManageBranchesOpen(true)
-    } catch (error) {
-      toast.error("Failed to fetch merchant branches")
+  const handleDeleteOffer = async (offerId: string) => {
+    if (confirm("Are you sure you want to delete this offer?")) {
+      try {
+        await deleteOffer(offerId)
+        toast.success("Offer deleted successfully")
+        fetchData()
+      } catch (error) {
+        toast.error("Failed to delete offer")
+      }
     }
   }
 
-  const handleSaveBranches = async () => {
-    if (!managingOffer) return
+  // Branch Assignment
+  const handleAssignmentChange = (merchantId: string, branchId: string, value: string) => {
+    setBranchAssignments(prev => ({
+      ...prev,
+      [merchantId]: prev[merchantId]?.map(a =>
+        a.id === branchId ? { ...a, standardOfferId: value === "none" ? null : value } : a
+      ) || []
+    }))
+  }
+
+  const handleSaveAssignment = async (merchantId: string, assignment: BranchWithAssignment) => {
+    if (!assignment.standardOfferId) {
+      toast.error("A standard offer is required")
+      return
+    }
 
     try {
-      setIsSubmitting(true)
-      const currentIds = managingOffer.branches.map(b => b.branchId)
-      
-      // If switching to "All Branches" (not specific), remove all assignments
-      if (!isManageBranchSpecific) {
-        if (currentIds.length > 0) {
-          await removeOfferBranches(managingOffer.id, currentIds)
-        }
-      } else {
-        // Calculate additions and removals
-        const toAdd = manageBranchIds.filter(id => !currentIds.includes(id))
-        const toRemove = currentIds.filter(id => !manageBranchIds.includes(id))
+      await assignBranchOffers(assignment.id, assignment.standardOfferId)
+      toast.success(`Offer assigned to ${assignment.branchName}`)
+    } catch (error) {
+      toast.error("Failed to assign offer")
+    }
+  }
 
-        if (toAdd.length > 0) {
-          await assignOfferBranches(managingOffer.id, toAdd)
+  // Bonus Settings
+  const handleOpenBonusSettings = async (branchId: string, branchName: string) => {
+    setSelectedBranchId(branchId)
+    setSelectedBranchName(branchName)
+    setIsBonusSettingsOpen(true)
+    setIsBonusLoading(true)
+    try {
+      const settings = await getBranchBonusSettings(branchId)
+      setBonusSettings({
+        redemptionsRequired: settings.redemptionsRequired || 5,
+        discountType: settings.discountType || 'percentage',
+        discountValue: settings.discountValue || 0,
+        maxDiscountAmount: settings.maxDiscountAmount,
+        validityDays: settings.validityDays || 30,
+        isActive: settings.isActive ?? true,
+        imageUrl: settings.imageUrl
+      })
+    } catch (error) {
+      console.error("Failed to fetch bonus settings:", error)
+      toast.error("Failed to load bonus settings")
+      setBonusSettings({
+        redemptionsRequired: 5,
+        discountType: 'percentage',
+        discountValue: 10,
+        maxDiscountAmount: null,
+        validityDays: 30,
+        isActive: true,
+        imageUrl: null
+      })
+    } finally {
+      setIsBonusLoading(false)
+    }
+  }
+
+  const handleBonusImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImageUploading(true)
+    try {
+      const url = await SupabaseStorageService.uploadOfferImage(file, `bonus-${selectedBranchId}`)
+      setBonusSettings(prev => ({ ...prev, imageUrl: url }))
+      toast.success("Image uploaded successfully")
+    } catch (error) {
+      toast.error("Failed to upload image")
+    } finally {
+      setIsImageUploading(false)
+    }
+  }
+
+  const handleSaveBonusSettings = async () => {
+    if (!selectedBranchId) return
+    setIsBonusSaving(true)
+    try {
+      await updateBranchBonusSettings(selectedBranchId, bonusSettings)
+      toast.success("Bonus settings updated")
+      setIsBonusSettingsOpen(false)
+    } catch (error) {
+      toast.error("Failed to update bonus settings")
+    } finally {
+      setIsBonusSaving(false)
+    }
+  }
+
+  // Global Bonus Settings
+  const handleOpenGlobalBonus = (merchantId: string) => {
+    setSelectedMerchantId(merchantId)
+    setIsGlobalBonusOpen(true)
+  }
+
+  const handleGlobalBonusImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImageUploading(true)
+    try {
+      const url = await SupabaseStorageService.uploadOfferImage(file, `global-bonus`)
+      setGlobalBonusSettings(prev => ({ ...prev, imageUrl: url }))
+      toast.success("Image uploaded successfully")
+    } catch (error) {
+      toast.error("Failed to upload image")
+    } finally {
+      setIsImageUploading(false)
+    }
+  }
+
+  const handleSaveGlobalBonusSettings = async () => {
+    if (!selectedMerchantId) return
+    const branches = branchAssignments[selectedMerchantId] || []
+    if (branches.length === 0) {
+      toast.error("No branches found to apply settings")
+      return
+    }
+
+    setIsGlobalBonusSaving(true)
+    let successCount = 0
+    let failCount = 0
+
+    try {
+      const updatePromises = branches.map(async (assignment) => {
+        try {
+          await updateBranchBonusSettings(assignment.id, globalBonusSettings)
+          successCount++
+        } catch (error) {
+          failCount++
+          console.error(`Failed to update branch ${assignment.branchName}:`, error)
         }
-        if (toRemove.length > 0) {
-          await removeOfferBranches(managingOffer.id, toRemove)
-        }
+      })
+
+      await Promise.all(updatePromises)
+
+      if (successCount > 0) {
+        toast.success(`Bonus settings applied to ${successCount} branch${successCount > 1 ? 'es' : ''}`)
+      }
+      if (failCount > 0) {
+        toast.error(`Failed to update ${failCount} branch${failCount > 1 ? 'es' : ''}`)
       }
 
-      toast.success("Branch assignments updated successfully")
-      setIsManageBranchesOpen(false)
-      fetchOffers()
+      setIsGlobalBonusOpen(false)
     } catch (error) {
-      toast.error("Failed to update branch assignments")
+      toast.error("Failed to update bonus settings")
     } finally {
-      setIsSubmitting(false)
+      setIsGlobalBonusSaving(false)
     }
   }
 
-  const handleApproveReject = async (id: string, action: 'approve' | 'reject') => {
-    try {
-      await approveRejectOffer(id, action)
-      toast.success(`Offer ${action}d successfully`)
-      fetchOffers()
-    } catch (error) {
-      toast.error(`Failed to ${action} offer`)
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this offer? This action cannot be undone.")) return
-    
-    try {
-      await deleteOffer(id)
-      toast.success("Offer deleted successfully")
-      fetchOffers()
-    } catch (error) {
-      toast.error("Failed to delete offer")
-    }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 p-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Offers Management</h2>
-          <p className="text-muted-foreground">Create and manage merchant offers</p>
+          <h2 className="text-3xl font-bold tracking-tight">Offers Management</h2>
+          <p className="text-muted-foreground">Manage offers across all merchants</p>
         </div>
-        <Button onClick={() => {
-          setEditingOffer(null)
-          setFormData({
-            discountType: 'percentage',
-            validFrom: new Date().toISOString().split('T')[0],
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          })
-          setIsCreateOpen(true)
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) {
+            setEditingOffer(null)
+            setFormData({
+              discountType: 'percentage',
+              validFrom: new Date().toISOString().split('T')[0],
+              validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            })
+          }
         }}>
-          <Plus className="mr-2 h-4 w-4" /> Create Offer
-        </Button>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Create Offer
+          </Button>
+        </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Offers</CardTitle>
-          <CardDescription>
-            A list of all active and inactive offers across merchants.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 py-4">
-            <Input
-              placeholder="Search offers..."
-              className="max-w-sm"
-              disabled // Search API not implemented in this iteration
-            />
-            <Select 
-              value={filters.status || "all"} 
-              onValueChange={(val) => setFilters(prev => ({ ...prev, status: val === "all" ? undefined : val as 'active' | 'inactive' }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select 
-              value={filters.merchantId || "all"} 
-              onValueChange={(val) => setFilters(prev => ({ ...prev, merchantId: val === "all" ? undefined : val }))}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by merchant" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Merchants</SelectItem>
-                {merchants.map(m => (
-                  <SelectItem key={m.id} value={m.id}>{m.businessName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Merchant</TableHead>
-                  <TableHead>Discount</TableHead>
-                  <TableHead>Validity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    </TableCell>
-                  </TableRow>
-                ) : !offers || offers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      No offers found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  offers.map((offer) => (
-                    <TableRow key={offer.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Ticket className="h-4 w-4 text-primary" />
-                          {offer.title}
-                        </div>
-                      </TableCell>
-                      <TableCell>{offer.merchant?.businessName || 'Unknown'}</TableCell>
-                      <TableCell>
-                        {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(offer.validUntil).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={offer.status === "active" ? "default" : "secondary"}>
-                          {offer.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openManageBranches(offer)}>
-                              <Store className="mr-2 h-4 w-4" /> Manage Branches
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEditOffer(offer)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleApproveReject(offer.id, 'approve')}>
-                              Approve
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleApproveReject(offer.id, 'reject')}>
-                              Reject
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer.id)}>
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <Separator />
 
-      {/* Create Offer Dialog */}
+      {/* Merchant Sections */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-4">Merchant Management</h2>
+          <p className="text-muted-foreground mb-6">Manage branch assignments and bonus settings for each merchant</p>
+        </div>
+
+        {merchants.map((merchant) => (
+          <Card key={merchant.id}>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-xl">{merchant.businessName}</CardTitle>
+                  <CardDescription>{merchant.category || 'Uncategorized'}</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleMerchant(merchant.id)}
+                >
+                  {expandedMerchants.includes(merchant.id) ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+
+            {/* Collapsible content */}
+            {expandedMerchants.includes(merchant.id) && (
+              <CardContent>
+                {/* Offers Pool */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-4">Offers Pool</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {getOffersByMerchant(merchant.id).map((offer) => (
+                      <Card key={offer.id} className="hover:shadow-md transition-shadow">
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base font-semibold">{offer.title}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `Rs. ${offer.discountValue} OFF`}
+                            </CardDescription>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleEditClick(offer)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDeleteOffer(offer.id)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div className="flex items-center">
+                              <Calendar className="mr-2 h-3 w-3" />
+                              {new Date(offer.validUntil).toLocaleDateString()}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant={offer.status === 'active' ? 'default' : 'secondary'}>
+                                {offer.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {getOffersByMerchant(merchant.id).length === 0 && (
+                      <div className="col-span-full text-center py-8 text-muted-foreground">
+                        No offers created for this merchant yet
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator className="my-6" />
+
+                {/* Branch Assignments */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Branch Assignments</h3>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleOpenGlobalBonus(merchant.id)}
+                      disabled={getBranchesByMerchant(merchant.id).length === 0}
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Set Global Bonus
+                    </Button>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[250px]">Branch Name</TableHead>
+                        <TableHead>Standard Offer (Required)</TableHead>
+                        <TableHead>Bonus Settings</TableHead>
+                        <TableHead className="w-[100px]">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getBranchesByMerchant(merchant.id).map((assignment) => (
+                        <TableRow key={assignment.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Store className="h-4 w-4 text-muted-foreground" />
+                              {assignment.branchName}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={assignment.standardOfferId || "none"}
+                              onValueChange={(val) => handleAssignmentChange(merchant.id, assignment.id, val)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select Standard Offer" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
+                                {getOffersByMerchant(merchant.id).filter(o => o.status === 'active').map(offer => (
+                                  <SelectItem key={offer.id} value={offer.id}>
+                                    {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
+                            >
+                              <Settings className="mr-2 h-4 w-4" /> Configure Bonus
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveAssignment(merchant.id, assignment)}
+                            >
+                              Save
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {getBranchesByMerchant(merchant.id).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No branches found for this merchant
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        ))}
+
+        {merchants.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-12 text-muted-foreground">
+              No merchants found
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Create/Edit Offer Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</DialogTitle>
             <DialogDescription>
-              {editingOffer ? 'Update offer details.' : 'Set up a new discount offer for a merchant.'}
+              Add details for the offer. You can assign this offer to branches later.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
+
+          <div className="grid gap-6 py-4">
+            {/* Merchant Selection */}
             <div className="space-y-2">
-              <Label>Merchant</Label>
-              <Select 
-                onValueChange={handleMerchantChange} 
+              <Label>Merchant *</Label>
+              <Select
                 value={formData.merchantId}
+                onValueChange={(val) => setFormData({ ...formData, merchantId: val })}
                 disabled={!!editingOffer}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select merchant" />
                 </SelectTrigger>
                 <SelectContent>
-                  {merchants.map(corp => (
-                    <SelectItem key={corp.id} value={corp.id}>{corp.businessName}</SelectItem>
+                  {merchants.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.businessName}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Offer Image</Label>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="cursor-pointer"
-                    disabled={isImageUploading}
-                  />
-                  {isImageUploading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                {formData.imageUrl && (
-                  <div className="text-xs text-green-600 flex items-center gap-1">
-                    <Upload className="w-3 h-3" />
-                    Uploaded
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Offer Title</Label>
-              <Input 
-                placeholder="e.g. Flat 20% Off" 
-                value={formData.title || ''}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-              />
-            </div>
-
+            {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label>Offer Title *</Label>
+                <Input
+                  placeholder="e.g. Student Lunch Deal"
+                  value={formData.title || ''}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Discount Type</Label>
-                <Select 
-                  value={formData.discountType} 
-                  onValueChange={(val: 'percentage' | 'fixed') => setFormData({...formData, discountType: val})}
+                <Select
+                  value={formData.discountType}
+                  onValueChange={(val: any) => setFormData({ ...formData, discountType: val })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed Amount (Rs)</SelectItem>
+                    <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Value</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 20" 
-                  value={formData.discountValue || ''}
-                  onChange={(e) => setFormData({...formData, discountValue: Number(e.target.value)})}
-                  min={0}
-                />
-              </div>
             </div>
 
+            {/* Discount Values */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Discount Value *</Label>
+                <Input
+                  type="number"
+                  placeholder={formData.discountType === 'percentage' ? "e.g. 20" : "e.g. 500"}
+                  value={formData.discountValue || ''}
+                  onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
+                />
+              </div>
+              {formData.discountType === 'percentage' && (
+                <div className="space-y-2">
+                  <Label>Max Discount Amount (Optional)</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 1000"
+                    value={formData.maxDiscountAmount || ''}
+                    onChange={(e) => setFormData({ ...formData, maxDiscountAmount: Number(e.target.value) })}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Limits */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Min Order Value (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 500" 
+                <Input
+                  type="number"
+                  placeholder="e.g. 1000"
                   value={formData.minOrderValue || ''}
-                  onChange={(e) => setFormData({...formData, minOrderValue: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
+                  onChange={(e) => setFormData({ ...formData, minOrderValue: Number(e.target.value) })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Max Discount (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 1000" 
-                  value={formData.maxDiscountAmount || ''}
-                  onChange={(e) => setFormData({...formData, maxDiscountAmount: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Daily Limit (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 50" 
+                <Input
+                  type="number"
+                  placeholder="e.g. 50"
                   value={formData.dailyLimit || ''}
-                  onChange={(e) => setFormData({...formData, dailyLimit: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total Limit (Optional)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 1000" 
-                  value={formData.totalLimit || ''}
-                  onChange={(e) => setFormData({...formData, totalLimit: e.target.value ? Number(e.target.value) : undefined})}
-                  min={0}
+                  onChange={(e) => setFormData({ ...formData, dailyLimit: Number(e.target.value) })}
                 />
               </div>
             </div>
 
+            {/* Validity */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Valid From</Label>
-                <Input 
-                  type="date" 
-                  value={formData.validFrom || ''}
-                  onChange={(e) => setFormData({...formData, validFrom: e.target.value})}
+                <Label>Valid From *</Label>
+                <Input
+                  type="date"
+                  value={formData.validFrom}
+                  onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valid Until</Label>
-                <Input 
-                  type="date" 
-                  value={formData.validUntil || ''}
-                  onChange={(e) => setFormData({...formData, validUntil: e.target.value})}
+                <Label>Valid Until *</Label>
+                <Input
+                  type="date"
+                  value={formData.validUntil}
+                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
                 />
               </div>
             </div>
 
+            {/* Image Upload */}
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Input 
-                placeholder="Brief description of the offer" 
-                value={formData.description || ''}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
-            </div>
-
-            </div>
-            
-            {!editingOffer && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="branch-specific" 
-                    checked={isBranchSpecific}
-                    onCheckedChange={(checked) => {
-                      setIsBranchSpecific(checked as boolean)
-                      if (!checked) setSelectedBranches([])
-                    }}
-                    disabled={!formData.merchantId}
-                  />
-                  <Label htmlFor="branch-specific" className="text-sm font-normal cursor-pointer">
-                    Make this offer branch-specific
-                  </Label>
-                </div>
-
-                {isBranchSpecific && formData.merchantId && (
-                  <div className="space-y-2 pl-6">
-                    <Label>Select Branches</Label>
-                    <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                      {merchantBranches.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No branches found for this merchant.</p>
-                      ) : (
-                        merchantBranches.map((branch) => (
-                          <div key={branch.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`branch-${branch.id}`}
-                              checked={selectedBranches.includes(branch.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedBranches([...selectedBranches, branch.id])
-                                } else {
-                                  setSelectedBranches(selectedBranches.filter(id => id !== branch.id))
-                                }
-                              }}
-                            />
-                            <Label htmlFor={`branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
-                              {branch.branch_name}
-                            </Label>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    {selectedBranches.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {selectedBranches.length} branch{selectedBranches.length > 1 ? 'es' : ''} selected
-                      </p>
-                    )}
-                  </div>
-                )}
+              <Label>Offer Image</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isImageUploading}
+                />
+                {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
               </div>
-            )}
+              {formData.imageUrl && (
+                <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+              )}
+            </div>
+          </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateOffer} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingOffer ? 'Update Offer' : 'Create Offer'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Manage Branches Dialog */}
-      <Dialog open={isManageBranchesOpen} onOpenChange={setIsManageBranchesOpen}>
-        <DialogContent className="max-w-md">
+      {/* Bonus Settings Dialog - Same as Corporate */}
+      <Dialog open={isBonusSettingsOpen} onOpenChange={setIsBonusSettingsOpen}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Manage Offer Availability</DialogTitle>
+            <DialogTitle>Bonus Settings - {selectedBranchName}</DialogTitle>
             <DialogDescription>
-              Select which branches this offer is available at.
+              Configure the bonus deal for this branch.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="manage-branch-specific" 
-                checked={isManageBranchSpecific}
-                onCheckedChange={(checked) => {
-                  setIsManageBranchSpecific(checked as boolean)
-                  if (!checked) setManageBranchIds([])
-                }}
-              />
-              <Label htmlFor="manage-branch-specific" className="text-sm font-normal cursor-pointer">
-                Limit to specific branches
-              </Label>
+
+          {isBonusLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-
-            {!isManageBranchSpecific && (
-              <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
-                This offer is currently available at <strong>All Branches</strong>.
+          ) : (
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="bonus-active">Enable Bonus Deal</Label>
+                <Switch
+                  id="bonus-active"
+                  checked={bonusSettings.isActive || false}
+                  onCheckedChange={(checked) => setBonusSettings(prev => ({ ...prev, isActive: checked }))}
+                />
               </div>
-            )}
 
-            {isManageBranchSpecific && (
-              <div className="space-y-2 pl-6">
-                <Label>Select Branches</Label>
-                <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
-                  {merchantBranches.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No branches found.</p>
-                  ) : (
-                    merchantBranches.map((branch) => (
-                      <div key={branch.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`manage-branch-${branch.id}`}
-                          checked={manageBranchIds.includes(branch.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setManageBranchIds([...manageBranchIds, branch.id])
-                            } else {
-                              setManageBranchIds(manageBranchIds.filter(id => id !== branch.id))
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`manage-branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
-                          {branch.branch_name}
-                        </Label>
-                      </div>
-                    ))
-                  )}
+              <div className="space-y-2">
+                <Label>Redemptions Required</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={bonusSettings.redemptionsRequired}
+                  onChange={(e) => setBonusSettings(prev => ({ ...prev, redemptionsRequired: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted-foreground">Number of standard redemptions to unlock this bonus.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Discount Type</Label>
+                  <Select
+                    value={bonusSettings.discountType}
+                    onValueChange={(val: any) => setBonusSettings(prev => ({ ...prev, discountType: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                {manageBranchIds.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {manageBranchIds.length} branch{manageBranchIds.length > 1 ? 'es' : ''} selected
-                  </p>
+                <div className="space-y-2">
+                  <Label>Value</Label>
+                  <Input
+                    type="number"
+                    value={bonusSettings.discountValue}
+                    onChange={(e) => setBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+
+              {bonusSettings.discountType === 'percentage' && (
+                <div className="space-y-2">
+                  <Label>Max Discount Amount (Optional)</Label>
+                  <Input
+                    type="number"
+                    value={bonusSettings.maxDiscountAmount || ''}
+                    onChange={(e) => setBonusSettings(prev => ({ ...prev, maxDiscountAmount: Number(e.target.value) }))}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Validity (Days)</Label>
+                <Input
+                  type="number"
+                  value={bonusSettings.validityDays || 30}
+                  onChange={(e) => setBonusSettings(prev => ({ ...prev, validityDays: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted-foreground">How long the bonus remains valid after unlocking.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Bonus Image</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBonusImageUpload}
+                    disabled={isImageUploading}
+                  />
+                  {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                {bonusSettings.imageUrl && (
+                  <img src={bonusSettings.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
                 )}
               </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBonusSettingsOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveBonusSettings} disabled={isBonusSaving}>
+              {isBonusSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Settings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Global Bonus Settings Dialog */}
+      <Dialog open={isGlobalBonusOpen} onOpenChange={setIsGlobalBonusOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Global Bonus Settings</DialogTitle>
+            <DialogDescription>
+              Configure bonus settings for ALL branches of this merchant at once. Individual branches can still be customized later.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="global-bonus-active">Enable Bonus Deal</Label>
+              <Switch
+                id="global-bonus-active"
+                checked={globalBonusSettings.isActive || false}
+                onCheckedChange={(checked) => setGlobalBonusSettings(prev => ({ ...prev, isActive: checked }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Redemptions Required</Label>
+              <Input
+                type="number"
+                min={1}
+                value={globalBonusSettings.redemptionsRequired}
+                onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, redemptionsRequired: Number(e.target.value) }))}
+              />
+              <p className="text-xs text-muted-foreground">Number of standard redemptions to unlock this bonus.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Discount Type</Label>
+                <Select
+                  value={globalBonusSettings.discountType}
+                  onValueChange={(val: any) => setGlobalBonusSettings(prev => ({ ...prev, discountType: val }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                    <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Value</Label>
+                <Input
+                  type="number"
+                  value={globalBonusSettings.discountValue}
+                  onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+
+            {globalBonusSettings.discountType === 'percentage' && (
+              <div className="space-y-2">
+                <Label>Max Discount Amount (Optional)</Label>
+                <Input
+                  type="number"
+                  value={globalBonusSettings.maxDiscountAmount || ''}
+                  onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, maxDiscountAmount: Number(e.target.value) }))}
+                />
+              </div>
             )}
+
+            <div className="space-y-2">
+              <Label>Validity (Days)</Label>
+              <Input
+                type="number"
+                value={globalBonusSettings.validityDays || 30}
+                onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, validityDays: Number(e.target.value) }))}
+              />
+              <p className="text-xs text-muted-foreground">How long the bonus remains valid after unlocking.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Bonus Image</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleGlobalBonusImageUpload}
+                  disabled={isImageUploading}
+                />
+                {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+              {globalBonusSettings.imageUrl && (
+                <img src={globalBonusSettings.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+              )}
+            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsManageBranchesOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveBranches} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save Changes
+            <Button variant="outline" onClick={() => setIsGlobalBonusOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveGlobalBonusSettings} disabled={isGlobalBonusSaving}>
+              {isGlobalBonusSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Apply to All Branches
             </Button>
           </DialogFooter>
         </DialogContent>
