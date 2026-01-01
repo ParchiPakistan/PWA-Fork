@@ -33,6 +33,9 @@ import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats 
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
+import { DateRange } from "react-day-picker"
+
 // Top Performing Merchants Component
 const TopPerformingMerchants = ({
   merchants: initialMerchants,
@@ -44,16 +47,33 @@ const TopPerformingMerchants = ({
   const [merchants, setMerchants] = useState<AdminDashboardStats['topPerformingMerchants'] | null>(initialMerchants);
   const [loading, setLoading] = useState(false);
   const [expandedMerchants, setExpandedMerchants] = useState<string[]>([]);
-  const [filterType, setFilterType] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const colors = DASHBOARD_COLORS("admin");
 
-  // Sync initial data ONLY if we are currently showing "all" time (default view)
-  // This prevents the parent's auto-refresh from overwriting a specific date filter selection
+  // Sync initial data ONLY if we don't have a custom range selected (conceptually "All Time")
+  // This prevents parent's auto-refresh from overwriting a specific date filter selection
   useEffect(() => {
-    if (filterType === "all") {
+    if (!dateRange?.from) {
       setMerchants(initialMerchants);
     }
-  }, [initialMerchants, filterType]);
+  }, [initialMerchants, dateRange]);
+
+  // Effect to trigger fetch when date range changes
+  useEffect(() => {
+    if (dateRange?.from) {
+      // If we have at least a start date, fetch
+      // Note: date-fns/react-day-picker might give undefined 'to' if only start is picked
+      // We pass it anyway, backend/api handles logic
+      fetchMerchants(dateRange.from, dateRange.to);
+    } else {
+      // If range was cleared, we can revert to initialMerchants if available, or fetch all time
+      if (initialMerchants) {
+        setMerchants(initialMerchants);
+      } else {
+        fetchMerchants(undefined, undefined);
+      }
+    }
+  }, [dateRange]);
 
   const fetchMerchants = async (start?: Date, end?: Date) => {
     setLoading(true);
@@ -78,9 +98,8 @@ const TopPerformingMerchants = ({
 
   // Only show loading state if:
   // 1. We are locally fetching data (loading is true)
-  // 2. We are in "all" mode and the parent is loading (initialLoading is true) AND we don't have data yet
-  // This prevents skeletons from appearing during background refreshes when a filter is active
-  const isLoadingState = loading || (filterType === "all" && initialLoading && !merchants);
+  // 2. We are in "all" mode (no date range) and the parent is loading (initialLoading is true) AND we don't have data yet
+  const isLoadingState = loading || (!dateRange?.from && initialLoading && !merchants);
 
   return (
     <Card>
@@ -89,52 +108,19 @@ const TopPerformingMerchants = ({
           <CardTitle style={{ color: colors.primary }}>Top Performing Merchants</CardTitle>
           <CardDescription>Based on redemption volume</CardDescription>
         </div>
-        <Select
-          defaultValue="all"
-          onValueChange={(val) => {
-            setFilterType(val);
-            const now = new Date();
-            let start: Date | undefined;
-            let end: Date | undefined;
-
-            switch (val) {
-              case "today":
-                start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-                break;
-              case "thisMonth":
-                start = new Date(now.getFullYear(), now.getMonth(), 1);
-                end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-                break;
-              case "thisYear":
-                start = new Date(now.getFullYear(), 0, 1);
-                end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-                break;
-              case "all":
-              default:
-                start = undefined;
-                end = undefined;
-                // If switching back to all, we can also immediately use the parent's data if available
-                if (initialMerchants) {
-                  setMerchants(initialMerchants);
-                  return;
-                }
-                break;
-            }
-
-            fetchMerchants(start, end);
-          }}
-        >
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Time</SelectItem>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="thisMonth">This Month</SelectItem>
-            <SelectItem value="thisYear">This Year</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={!dateRange?.from ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateRange(undefined)}
+          >
+            All Time
+          </Button>
+          <DatePickerWithRange
+            date={dateRange}
+            setDate={setDateRange}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
