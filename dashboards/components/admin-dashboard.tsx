@@ -32,6 +32,7 @@ import { AdminAuditLogs } from "./admin-audit-logs"
 import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats } from "@/lib/api-client"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
@@ -262,20 +263,17 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
           {activeTab === "overview" && (
             <>
-              {/* Platform Overview */}
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Platform Overview</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Platform Overview - Real-time Data */}
-                  {isLoading ? (
-                    <>
-                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                    </>
-                  ) : (
-                    <>
+              {isLoading ? (
+                <div className="flex h-[50vh] items-center justify-center">
+                  <Spinner className="size-10" />
+                </div>
+              ) : (
+                <>
+                  {/* Platform Overview */}
+                  <div className="mb-8">
+                    <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Platform Overview</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Platform Overview - Real-time Data */}
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
@@ -318,27 +316,16 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                           <p className="text-xs text-muted-foreground mt-1">All Time</p>
                         </CardContent>
                       </Card>
+                    </div>
+                  </div>
 
-                    </>
-                  )}
-
-                </div>
-              </div>
-
-              {/* User Management & Financial Oversight */}
-              <div className="mb-8">
-                {/* User Management */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>User Management</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* User Management - Real-time Data */}
-                    {isLoading ? (
-                      <>
-                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Verification Queue</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-20" /></CardContent></Card>
-                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Suspended/Rejected</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-20" /></CardContent></Card>
-                      </>
-                    ) : (
-                      <>
+                  {/* User Management & Financial Oversight */}
+                  <div className="mb-8">
+                    {/* User Management */}
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>User Management</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* User Management - Real-time Data */}
                         <Card>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
@@ -363,93 +350,59 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             <p className="text-xs text-muted-foreground mt-1">Accounts</p>
                           </CardContent>
                         </Card>
-                      </>
-                    )}
-
-                  </div>
-                </div>
+                      </div>
+                    </div>
 
 
-                {/* Merchant Performance & Student Analytics */}
-                <div className="mb-8 mt-12">
-                  {/* Merchant Performance */}
-                  <div className="mb-8">
-                    <TopPerformingMerchants
-                      merchants={stats?.topPerformingMerchants || null}
-                      isLoading={isLoading}
-                    />
-                  </div>
-                  {/* Student Analytics */}
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle style={{ color: colors.primary }}>University Distribution</CardTitle>
-                        <CardDescription>Student base by university</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {isLoading ? (
-                          <div className="flex items-center justify-center h-[250px]">
-                            <Skeleton className="h-[200px] w-[200px] rounded-full" />
-                          </div>
-                        ) : stats?.universityDistribution && stats.universityDistribution.length > 0 ? (
-                          <ResponsiveContainer width="100%" height={250}>
-                            <PieChart>
-                              <Pie
-                                data={stats.universityDistribution.map(u => ({
-                                  name: u.university,
-                                  value: u.studentCount
-                                }))}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                              >
-                                {stats.universityDistribution.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={[colors.primary, "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--muted))"][index % 5]} />
-                                ))}
-                              </Pie>
-                              <Tooltip />
-                              <Legend />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        ) : (
-                          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
-                            No university data available
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                    {/* Merchant Performance & Student Analytics */}
+                    <div className="mb-8 mt-12">
+                      {/* Merchant Performance */}
+                      <div className="mb-8">
+                        <TopPerformingMerchants
+                          merchants={stats?.topPerformingMerchants || null}
+                          isLoading={isLoading}
+                        />
+                      </div>
+                      {/* Student Analytics */}
+                      <div className="space-y-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle style={{ color: colors.primary }}>University Distribution</CardTitle>
+                            <CardDescription>Student base by university</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            {stats?.universityDistribution && stats.universityDistribution.length > 0 ? (
+                              <ResponsiveContainer width="100%" height={250}>
+                                <PieChart>
+                                  <Pie
+                                    data={stats.universityDistribution.map(u => ({
+                                      name: u.university,
+                                      value: u.studentCount
+                                    }))}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                  >
+                                    {stats.universityDistribution.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={[colors.primary, "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--muted))"][index % 5]} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip />
+                                  <Legend />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            ) : (
+                              <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+                                No university data available
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      {isLoading ? (
-                        <>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Leaderboard Top Performers
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <Skeleton className="h-8 w-16" />
-                              <Skeleton className="h-4 w-20 mt-1" />
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Founders Club Members
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <Skeleton className="h-8 w-16" />
-                              <Skeleton className="h-4 w-24 mt-1" />
-                            </CardContent>
-                          </Card>
-                        </>
-                      ) : (
-                        <>
+                        <div className="grid grid-cols-2 gap-4">
                           <Card>
                             <CardHeader className="pb-2">
                               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -476,12 +429,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                               <p className="text-xs text-muted-foreground mt-1">Exclusive Members</p>
                             </CardContent>
                           </Card>
-                        </>
-                      )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </>
           )}
 

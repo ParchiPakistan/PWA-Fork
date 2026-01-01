@@ -52,7 +52,7 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
     },
     {
       id: "logs",
-      label: "System Logs",
+      label: "Audit Logs",
       icon: CheckCircle2,
     },
     {
@@ -76,9 +76,8 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-left ${
-                activeTab === item.id ? "text-white" : "text-foreground hover:bg-muted"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-left ${activeTab === item.id ? "text-white" : "text-foreground hover:bg-muted"
+                }`}
               style={{
                 backgroundColor: activeTab === item.id ? colors.primary : "transparent",
               }}
@@ -91,8 +90,8 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
       </nav>
 
       <div className="p-4 border-t border-border">
-        <Button 
-          onClick={handleLogout} 
+        <Button
+          onClick={handleLogout}
           disabled={isLoggingOut}
           className="w-full gap-2 text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: colors.primary }}

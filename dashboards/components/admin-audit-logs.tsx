@@ -49,7 +49,7 @@ import {
 } from "@/lib/api-client"
 import { toast } from "sonner"
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 
 export function AdminAuditLogs() {
     const colors = DASHBOARD_COLORS("admin")
@@ -214,341 +214,327 @@ export function AdminAuditLogs() {
 
     return (
         <div className="space-y-6">
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Total Logs</span>
-                            <FileText className="w-4 h-4" style={{ color: colors.primary }} />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingStats ? (
-                            <Skeleton className="h-8 w-20" />
-                        ) : (
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                                {statistics?.total?.toLocaleString() || 0}
-                            </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">All time</p>
-                    </CardContent>
-                </Card>
+            {isLoading || isLoadingStats ? (
+                <div className="flex h-[50vh] items-center justify-center">
+                    <Spinner className="size-10" />
+                </div>
+            ) : (
+                <>
+                    {/* Statistics Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                                    <span>Total Logs</span>
+                                    <FileText className="w-4 h-4" style={{ color: colors.primary }} />
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                                    {statistics?.total?.toLocaleString() || 0}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">All time</p>
+                            </CardContent>
+                        </Card>
 
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Today's Activity</span>
-                            <Activity className="w-4 h-4" style={{ color: colors.primary }} />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingStats ? (
-                            <Skeleton className="h-8 w-20" />
-                        ) : (
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                                {statistics?.recentActivity?.filter(log => {
-                                    const today = new Date();
-                                    const logDate = new Date(log.createdAt);
-                                    return logDate.toDateString() === today.toDateString();
-                                }).length || 0}
-                            </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">Last 24 hours</p>
-                    </CardContent>
-                </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                                    <span>Today's Activity</span>
+                                    <Activity className="w-4 h-4" style={{ color: colors.primary }} />
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                                    {statistics?.recentActivity?.filter(log => {
+                                        const today = new Date();
+                                        const logDate = new Date(log.createdAt);
+                                        return logDate.toDateString() === today.toDateString();
+                                    }).length || 0}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">Last 24 hours</p>
+                            </CardContent>
+                        </Card>
 
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Most Common Action</span>
-                            <TrendingUp className="w-4 h-4" style={{ color: colors.primary }} />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingStats ? (
-                            <Skeleton className="h-8 w-32" />
-                        ) : (
-                            <div className="text-sm font-bold" style={{ color: colors.primary }}>
-                                {statistics?.byAction?.[0]?.action
-                                    ? formatActionName(statistics.byAction[0].action)
-                                    : "N/A"}
-                            </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {statistics?.byAction?.[0]?.count || 0} occurrences
-                        </p>
-                    </CardContent>
-                </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                                    <span>Most Common Action</span>
+                                    <TrendingUp className="w-4 h-4" style={{ color: colors.primary }} />
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-sm font-bold" style={{ color: colors.primary }}>
+                                    {statistics?.byAction?.[0]?.action
+                                        ? formatActionName(statistics.byAction[0].action)
+                                        : "N/A"}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {statistics?.byAction?.[0]?.count || 0} occurrences
+                                </p>
+                            </CardContent>
+                        </Card>
 
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Active Users</span>
-                            <Users className="w-4 h-4" style={{ color: colors.primary }} />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingStats ? (
-                            <Skeleton className="h-8 w-20" />
-                        ) : (
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                                {statistics?.recentActivity?.length || 0}
-                            </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">Unique users</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filters Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Filter className="w-5 h-5" />
-                        Filters & Search
-                    </CardTitle>
-                    <CardDescription>Filter audit logs by various criteria</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {/* Search Bar */}
-                    <div className="flex gap-2">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search action, table name, or user email..."
-                                value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                className="pl-10"
-                            />
-                        </div>
-                        <Button onClick={handleSearch} style={{ backgroundColor: colors.primary }}>
-                            Search
-                        </Button>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                                    <span>Active Users</span>
+                                    <Users className="w-4 h-4" style={{ color: colors.primary }} />
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                                    {statistics?.recentActivity?.length || 0}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">Unique users</p>
+                            </CardContent>
+                        </Card>
                     </div>
 
-                    {/* Action and Date Filters */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">Action Type</label>
-                            <Select value={selectedAction} onValueChange={handleActionFilter}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select action" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {commonActions.map((action) => (
-                                        <SelectItem key={action.value} value={action.value}>
-                                            {action.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">Start Date</label>
-                            <div className="relative">
-                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="pl-10"
-                                />
+                    {/* Filters Section */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Filter className="w-5 h-5" />
+                                Filters & Search
+                            </CardTitle>
+                            <CardDescription>Filter audit logs by various criteria</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Search Bar */}
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search action, table name, or user email..."
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                                        className="pl-10"
+                                    />
+                                </div>
+                                <Button onClick={handleSearch} style={{ backgroundColor: colors.primary }}>
+                                    Search
+                                </Button>
                             </div>
-                        </div>
 
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">End Date</label>
-                            <div className="relative">
-                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="pl-10"
-                                />
+                            {/* Action and Date Filters */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Action Type</label>
+                                    <Select value={selectedAction} onValueChange={handleActionFilter}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select action" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {commonActions.map((action) => (
+                                                <SelectItem key={action.value} value={action.value}>
+                                                    {action.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Start Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            className="pl-10"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">End Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            type="date"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                            className="pl-10"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex justify-between">
-                        <Button variant="outline" onClick={handleClearFilters}>
-                            Clear Filters
-                        </Button>
-                        <div className="flex gap-2">
-                            <Button variant="outline" onClick={handleDateFilter}>
-                                Apply Date Filter
-                            </Button>
-                            <Button variant="outline" onClick={handleRefresh}>
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Refresh
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                            {/* Action Buttons */}
+                            <div className="flex justify-between">
+                                <Button variant="outline" onClick={handleClearFilters}>
+                                    Clear Filters
+                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" onClick={handleDateFilter}>
+                                        Apply Date Filter
+                                    </Button>
+                                    <Button variant="outline" onClick={handleRefresh}>
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Refresh
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {/* Logs Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Audit Logs</CardTitle>
-                    <CardDescription>
-                        Showing {logs.length} of {pagination.total} logs
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="space-y-2">
-                            {[...Array(5)].map((_, i) => (
-                                <Skeleton key={i} className="h-12 w-full" />
-                            ))}
-                        </div>
-                    ) : logs.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                            <p className="text-lg font-medium">No audit logs found</p>
-                            <p className="text-sm">Try adjusting your filters or search criteria</p>
-                        </div>
-                    ) : (
-                        <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Timestamp</TableHead>
-                                        <TableHead>Action</TableHead>
-                                        <TableHead>User</TableHead>
-                                        <TableHead>Details</TableHead>
-                                        <TableHead>IP Address</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {logs.map((log) => {
-                                        const datetime = formatDateTime(log.createdAt)
-                                        return (
-                                            <TableRow key={log.id}>
-                                                <TableCell>
-                                                    <div className="text-sm">
-                                                        <div className="font-medium">{datetime.date}</div>
-                                                        <div className="text-muted-foreground">{datetime.time}</div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge className={getActionColor(log.action)}>
-                                                        {formatActionName(log.action)}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm">
-                                                        <div className="font-medium">{log.user?.email || "Unknown"}</div>
-                                                        {log.user?.role && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {log.user.role}
+                    {/* Logs Table */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Audit Logs</CardTitle>
+                            <CardDescription>
+                                Showing {logs.length} of {pagination.total} logs
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {logs.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg font-medium">No audit logs found</p>
+                                    <p className="text-sm">Try adjusting your filters or search criteria</p>
+                                </div>
+                            ) : (
+                                <div className="rounded-md border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Timestamp</TableHead>
+                                                <TableHead>Action</TableHead>
+                                                <TableHead>User</TableHead>
+                                                <TableHead>Details</TableHead>
+                                                <TableHead>IP Address</TableHead>
+                                                <TableHead className="text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {logs.map((log) => {
+                                                const datetime = formatDateTime(log.createdAt)
+                                                return (
+                                                    <TableRow key={log.id}>
+                                                        <TableCell>
+                                                            <div className="text-sm">
+                                                                <div className="font-medium">{datetime.date}</div>
+                                                                <div className="text-muted-foreground">{datetime.time}</div>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge className={getActionColor(log.action)}>
+                                                                {formatActionName(log.action)}
                                                             </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {log.tableName && <div>Table: {log.tableName}</div>}
-                                                        {log.recordId && (
-                                                            <div className="font-mono text-xs">{log.recordId.slice(0, 8)}...</div>
-                                                        )}
-                                                        {/* Show student details for student approval actions */}
-                                                        {log.action === 'APPROVE_REJECT_STUDENT' && log.newValues && (
-                                                            <div className="mt-1 text-xs">
-                                                                {log.newValues.parchiId && (
-                                                                    <div className="font-semibold text-blue-600">
-                                                                        {log.newValues.parchiId}
-                                                                    </div>
-                                                                )}
-                                                                {log.newValues.firstName && log.newValues.lastName && (
-                                                                    <div className="text-foreground">
-                                                                        {log.newValues.firstName} {log.newValues.lastName}
-                                                                    </div>
-                                                                )}
-                                                                {log.newValues.verificationStatus && (
-                                                                    <Badge
-                                                                        variant={log.newValues.verificationStatus === 'approved' ? 'default' : 'destructive'}
-                                                                        className="text-xs mt-1"
-                                                                    >
-                                                                        {log.newValues.verificationStatus}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="text-sm">
+                                                                <div className="font-medium">{log.user?.email || "Unknown"}</div>
+                                                                {log.user?.role && (
+                                                                    <Badge variant="outline" className="text-xs">
+                                                                        {log.user.role}
                                                                     </Badge>
                                                                 )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="font-mono text-xs text-muted-foreground">
-                                                        {log.ipAddress || "N/A"}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleViewDetails(log)}
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="text-sm text-muted-foreground">
+                                                                {log.tableName && <div>Table: {log.tableName}</div>}
+                                                                {log.recordId && (
+                                                                    <div className="font-mono text-xs">{log.recordId.slice(0, 8)}...</div>
+                                                                )}
+                                                                {/* Show student details for student approval actions */}
+                                                                {log.action === 'APPROVE_REJECT_STUDENT' && log.newValues && (
+                                                                    <div className="mt-1 text-xs">
+                                                                        {log.newValues.parchiId && (
+                                                                            <div className="font-semibold text-blue-600">
+                                                                                {log.newValues.parchiId}
+                                                                            </div>
+                                                                        )}
+                                                                        {log.newValues.firstName && log.newValues.lastName && (
+                                                                            <div className="text-foreground">
+                                                                                {log.newValues.firstName} {log.newValues.lastName}
+                                                                            </div>
+                                                                        )}
+                                                                        {log.newValues.verificationStatus && (
+                                                                            <Badge
+                                                                                variant={log.newValues.verificationStatus === 'approved' ? 'default' : 'destructive'}
+                                                                                className="text-xs mt-1"
+                                                                            >
+                                                                                {log.newValues.verificationStatus}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-mono text-xs text-muted-foreground">
+                                                                {log.ipAddress || "N/A"}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleViewDetails(log)}
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
 
-                    {/* Pagination */}
-                    {logs.length > 0 && (
-                        <div className="flex items-center justify-between mt-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Items per page:</span>
-                                <Select value={String(pagination.limit)} onValueChange={handleLimitChange}>
-                                    <SelectTrigger className="w-20">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="10">10</SelectItem>
-                                        <SelectItem value="20">20</SelectItem>
-                                        <SelectItem value="50">50</SelectItem>
-                                        <SelectItem value="100">100</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {/* Pagination */}
+                            {logs.length > 0 && (
+                                <div className="flex items-center justify-between mt-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">Items per page:</span>
+                                        <Select value={String(pagination.limit)} onValueChange={handleLimitChange}>
+                                            <SelectTrigger className="w-20">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="10">10</SelectItem>
+                                                <SelectItem value="20">20</SelectItem>
+                                                <SelectItem value="50">50</SelectItem>
+                                                <SelectItem value="100">100</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePageChange(pagination.page - 1)}
-                                    disabled={pagination.page === 1}
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    Previous
-                                </Button>
-                                <span className="text-sm">
-                                    Page {pagination.page} of {pagination.totalPages}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePageChange(pagination.page + 1)}
-                                    disabled={pagination.page >= pagination.totalPages}
-                                >
-                                    Next
-                                    <ChevronRight className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handlePageChange(pagination.page - 1)}
+                                            disabled={pagination.page === 1}
+                                        >
+                                            <ChevronLeft className="w-4 h-4" />
+                                            Previous
+                                        </Button>
+                                        <span className="text-sm">
+                                            Page {pagination.page} of {pagination.totalPages}
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handlePageChange(pagination.page + 1)}
+                                            disabled={pagination.page >= pagination.totalPages}
+                                        >
+                                            Next
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </>
+            )}
 
             {/* Log Details Modal */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
