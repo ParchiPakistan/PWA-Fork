@@ -1185,6 +1185,11 @@ export interface AdminDashboardStats {
     redemptionCount: number;
     category: string | null;
     logoPath: string | null;
+    branches: {
+      id: string;
+      branchName: string;
+      redemptionCount: number;
+    }[];
   }[];
   universityDistribution: {
     university: string;

@@ -20,7 +20,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar } from "./admin-sidebar"
-import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2 } from "lucide-react"
+import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { AdminKYC } from "./admin-kyc"
 import { AdminMerchants } from "./admin-merchants"
@@ -31,6 +31,107 @@ import { AdminAuditLogs } from "./admin-audit-logs"
 import { getAdminDashboardStats, AdminDashboardStats } from "@/lib/api-client"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Top Performing Merchants Component
+const TopPerformingMerchants = ({ merchants, isLoading }: { merchants: AdminDashboardStats['topPerformingMerchants'] | null, isLoading: boolean }) => {
+  const [expandedMerchants, setExpandedMerchants] = useState<string[]>([]);
+  const colors = DASHBOARD_COLORS("admin");
+
+  const toggleMerchant = (merchantId: string) => {
+    setExpandedMerchants(prev =>
+      prev.includes(merchantId)
+        ? prev.filter(id => id !== merchantId)
+        : [...prev, merchantId]
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle style={{ color: colors.primary }}>Top Performing Merchants</CardTitle>
+        <CardDescription>Based on redemption volume</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {isLoading ? (
+            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full mb-2" />)
+          ) : (
+            merchants?.map((merchant, idx) => (
+              <div key={merchant.id} className="border rounded-lg p-3">
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleMerchant(merchant.id)}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="font-bold text-lg text-muted-foreground w-6 text-center">
+                      #{idx + 1}
+                    </div>
+                    {merchant.logoPath ? (
+                      <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                        <img
+                          src={merchant.logoPath}
+                          alt={merchant.businessName}
+                          className="object-cover h-full w-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center">
+                        <span className="text-xs font-medium">
+                          {merchant.businessName.substring(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium">{merchant.businessName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {merchant.category || "General"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-lg font-bold">
+                        {merchant.redemptionCount}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Redemptions
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      {expandedMerchants.includes(merchant.id) ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {expandedMerchants.includes(merchant.id) && (
+                  <div className="mt-4 pt-4 border-t pl-14 pr-4">
+                    <h4 className="text-sm font-semibold mb-2">Branch Breakdown</h4>
+                    <div className="space-y-2">
+                      {merchant.branches && merchant.branches.length > 0 ? (
+                        merchant.branches.map(branch => (
+                          <div key={branch.id} className="flex justify-between items-center text-sm border-b last:border-0 py-2">
+                            <span className="text-muted-foreground">{branch.branchName}</span>
+                            <span className="font-medium bg-muted px-2 py-1 rounded text-xs">{branch.redemptionCount} redemptions</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground italic">No branches found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState("overview")
@@ -195,37 +296,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 {/* Merchant Performance & Student Analytics */}
                 <div className="mb-8">
                   {/* Merchant Performance */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle style={{ color: colors.primary }}>Top 10 Performing Merchants</CardTitle>
-                      <CardDescription>Based on redemption volume</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {/* Top Merchants - Real-time Data */}
-                        {isLoading ? (
-                          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full mb-2" />)
-                        ) : (
-                          stats?.topPerformingMerchants.map((merchant, idx) => (
-                            <div key={merchant.id} className="flex items-center justify-between p-3 hover:bg-muted rounded-lg mb-2">
-                              <div className="flex items-center gap-3">
-                                <span className="text-lg font-bold text-muted-foreground">#{idx + 1}</span>
-                                <div>
-                                  <div className="font-medium">{merchant.businessName}</div>
-                                  {merchant.category && <div className="text-xs text-muted-foreground">{merchant.category}</div>}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-bold">{merchant.redemptionCount.toLocaleString()}</div>
-                                <div className="text-xs text-muted-foreground">Redemptions</div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <TopPerformingMerchants merchants={stats?.topPerformingMerchants || null} isLoading={isLoading} />
 
                   {/* Student Analytics */}
                   <div className="space-y-6">
