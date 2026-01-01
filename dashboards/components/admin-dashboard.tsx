@@ -385,7 +385,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
 
                 {/* Merchant Performance & Student Analytics */}
-                <div className="mb-8">
+                <div className="mb-8 mt-12">
                   {/* Merchant Performance */}
                   <div className="mb-8">
                     <TopPerformingMerchants
