@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   LineChart,
   Line,
@@ -28,14 +29,44 @@ import { AdminBranches } from "./admin-branches"
 import { AdminOffers } from "./admin-offers"
 import { AccountCreation } from "./account-creation"
 import { AdminAuditLogs } from "./admin-audit-logs"
-import { getAdminDashboardStats, AdminDashboardStats } from "@/lib/api-client"
+import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats } from "@/lib/api-client"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 
 // Top Performing Merchants Component
-const TopPerformingMerchants = ({ merchants, isLoading }: { merchants: AdminDashboardStats['topPerformingMerchants'] | null, isLoading: boolean }) => {
+const TopPerformingMerchants = ({
+  merchants: initialMerchants,
+  isLoading: initialLoading,
+}: {
+  merchants: AdminDashboardStats['topPerformingMerchants'] | null,
+  isLoading: boolean,
+}) => {
+  const [merchants, setMerchants] = useState<AdminDashboardStats['topPerformingMerchants'] | null>(initialMerchants);
+  const [loading, setLoading] = useState(false);
   const [expandedMerchants, setExpandedMerchants] = useState<string[]>([]);
+  const [filterType, setFilterType] = useState("all");
   const colors = DASHBOARD_COLORS("admin");
+
+  // Sync initial data ONLY if we are currently showing "all" time (default view)
+  // This prevents the parent's auto-refresh from overwriting a specific date filter selection
+  useEffect(() => {
+    if (filterType === "all") {
+      setMerchants(initialMerchants);
+    }
+  }, [initialMerchants, filterType]);
+
+  const fetchMerchants = async (start?: Date, end?: Date) => {
+    setLoading(true);
+    try {
+      const data = await getTopPerformingMerchants(start, end);
+      setMerchants(data);
+    } catch (error) {
+      console.error('Failed to fetch top merchants:', error);
+      toast.error('Failed to update top merchants');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleMerchant = (merchantId: string) => {
     setExpandedMerchants(prev =>
@@ -45,15 +76,69 @@ const TopPerformingMerchants = ({ merchants, isLoading }: { merchants: AdminDash
     );
   };
 
+  // Only show loading state if:
+  // 1. We are locally fetching data (loading is true)
+  // 2. We are in "all" mode and the parent is loading (initialLoading is true) AND we don't have data yet
+  // This prevents skeletons from appearing during background refreshes when a filter is active
+  const isLoadingState = loading || (filterType === "all" && initialLoading && !merchants);
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle style={{ color: colors.primary }}>Top Performing Merchants</CardTitle>
-        <CardDescription>Based on redemption volume</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="space-y-1">
+          <CardTitle style={{ color: colors.primary }}>Top Performing Merchants</CardTitle>
+          <CardDescription>Based on redemption volume</CardDescription>
+        </div>
+        <Select
+          defaultValue="all"
+          onValueChange={(val) => {
+            setFilterType(val);
+            const now = new Date();
+            let start: Date | undefined;
+            let end: Date | undefined;
+
+            switch (val) {
+              case "today":
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                break;
+              case "thisMonth":
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                break;
+              case "thisYear":
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+                break;
+              case "all":
+              default:
+                start = undefined;
+                end = undefined;
+                // If switching back to all, we can also immediately use the parent's data if available
+                if (initialMerchants) {
+                  setMerchants(initialMerchants);
+                  return;
+                }
+                break;
+            }
+
+            fetchMerchants(start, end);
+          }}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Period" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="thisMonth">This Month</SelectItem>
+            <SelectItem value="thisYear">This Year</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {isLoading ? (
+        <div className="space-y-6">
+          {isLoadingState ? (
             [...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full mb-2" />)
           ) : (
             merchants?.map((merchant, idx) => (
@@ -134,7 +219,7 @@ const TopPerformingMerchants = ({ merchants, isLoading }: { merchants: AdminDash
 };
 
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState<string>("overview")
   const colors = DASHBOARD_COLORS("admin")
 
   // Real-time dashboard statistics
@@ -143,9 +228,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   // Fetch dashboard stats
-  const fetchStats = async () => {
+  const fetchStats = async (start?: Date, end?: Date) => {
+    // Only show loading state on initial load to prevent flashing skeletons on refresh
+    if (!stats) setIsLoading(true);
     try {
-      const data = await getAdminDashboardStats()
+      const data = await getAdminDashboardStats(start, end)
       setStats(data)
       setLastUpdated(new Date())
     } catch (error) {
@@ -175,129 +262,137 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Platform management and oversight</p>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Admin Dashboard</h1>
+              <p className="text-muted-foreground mt-1">Platform management and oversight</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => fetchStats()}>
+                <TrendingUp className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {activeTab === "overview" && (
             <>
-              <>
-                {/* Platform Overview */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Platform Overview</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Platform Overview - Real-time Data */}
+              {/* Platform Overview */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Platform Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Platform Overview - Real-time Data */}
+                  {isLoading ? (
+                    <>
+                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
+                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
+                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
+                      <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
+                    </>
+                  ) : (
+                    <>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                            <span>Total Active Students</span>
+                            <Users className="w-4 h-4" style={{ color: colors.primary }} />
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                            {stats?.platformOverview.totalActiveStudents.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">+{stats?.platformOverview.totalActiveStudentsGrowth}% MoM</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                            <span>Total Verified Merchants</span>
+                            <ShoppingCart className="w-4 h-4" style={{ color: colors.primary }} />
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                            {stats?.platformOverview.totalVerifiedMerchants}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">+{stats?.platformOverview.totalVerifiedMerchantsGrowth}% this month</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                            <span>Total Redemptions</span>
+                            <CheckCircle2 className="w-4 h-4" style={{ color: colors.primary }} />
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                            {stats?.platformOverview.totalRedemptions.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">All Time</p>
+                        </CardContent>
+                      </Card>
+
+                    </>
+                  )}
+
+                </div>
+              </div>
+
+              {/* User Management & Financial Oversight */}
+              <div className="mb-8">
+                {/* User Management */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>User Management</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* User Management - Real-time Data */}
                     {isLoading ? (
                       <>
-                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
-                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-24" /></CardContent></Card>
+                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Verification Queue</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-20" /></CardContent></Card>
+                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Suspended/Rejected</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-20" /></CardContent></Card>
                       </>
                     ) : (
                       <>
                         <Card>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                              <span>Total Active Students</span>
+                              <span>Verification Queue</span>
                               <Users className="w-4 h-4" style={{ color: colors.primary }} />
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                              {stats?.platformOverview.totalActiveStudents.toLocaleString()}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">+{stats?.platformOverview.totalActiveStudentsGrowth}% MoM</p>
+                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stats?.userManagement.verificationQueue}</div>
+                            <p className="text-xs text-muted-foreground mt-1">Pending Requests</p>
                           </CardContent>
                         </Card>
                         <Card>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                              <span>Total Verified Merchants</span>
-                              <ShoppingCart className="w-4 h-4" style={{ color: colors.primary }} />
+                              <span>Suspended/Rejected</span>
+                              <X className="w-4 h-4" style={{ color: colors.primary }} />
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                              {stats?.platformOverview.totalVerifiedMerchants}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">+{stats?.platformOverview.totalVerifiedMerchantsGrowth}% this month</p>
+                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stats?.userManagement.suspendedRejected}</div>
+                            <p className="text-xs text-muted-foreground mt-1">Accounts</p>
                           </CardContent>
                         </Card>
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                              <span>Total Redemptions</span>
-                              <CheckCircle2 className="w-4 h-4" style={{ color: colors.primary }} />
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                              {stats?.platformOverview.totalRedemptions.toLocaleString()}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">All Time</p>
-                          </CardContent>
-                        </Card>
-
                       </>
                     )}
 
                   </div>
                 </div>
 
-                {/* User Management & Financial Oversight */}
-                <div className="mb-8">
-                  {/* User Management */}
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>User Management</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* User Management - Real-time Data */}
-                      {isLoading ? (
-                        <>
-                          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Verification Queue</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-20" /></CardContent></Card>
-                          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Suspended/Rejected</CardTitle></CardHeader><CardContent><Skeleton className="h-10 w-20" /></CardContent></Card>
-                        </>
-                      ) : (
-                        <>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                                <span>Verification Queue</span>
-                                <Users className="w-4 h-4" style={{ color: colors.primary }} />
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stats?.userManagement.verificationQueue}</div>
-                              <p className="text-xs text-muted-foreground mt-1">Pending Requests</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                                <span>Suspended/Rejected</span>
-                                <X className="w-4 h-4" style={{ color: colors.primary }} />
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stats?.userManagement.suspendedRejected}</div>
-                              <p className="text-xs text-muted-foreground mt-1">Accounts</p>
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-
-                    </div>
-                  </div>
-
-
-                </div>
 
                 {/* Merchant Performance & Student Analytics */}
                 <div className="mb-8">
                   {/* Merchant Performance */}
-                  <TopPerformingMerchants merchants={stats?.topPerformingMerchants || null} isLoading={isLoading} />
-
+                  <div className="mb-8">
+                    <TopPerformingMerchants
+                      merchants={stats?.topPerformingMerchants || null}
+                      isLoading={isLoading}
+                    />
+                  </div>
                   {/* Student Analytics */}
                   <div className="space-y-6">
                     <Card>
@@ -400,7 +495,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
                 </div>
-              </>
+              </div>
             </>
           )}
 

@@ -1205,8 +1205,39 @@ export interface AdminDashboardStats {
  * Get admin dashboard statistics
  * Requires admin authentication
  */
-export const getAdminDashboardStats = async (): Promise<AdminDashboardStats> => {
-  const response = await apiRequest('/admin/dashboard/stats', {
+export const getAdminDashboardStats = async (
+  startDate?: Date,
+  endDate?: Date
+): Promise<AdminDashboardStats> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate.toISOString());
+  if (endDate) params.append('endDate', endDate.toISOString());
+
+  const queryString = params.toString();
+  const url = `/admin/dashboard/stats${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiRequest(url, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Get top performing merchants (isolated)
+ * Requires admin authentication
+ */
+export const getTopPerformingMerchants = async (
+  startDate?: Date,
+  endDate?: Date
+): Promise<AdminDashboardStats['topPerformingMerchants']> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate.toISOString());
+  if (endDate) params.append('endDate', endDate.toISOString());
+
+  const queryString = params.toString();
+  const url = `/admin/dashboard/top-merchants${queryString ? `?${queryString}` : ''}`;
+
+  const response = await apiRequest(url, {
     method: 'GET',
   });
   return response.data;
