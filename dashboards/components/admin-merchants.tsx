@@ -14,7 +14,7 @@ import { Plus, Building2, Store, MoreHorizontal, Search, Loader2, AlertCircle, R
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useMerchants } from "@/hooks/use-merchants"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { updateCorporateMerchant, toggleCorporateMerchant, CorporateMerchant } from "@/lib/api-client"
+import { updateCorporateMerchant, toggleCorporateMerchant, CorporateMerchant, getBrands, setFeaturedBrands, Brand, FeaturedBrand } from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 
@@ -171,6 +171,133 @@ export function AdminMerchants() {
     }
   }
 
+  // Featured Brands State
+  const [isFeaturedBrandsOpen, setIsFeaturedBrandsOpen] = useState(false)
+  const [allBrands, setAllBrands] = useState<Brand[]>([])
+  const [featuredBrands, setFeaturedBrandsList] = useState<FeaturedBrand[]>([])
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false)
+  const [isSavingFeatured, setIsSavingFeatured] = useState(false)
+
+  // Load brands when featured brands dialog opens
+  useEffect(() => {
+    if (isFeaturedBrandsOpen) {
+      loadBrands()
+    }
+  }, [isFeaturedBrandsOpen])
+
+  const loadBrands = async () => {
+    setIsLoadingBrands(true)
+    try {
+      const brands = await getBrands()
+      setAllBrands(brands)
+      
+      // Initialize featured brands from existing brands that have featured_order set
+      const featured = brands
+        .filter(b => b.featuredOrder !== null && b.featuredOrder !== undefined)
+        .map(b => ({
+          brandId: b.id,
+          order: b.featuredOrder as number
+        }))
+        .sort((a, b) => a.order - b.order) // Sort by order
+      
+      setFeaturedBrandsList(featured)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load brands",
+      })
+      // Ensure featuredBrands is always an array even on error
+      setFeaturedBrandsList([])
+    } finally {
+      setIsLoadingBrands(false)
+    }
+  }
+
+  const handleAddFeaturedBrand = (brandId: string) => {
+    if (featuredBrands.length >= 6) {
+      toast({
+        variant: "destructive",
+        title: "Limit Reached",
+        description: "You can only feature up to 6 brands",
+      })
+      return
+    }
+
+    if (featuredBrands.some(b => b.brandId === brandId)) {
+      toast({
+        variant: "destructive",
+        title: "Already Added",
+        description: "This brand is already in the featured list",
+      })
+      return
+    }
+
+    const newOrder = featuredBrands.length + 1
+    setFeaturedBrandsList([...featuredBrands, { brandId, order: newOrder }])
+  }
+
+  const handleRemoveFeaturedBrand = (brandId: string) => {
+    const updated = featuredBrands
+      .filter(b => b.brandId !== brandId)
+      .map((b, index) => ({ ...b, order: index + 1 })) // Reorder
+    setFeaturedBrandsList(updated)
+  }
+
+  const handleReorderFeaturedBrand = (brandId: string, newOrder: number) => {
+    if (newOrder < 1 || newOrder > 6) return
+    
+    const currentIndex = featuredBrands.findIndex(b => b.brandId === brandId)
+    if (currentIndex === -1) return
+
+    const updated = [...featuredBrands]
+    const [moved] = updated.splice(currentIndex, 1)
+    
+    // Adjust other orders
+    updated.forEach(b => {
+      if (b.order >= newOrder && b.order < moved.order) {
+        b.order += 1
+      } else if (b.order <= newOrder && b.order > moved.order) {
+        b.order -= 1
+      }
+    })
+    
+    moved.order = newOrder
+    updated.push(moved)
+    updated.sort((a, b) => a.order - b.order)
+    
+    setFeaturedBrandsList(updated)
+  }
+
+  const handleSaveFeaturedBrands = async () => {
+    if (featuredBrands.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Brands Selected",
+        description: "Please select at least one brand to feature",
+      })
+      return
+    }
+
+    setIsSavingFeatured(true)
+    try {
+      await setFeaturedBrands({ brands: featuredBrands })
+      toast({
+        title: "Success",
+        description: "Featured brands updated successfully",
+      })
+      setIsFeaturedBrandsOpen(false)
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update featured brands",
+      })
+    } finally {
+      setIsSavingFeatured(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -179,6 +306,27 @@ export function AdminMerchants() {
           <p className="text-muted-foreground">Create and manage corporate and branch accounts</p>
         </div>
       </div>
+
+      {/* Featured Brands Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Featured Brands</CardTitle>
+              <CardDescription>
+                Customize which 6 brands appear on top for students
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsFeaturedBrandsOpen(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Manage Featured Brands
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -518,6 +666,169 @@ export function AdminMerchants() {
             <Button onClick={handleUpdate} disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Featured Brands Dialog */}
+      <Dialog open={isFeaturedBrandsOpen} onOpenChange={setIsFeaturedBrandsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Featured Brands</DialogTitle>
+            <DialogDescription>
+              Select up to 6 brands to feature on top. Drag to reorder.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoadingBrands ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Loading brands...</span>
+            </div>
+          ) : (
+            <div className="grid gap-4 py-4">
+              {/* Featured Brands List */}
+              <div className="space-y-2">
+                <Label>Featured Brands (Top 6)</Label>
+                <div className="border rounded-lg p-4 space-y-2 min-h-[200px]">
+                  {!Array.isArray(featuredBrands) || featuredBrands.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No brands selected. Add brands from the list below.
+                    </div>
+                  ) : (
+                    featuredBrands.map((featured) => {
+                      const brand = allBrands.find(b => b.id === featured.brandId)
+                      if (!brand) return null
+                      
+                      return (
+                        <div
+                          key={featured.brandId}
+                          className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                              {featured.order}
+                            </div>
+                            {brand.logoPath ? (
+                              <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                                <img
+                                  src={brand.logoPath}
+                                  alt={brand.businessName}
+                                  className="object-cover h-full w-full"
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center">
+                                <span className="text-xs font-medium">
+                                  {brand.businessName.substring(0, 2).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="font-medium">{brand.businessName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {brand.category || "General"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={featured.order.toString()}
+                              onValueChange={(val) => handleReorderFeaturedBrand(featured.brandId, parseInt(val))}
+                            >
+                              <SelectTrigger className="w-20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2, 3, 4, 5, 6].map(num => (
+                                  <SelectItem key={num} value={num.toString()}>
+                                    Position {num}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 text-destructive hover:text-destructive/90"
+                              onClick={() => handleRemoveFeaturedBrand(featured.brandId)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Available Brands List */}
+              <div className="space-y-2">
+                <Label>Available Brands</Label>
+                <div className="border rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                  {allBrands.filter(b => !featuredBrands.some(fb => fb.brandId === b.id)).length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      All brands are featured or no brands available
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {allBrands
+                        .filter(b => !featuredBrands.some(fb => fb.brandId === b.id))
+                        .map((brand) => (
+                          <div
+                            key={brand.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              {brand.logoPath ? (
+                                <div className="relative h-10 w-10 overflow-hidden rounded-full">
+                                  <img
+                                    src={brand.logoPath}
+                                    alt={brand.businessName}
+                                    className="object-cover h-full w-full"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center">
+                                  <span className="text-xs font-medium">
+                                    {brand.businessName.substring(0, 2).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-medium">{brand.businessName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {brand.category || "General"}
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAddFeaturedBrand(brand.id)}
+                              disabled={featuredBrands.length >= 6}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFeaturedBrandsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveFeaturedBrands} disabled={isSavingFeatured || featuredBrands.length === 0}>
+              {isSavingFeatured && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Featured Brands
             </Button>
           </DialogFooter>
         </DialogContent>

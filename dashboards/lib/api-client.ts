@@ -1250,3 +1250,44 @@ export const getTopPerformingMerchants = async (
   });
   return response.data;
 };
+
+// ========== Featured Brands API ==========
+
+export interface Brand {
+  id: string;
+  businessName: string;
+  logoPath: string | null;
+  category: string | null;
+  featuredOrder: number | null;
+}
+
+export interface FeaturedBrand {
+  brandId: string;
+  order: number; // 1-6
+}
+
+export interface SetFeaturedBrandsRequest {
+  brands: FeaturedBrand[];
+}
+
+/**
+ * Get all brands (for students - but also useful for admin to see available brands)
+ */
+export const getBrands = async (): Promise<Brand[]> => {
+  const response = await apiRequest('/merchants/brands', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Set featured brands (top 6)
+ * Requires admin authentication
+ */
+export const setFeaturedBrands = async (data: SetFeaturedBrandsRequest): Promise<{ message: string }> => {
+  const response = await apiRequest('/merchants/brands/featured', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  return response.data;
+};
