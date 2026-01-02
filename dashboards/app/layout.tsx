@@ -1,14 +1,13 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Montserrat } from "next/font/google"
 import localFont from "next/font/local"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { Toaster } from "@/components/ui/toaster"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
+const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-sans" })
 
 const hagrid = localFont({
   src: [
@@ -66,7 +65,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geist.variable} ${geistMono.variable} ${hagrid.variable} font-sans antialiased`}>
+      <body className={`${montserrat.variable} ${hagrid.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>
