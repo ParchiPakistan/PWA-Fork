@@ -1125,7 +1125,16 @@ export function AdminOffers() {
                   <Label>Discount Type</Label>
                   <Select
                     value={bonusSettings.discountType}
-                    onValueChange={(val: any) => setBonusSettings(prev => ({ ...prev, discountType: val }))}
+                    onValueChange={(val: any) => {
+                      setBonusSettings(prev => ({
+                        ...prev,
+                        discountType: val,
+                        // Set discountValue to 0 when item type is selected
+                        discountValue: val === 'item' ? 0 : prev.discountValue,
+                        // Clear maxDiscountAmount when item type is selected
+                        maxDiscountAmount: val === 'item' ? null : prev.maxDiscountAmount,
+                      }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -1133,18 +1142,33 @@ export function AdminOffers() {
                     <SelectContent>
                       <SelectItem value="percentage">Percentage (%)</SelectItem>
                       <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                      <SelectItem value="item">Additional Item</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Value</Label>
-                  <Input
-                    type="number"
-                    value={bonusSettings.discountValue}
-                    onChange={(e) => setBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
-                  />
-                </div>
+                {bonusSettings.discountType !== 'item' && (
+                  <div className="space-y-2">
+                    <Label>Value</Label>
+                    <Input
+                      type="number"
+                      value={bonusSettings.discountValue}
+                      onChange={(e) => setBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                    />
+                  </div>
+                )}
               </div>
+
+              {bonusSettings.discountType === 'item' && (
+                <div className="space-y-2">
+                  <Label>Additional Item Name *</Label>
+                  <Input
+                    placeholder="e.g. Pepsi, Extra Fries"
+                    value={bonusSettings.additionalItem || ''}
+                    onChange={(e) => setBonusSettings(prev => ({ ...prev, additionalItem: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">The item to be given as bonus instead of discount.</p>
+                </div>
+              )}
 
               {bonusSettings.discountType === 'percentage' && (
                 <div className="space-y-2">
@@ -1231,7 +1255,14 @@ export function AdminOffers() {
                 <Label>Discount Type</Label>
                 <Select
                   value={globalBonusSettings.discountType}
-                  onValueChange={(val: any) => setGlobalBonusSettings(prev => ({ ...prev, discountType: val }))}
+                  onValueChange={(val: any) => setGlobalBonusSettings(prev => ({
+                    ...prev,
+                    discountType: val,
+                    // Set discountValue to 0 when item type is selected
+                    discountValue: val === 'item' ? 0 : prev.discountValue,
+                    // Clear maxDiscountAmount when item type is selected
+                    maxDiscountAmount: val === 'item' ? null : prev.maxDiscountAmount,
+                  }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1239,18 +1270,33 @@ export function AdminOffers() {
                   <SelectContent>
                     <SelectItem value="percentage">Percentage (%)</SelectItem>
                     <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                    <SelectItem value="item">Additional Item</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Value</Label>
-                <Input
-                  type="number"
-                  value={globalBonusSettings.discountValue}
-                  onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
-                />
-              </div>
+              {globalBonusSettings.discountType !== 'item' && (
+                <div className="space-y-2">
+                  <Label>Value</Label>
+                  <Input
+                    type="number"
+                    value={globalBonusSettings.discountValue}
+                    onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                  />
+                </div>
+              )}
             </div>
+
+            {globalBonusSettings.discountType === 'item' && (
+              <div className="space-y-2">
+                <Label>Additional Item Name *</Label>
+                <Input
+                  placeholder="e.g. Pepsi, Extra Fries"
+                  value={globalBonusSettings.additionalItem || ''}
+                  onChange={(e) => setGlobalBonusSettings(prev => ({ ...prev, additionalItem: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">The item to be given as bonus instead of discount.</p>
+              </div>
+            )}
 
             {globalBonusSettings.discountType === 'percentage' && (
               <div className="space-y-2">
