@@ -39,6 +39,7 @@ export function AdminOffers() {
   const [expandedMerchants, setExpandedMerchants] = useState<string[]>([])
   const [offers, setOffers] = useState<Offer[]>([])
   const [branchAssignments, setBranchAssignments] = useState<{ [merchantId: string]: BranchWithAssignment[] }>({})
+  const [loadingMerchants, setLoadingMerchants] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
 
@@ -124,7 +125,12 @@ export function AdminOffers() {
       setExpandedMerchants(prev => [...prev, merchantId])
       // Fetch branches if not already loaded
       if (!branchAssignments[merchantId]) {
-        await fetchMerchantBranches(merchantId)
+        setLoadingMerchants(prev => [...prev, merchantId])
+        try {
+          await fetchMerchantBranches(merchantId)
+        } finally {
+          setLoadingMerchants(prev => prev.filter(id => id !== merchantId))
+        }
       }
     } else {
       setExpandedMerchants(prev => prev.filter(id => id !== merchantId))
@@ -623,144 +629,152 @@ export function AdminOffers() {
             {/* Collapsible content */}
             {expandedMerchants.includes(merchant.id) && (
               <CardContent>
-                {/* Offers Pool */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Offers Pool</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {getOffersByMerchant(merchant.id).map((offer) => (
-                      <Card key={offer.id} className="hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                          <div className="space-y-1">
-                            <CardTitle className="text-base font-semibold">{offer.title}</CardTitle>
-                            <CardDescription className="text-xs">
-                              {offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `Rs. ${offer.discountValue} OFF`}
-                            </CardDescription>
+                {loadingMerchants.includes(merchant.id) ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Offers Pool */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-4">Offers Pool</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {getOffersByMerchant(merchant.id).map((offer) => (
+                          <Card key={offer.id} className="hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                              <div className="space-y-1">
+                                <CardTitle className="text-base font-semibold">{offer.title}</CardTitle>
+                                <CardDescription className="text-xs">
+                                  {offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `Rs. ${offer.discountValue} OFF`}
+                                </CardDescription>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => handleEditClick(offer)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => handleDeleteOffer(offer.id)}
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <div className="flex items-center">
+                                  <Calendar className="mr-2 h-3 w-3" />
+                                  {new Date(offer.validUntil).toLocaleDateString()}
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Badge variant={offer.status === 'active' ? 'default' : 'secondary'}>
+                                    {offer.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {getOffersByMerchant(merchant.id).length === 0 && (
+                          <div className="col-span-full text-center py-8 text-muted-foreground">
+                            No offers created for this merchant yet
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleEditClick(offer)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDeleteOffer(offer.id)}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <div className="flex items-center">
-                              <Calendar className="mr-2 h-3 w-3" />
-                              {new Date(offer.validUntil).toLocaleDateString()}
-                            </div>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge variant={offer.status === 'active' ? 'default' : 'secondary'}>
-                                {offer.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {getOffersByMerchant(merchant.id).length === 0 && (
-                      <div className="col-span-full text-center py-8 text-muted-foreground">
-                        No offers created for this merchant yet
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                <Separator className="my-6" />
+                    <Separator className="my-6" />
 
-                {/* Branch Assignments */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Branch Assignments</h3>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleOpenGlobalBonus(merchant.id)}
-                      disabled={getBranchesByMerchant(merchant.id).length === 0}
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      Set Global Bonus
-                    </Button>
-                  </div>
+                    {/* Branch Assignments */}
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Branch Assignments</h3>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleOpenGlobalBonus(merchant.id)}
+                          disabled={getBranchesByMerchant(merchant.id).length === 0}
+                        >
+                          <Settings className="mr-2 h-4 w-4" />
+                          Set Global Bonus
+                        </Button>
+                      </div>
 
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[250px]">Branch Name</TableHead>
-                        <TableHead>Standard Offer (Required)</TableHead>
-                        <TableHead>Bonus Settings</TableHead>
-                        <TableHead className="w-[100px]">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {getBranchesByMerchant(merchant.id).map((assignment) => (
-                        <TableRow key={assignment.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Store className="h-4 w-4 text-muted-foreground" />
-                              {assignment.branchName}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={assignment.standardOfferId || "none"}
-                              onValueChange={(val) => handleAssignmentChange(merchant.id, assignment.id, val)}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select Standard Offer" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
-                                {getOffersByMerchant(merchant.id).filter(o => o.status === 'active').map(offer => (
-                                  <SelectItem key={offer.id} value={offer.id}>
-                                    {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
-                            >
-                              <Settings className="mr-2 h-4 w-4" /> Configure Bonus
-                            </Button>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveAssignment(merchant.id, assignment)}
-                            >
-                              Save
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {getBranchesByMerchant(merchant.id).length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                            No branches found for this merchant
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[250px]">Branch Name</TableHead>
+                            <TableHead>Standard Offer (Required)</TableHead>
+                            <TableHead>Bonus Settings</TableHead>
+                            <TableHead className="w-[100px]">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getBranchesByMerchant(merchant.id).map((assignment) => (
+                            <TableRow key={assignment.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <Store className="h-4 w-4 text-muted-foreground" />
+                                  {assignment.branchName}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={assignment.standardOfferId || "none"}
+                                  onValueChange={(val) => handleAssignmentChange(merchant.id, assignment.id, val)}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select Standard Offer" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
+                                    {getOffersByMerchant(merchant.id).filter(o => o.status === 'active').map(offer => (
+                                      <SelectItem key={offer.id} value={offer.id}>
+                                        {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
+                                >
+                                  <Settings className="mr-2 h-4 w-4" /> Configure Bonus
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSaveAssignment(merchant.id, assignment)}
+                                >
+                                  Save
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {getBranchesByMerchant(merchant.id).length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                No branches found for this merchant
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
               </CardContent>
             )}
           </Card>
