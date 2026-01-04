@@ -51,18 +51,18 @@ export function AdminBranches() {
 
   useEffect(() => {
     let mounted = true
-    
+
     const loadBranches = async () => {
       if (mounted) {
         await fetchBranches(searchQuery)
       }
     }
-    
+
     // Debounce search
     const timeoutId = setTimeout(() => {
       loadBranches()
     }, searchQuery ? 300 : 0)
-    
+
     return () => {
       mounted = false
       clearTimeout(timeoutId)
@@ -153,75 +153,140 @@ export function AdminBranches() {
           </div>
 
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Branch Name</TableHead>
-                  <TableHead>Corporate Merchant</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    </TableCell>
+                    <TableHead>Branch Name</TableHead>
+                    <TableHead>Corporate Merchant</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : filteredBranches.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No branches found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredBranches.map((branch) => (
-                    <TableRow key={branch.id}>
-                      <TableCell className="font-medium">{branch.branch_name}</TableCell>
-                      <TableCell>{branch.merchant?.business_name || 'N/A'}</TableCell>
-                      <TableCell>{branch.city}</TableCell>
-                      <TableCell>{branch.contact_phone}</TableCell>
-                      <TableCell>
-                        <Badge variant={branch.is_active ? "default" : "secondary"}>
-                          {branch.is_active ? "Active" : "Pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openEditModal(branch)}>
-                              <Edit className="mr-2 h-4 w-4" /> Edit Details
-                            </DropdownMenuItem>
-                            {!branch.is_active && (
-                              <DropdownMenuItem onClick={() => handleApprove(branch.id)}>
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Approve
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleReject(branch.id)}
-                            >
-                              <XCircle className="mr-2 h-4 w-4" /> {branch.is_active ? "Delete" : "Reject"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : filteredBranches.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No branches found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredBranches.map((branch) => (
+                      <TableRow key={branch.id}>
+                        <TableCell className="font-medium">{branch.branch_name}</TableCell>
+                        <TableCell>{branch.merchant?.business_name || 'N/A'}</TableCell>
+                        <TableCell>{branch.city}</TableCell>
+                        <TableCell>{branch.contact_phone}</TableCell>
+                        <TableCell>
+                          <Badge variant={branch.is_active ? "default" : "secondary"}>
+                            {branch.is_active ? "Active" : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEditModal(branch)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Details
+                              </DropdownMenuItem>
+                              {!branch.is_active && (
+                                <DropdownMenuItem onClick={() => handleApprove(branch.id)}>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Approve
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleReject(branch.id)}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" /> {branch.is_active ? "Delete" : "Reject"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y">
+              {loading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                </div>
+              ) : filteredBranches.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No branches found
+                </div>
+              ) : (
+                filteredBranches.map((branch) => (
+                  <div key={branch.id} className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium text-base">{branch.branch_name}</div>
+                        <div className="text-sm text-muted-foreground">{branch.merchant?.business_name || 'N/A'}</div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openEditModal(branch)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Details
+                          </DropdownMenuItem>
+                          {!branch.is_active && (
+                            <DropdownMenuItem onClick={() => handleApprove(branch.id)}>
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Approve
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleReject(branch.id)}
+                          >
+                            <XCircle className="mr-2 h-4 w-4" /> {branch.is_active ? "Delete" : "Reject"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge variant={branch.is_active ? "default" : "secondary"}>
+                        {branch.is_active ? "Active" : "Pending"}
+                      </Badge>
+                      <span className="text-muted-foreground">{branch.city}</span>
+                    </div>
+
+                    <div className="text-sm bg-muted/50 p-3 rounded-md">
+                      <div className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact</div>
+                      {branch.contact_phone}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -236,54 +301,54 @@ export function AdminBranches() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Branch Name</Label>
-              <Input 
+              <Input
                 value={editForm.branchName}
-                onChange={(e) => setEditForm({...editForm, branchName: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, branchName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label>Address</Label>
-              <Input 
+              <Input
                 value={editForm.address}
-                onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>City</Label>
-                <Input 
+                <Input
                   value={editForm.city}
-                  onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Contact Phone</Label>
-                <Input 
+                <Input
                   value={editForm.contactPhone}
-                  onChange={(e) => setEditForm({...editForm, contactPhone: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Latitude</Label>
-                <Input 
+                <Input
                   type="number"
                   step="any"
                   placeholder="e.g., 24.8607"
                   value={editForm.latitude ?? ""}
-                  onChange={(e) => setEditForm({...editForm, latitude: e.target.value ? parseFloat(e.target.value) : null})}
+                  onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value ? parseFloat(e.target.value) : null })}
                 />
                 <p className="text-xs text-muted-foreground">Valid range: -90 to 90</p>
               </div>
               <div className="space-y-2">
                 <Label>Longitude</Label>
-                <Input 
+                <Input
                   type="number"
                   step="any"
                   placeholder="e.g., 67.0011"
                   value={editForm.longitude ?? ""}
-                  onChange={(e) => setEditForm({...editForm, longitude: e.target.value ? parseFloat(e.target.value) : null})}
+                  onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value ? parseFloat(e.target.value) : null })}
                 />
                 <p className="text-xs text-muted-foreground">Valid range: -180 to 180</p>
               </div>

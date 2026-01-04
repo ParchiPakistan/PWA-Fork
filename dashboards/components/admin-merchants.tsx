@@ -88,10 +88,10 @@ export function AdminMerchants() {
       // Use a temporary name if business name is empty
       const businessName = editForm.businessName || "temp-upload"
       const url = await SupabaseStorageService.uploadCorporateLogo(file, businessName)
-      
-      setEditForm(prev => ({ 
-        ...prev, 
-        logoPath: url 
+
+      setEditForm(prev => ({
+        ...prev,
+        logoPath: url
       }))
     } catch (error) {
       console.error("Error uploading logo:", error)
@@ -118,10 +118,10 @@ export function AdminMerchants() {
       // Use a temporary name if business name is empty
       const businessName = editForm.businessName || "temp-upload"
       const url = await SupabaseStorageService.uploadCorporateBanner(file, businessName)
-      
-      setEditForm(prev => ({ 
-        ...prev, 
-        bannerUrl: url 
+
+      setEditForm(prev => ({
+        ...prev,
+        bannerUrl: url
       }))
     } catch (error) {
       console.error("Error uploading banner:", error)
@@ -157,16 +157,16 @@ export function AdminMerchants() {
   const handleToggleStatus = async (merchant: CorporateMerchant) => {
     try {
       await toggleCorporateMerchant(merchant.id)
-      toast({ 
-        title: "Success", 
-        description: `Merchant ${merchant.isActive ? 'deactivated' : 'activated'} successfully` 
+      toast({
+        title: "Success",
+        description: `Merchant ${merchant.isActive ? 'deactivated' : 'activated'} successfully`
       })
       refetch()
     } catch (error) {
-      toast({ 
-        title: "Error", 
-        description: "Failed to update merchant status", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Failed to update merchant status",
+        variant: "destructive"
       })
     }
   }
@@ -190,7 +190,7 @@ export function AdminMerchants() {
     try {
       const brands = await getBrands()
       setAllBrands(brands)
-      
+
       // Initialize featured brands from existing brands that have featured_order set
       const featured = brands
         .filter(b => b.featuredOrder !== null && b.featuredOrder !== undefined)
@@ -199,7 +199,7 @@ export function AdminMerchants() {
           order: b.featuredOrder as number
         }))
         .sort((a, b) => a.order - b.order) // Sort by order
-      
+
       setFeaturedBrandsList(featured)
     } catch (error) {
       toast({
@@ -246,13 +246,13 @@ export function AdminMerchants() {
 
   const handleReorderFeaturedBrand = (brandId: string, newOrder: number) => {
     if (newOrder < 1 || newOrder > 6) return
-    
+
     const currentIndex = featuredBrands.findIndex(b => b.brandId === brandId)
     if (currentIndex === -1) return
 
     const updated = [...featuredBrands]
     const [moved] = updated.splice(currentIndex, 1)
-    
+
     // Adjust other orders
     updated.forEach(b => {
       if (b.order >= newOrder && b.order < moved.order) {
@@ -261,11 +261,11 @@ export function AdminMerchants() {
         b.order -= 1
       }
     })
-    
+
     moved.order = newOrder
     updated.push(moved)
     updated.sort((a, b) => a.order - b.order)
-    
+
     setFeaturedBrandsList(updated)
   }
 
@@ -310,7 +310,7 @@ export function AdminMerchants() {
       {/* Featured Brands Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle>Featured Brands</CardTitle>
               <CardDescription>
@@ -320,6 +320,7 @@ export function AdminMerchants() {
             <Button
               variant="outline"
               onClick={() => setIsFeaturedBrandsOpen(true)}
+              className="w-full md:w-auto"
             >
               <Edit className="h-4 w-4 mr-2" />
               Manage Featured Brands
@@ -330,7 +331,7 @@ export function AdminMerchants() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle>Corporate Merchants Directory</CardTitle>
               <CardDescription>
@@ -342,6 +343,7 @@ export function AdminMerchants() {
               size="sm"
               onClick={() => refetch()}
               disabled={loading}
+              className="w-full md:w-auto"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
@@ -380,76 +382,133 @@ export function AdminMerchants() {
             </div>
           ) : (
             <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Business Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMerchants.map((merchant) => (
-                    <TableRow key={merchant.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-blue-500" />
-                          <div>
-                            <div>{merchant.businessName}</div>
-                            {merchant.businessRegistrationNumber && (
-                              <div className="text-xs text-muted-foreground">
-                                Reg: {merchant.businessRegistrationNumber}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{merchant.contactEmail}</div>
-                          <div className="text-muted-foreground">{merchant.contactPhone}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground">
-                          {merchant.category || 'N/A'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(merchant.isActive)}>
-                          {getStatusText(merchant.isActive)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openEditModal(merchant)}>
-                              <Edit className="mr-2 h-4 w-4" /> Edit Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>View Dashboard</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleToggleStatus(merchant)}
-                            >
-                              {merchant.isActive ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Business Name</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMerchants.map((merchant) => (
+                      <TableRow key={merchant.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <div>{merchant.businessName}</div>
+                              {merchant.businessRegistrationNumber && (
+                                <div className="text-xs text-muted-foreground">
+                                  Reg: {merchant.businessRegistrationNumber}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div>{merchant.contactEmail}</div>
+                            <div className="text-muted-foreground">{merchant.contactPhone}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground">
+                            {merchant.category || 'N/A'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(merchant.isActive)}>
+                            {getStatusText(merchant.isActive)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEditModal(merchant)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>View Dashboard</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleToggleStatus(merchant)}
+                              >
+                                {merchant.isActive ? 'Deactivate' : 'Activate'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y">
+                {filteredMerchants.map((merchant) => (
+                  <div key={merchant.id} className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        <div>
+                          <div className="font-medium">{merchant.businessName}</div>
+                          <div className="text-xs text-muted-foreground">{merchant.category || 'N/A'}</div>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openEditModal(merchant)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>View Dashboard</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleToggleStatus(merchant)}
+                          >
+                            {merchant.isActive ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <Badge variant={getStatusVariant(merchant.isActive)}>
+                        {getStatusText(merchant.isActive)}
+                      </Badge>
+                      {merchant.businessRegistrationNumber && (
+                        <span className="text-xs text-muted-foreground">Reg: {merchant.businessRegistrationNumber}</span>
+                      )}
+                    </div>
+
+                    <div className="text-sm bg-muted/50 p-3 rounded-md space-y-1">
+                      <div className="font-medium text-xs text-muted-foreground uppercase tracking-wider">Contact Info</div>
+                      <div className="truncate">{merchant.contactEmail}</div>
+                      <div className="text-muted-foreground">{merchant.contactPhone}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -465,25 +524,25 @@ export function AdminMerchants() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Business Name</Label>
-              <Input 
+              <Input
                 value={editForm.businessName}
-                onChange={(e) => setEditForm({...editForm, businessName: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, businessName: e.target.value })}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Registration Number</Label>
-                <Input 
+                <Input
                   value={editForm.businessRegistrationNumber}
-                  onChange={(e) => setEditForm({...editForm, businessRegistrationNumber: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, businessRegistrationNumber: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Input 
+                <Input
                   value={editForm.category}
-                  onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                   placeholder="e.g., Food & Beverage, Retail"
                 />
               </div>
@@ -492,17 +551,17 @@ export function AdminMerchants() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Contact Email</Label>
-                <Input 
+                <Input
                   type="email"
                   value={editForm.contactEmail}
-                  onChange={(e) => setEditForm({...editForm, contactEmail: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Contact Phone</Label>
-                <Input 
+                <Input
                   value={editForm.contactPhone}
-                  onChange={(e) => setEditForm({...editForm, contactPhone: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
                 />
               </div>
             </div>
@@ -555,9 +614,9 @@ export function AdminMerchants() {
                     <div className="flex items-center gap-3">
                       <div className="relative w-20 h-20 rounded border overflow-hidden bg-muted flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img 
-                          src={editForm.logoPath} 
-                          alt="Logo preview" 
+                        <img
+                          src={editForm.logoPath}
+                          alt="Logo preview"
                           className="w-full h-full object-contain"
                           onError={(e) => {
                             e.currentTarget.style.display = "none"
@@ -566,9 +625,9 @@ export function AdminMerchants() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <Label className="text-xs text-muted-foreground">Logo URL (or enter manually)</Label>
-                        <Input 
+                        <Input
                           value={editForm.logoPath}
-                          onChange={(e) => setEditForm({...editForm, logoPath: e.target.value})}
+                          onChange={(e) => setEditForm({ ...editForm, logoPath: e.target.value })}
                           placeholder="https://example.com/logo.png"
                           className="text-xs mt-1"
                         />
@@ -626,9 +685,9 @@ export function AdminMerchants() {
                   <div className="space-y-2">
                     <div className="relative w-full h-40 rounded border overflow-hidden bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img 
-                        src={editForm.bannerUrl} 
-                        alt="Banner preview" 
+                      <img
+                        src={editForm.bannerUrl}
+                        alt="Banner preview"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = "none"
@@ -637,10 +696,10 @@ export function AdminMerchants() {
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Banner URL (or enter manually)</Label>
-                      <Input 
+                      <Input
                         type="url"
                         value={editForm.bannerUrl}
-                        onChange={(e) => setEditForm({...editForm, bannerUrl: e.target.value})}
+                        onChange={(e) => setEditForm({ ...editForm, bannerUrl: e.target.value })}
                         placeholder="https://example.com/banner.jpg"
                         className="text-xs mt-1"
                       />
@@ -652,9 +711,9 @@ export function AdminMerchants() {
 
             <div className="space-y-2">
               <Label>Terms and Conditions</Label>
-              <Textarea 
+              <Textarea
                 value={editForm.termsAndConditions}
-                onChange={(e) => setEditForm({...editForm, termsAndConditions: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, termsAndConditions: e.target.value })}
                 placeholder="Enter terms and conditions text here..."
                 rows={6}
                 className="resize-none"
@@ -680,7 +739,7 @@ export function AdminMerchants() {
               Select up to 6 brands to feature on top. Drag to reorder.
             </DialogDescription>
           </DialogHeader>
-          
+
           {isLoadingBrands ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -700,7 +759,7 @@ export function AdminMerchants() {
                     featuredBrands.map((featured) => {
                       const brand = allBrands.find(b => b.id === featured.brandId)
                       if (!brand) return null
-                      
+
                       return (
                         <div
                           key={featured.brandId}
@@ -821,7 +880,7 @@ export function AdminMerchants() {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFeaturedBrandsOpen(false)}>
               Cancel
@@ -843,12 +902,12 @@ export function AdminMerchants() {
               Create a new corporate account or branch location.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Account Type</Label>
-              <Select 
-                value={merchantType} 
+              <Select
+                value={merchantType}
                 onValueChange={(val: "corporate" | "branch") => setMerchantType(val)}
               >
                 <SelectTrigger>

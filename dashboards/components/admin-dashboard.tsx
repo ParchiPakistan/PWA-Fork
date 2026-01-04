@@ -20,9 +20,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import { AdminSidebar } from "./admin-sidebar"
-import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
+import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
+import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { AdminKYC } from "./admin-kyc"
 import { AdminMerchants } from "./admin-merchants"
 import { AdminBranches } from "./admin-branches"
@@ -104,22 +105,24 @@ const TopPerformingMerchants = ({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle style={{ color: colors.primary }}>Top Performing Merchants</CardTitle>
           <CardDescription>Based on redemption volume</CardDescription>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
           <Button
             variant={!dateRange?.from ? "default" : "outline"}
             size="sm"
             onClick={() => setDateRange(undefined)}
+            className="w-full md:w-auto"
           >
             All Time
           </Button>
           <DatePickerWithRange
             date={dateRange}
             setDate={setDateRange}
+            className="w-full md:w-[300px]"
           />
         </div>
       </CardHeader>
@@ -134,8 +137,8 @@ const TopPerformingMerchants = ({
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => toggleMerchant(merchant.id)}
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="font-bold text-lg text-muted-foreground w-6 text-center">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="font-bold text-lg text-muted-foreground w-8 shrink-0 text-center">
                       #{idx + 1}
                     </div>
                     {merchant.logoPath ? (
@@ -160,8 +163,8 @@ const TopPerformingMerchants = ({
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex items-end gap-1 md:gap-4">
+                    <div className="flex flex-col items-end">
                       <div className="text-lg font-bold">
                         {merchant.redemptionCount}
                       </div>
@@ -169,7 +172,7 @@ const TopPerformingMerchants = ({
                         Redemptions
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0 mb-1">
                       {expandedMerchants.includes(merchant.id) ? (
                         <ChevronUp className="h-4 w-4" />
                       ) : (
@@ -248,6 +251,32 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-8">
+          {/* Mobile Header */}
+          <div className="md:hidden mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64">
+                  <AdminSidebarContent activeTab={activeTab} onTabChange={(tab) => {
+                    setActiveTab(tab)
+                    // The Sheet automatically closes on interaction if we don't control open state, 
+                    // but usually we might need a controlled state to close it.
+                    // For now relying on default behavior or user clicking overlay. 
+                    // actually default sheet doesn't close on inner click unless we use DialogClose.
+                    // Let's add a close wrapper or just let user click outside.
+                    // A better UX is to close on selection. 
+                    document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Escape' }));
+                  }} onLogout={onLogout} />
+                </SheetContent>
+              </Sheet>
+              <img src="/ParchiFullTextNewBlue.svg" alt="Parchi" className="h-6 w-auto" />
+            </div>
+          </div>
+
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>

@@ -12,7 +12,7 @@ interface BranchSidebarProps {
   onLogout: () => void
 }
 
-export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSidebarProps) {
+export function BranchSidebarContent({ activeTab, onTabChange, onLogout }: BranchSidebarProps) {
   const colors = DASHBOARD_COLORS("branch")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -38,22 +38,21 @@ export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSideba
   ]
 
   return (
-    <aside className="sticky top-0 w-64 h-screen bg-white border-r border-border flex flex-col overflow-y-auto">
+    <div className="flex flex-col h-full bg-white text-foreground">
       <div className="p-6 border-b border-border">
         <img src="/ParchiFullTextNewBlue.svg" alt="Parchi" className="h-8 w-auto mb-2" />
         <p className="text-xs text-muted-foreground mt-1">Branch Dashboard</p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-left ${
-                activeTab === item.id ? "text-white" : "text-foreground hover:bg-muted"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-left ${activeTab === item.id ? "text-white" : "text-foreground hover:bg-muted"
+                }`}
               style={{
                 backgroundColor: activeTab === item.id ? colors.primary : "transparent",
               }}
@@ -65,9 +64,9 @@ export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSideba
         })}
       </nav>
 
-      <div className="p-4 border-t border-border">
-        <Button 
-          onClick={handleLogout} 
+      <div className="p-4 border-t border-border mt-auto">
+        <Button
+          onClick={handleLogout}
           disabled={isLoggingOut}
           className="w-full gap-2 text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: colors.primary }}
@@ -85,6 +84,14 @@ export function BranchSidebar({ activeTab, onTabChange, onLogout }: BranchSideba
           )}
         </Button>
       </div>
+    </div>
+  )
+}
+
+export function BranchSidebar(props: BranchSidebarProps) {
+  return (
+    <aside className="hidden md:flex sticky top-0 w-64 h-screen border-r border-border flex-col overflow-y-auto bg-white">
+      <BranchSidebarContent {...props} />
     </aside>
   )
 }

@@ -364,15 +364,15 @@ export function AdminAuditLogs() {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex justify-between">
-                                <Button variant="outline" onClick={handleClearFilters}>
+                            <div className="flex flex-col md:flex-row justify-between gap-4">
+                                <Button variant="outline" onClick={handleClearFilters} className="w-full md:w-auto">
                                     Clear Filters
                                 </Button>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" onClick={handleDateFilter}>
+                                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                                    <Button variant="outline" onClick={handleDateFilter} className="w-full md:w-auto">
                                         Apply Date Filter
                                     </Button>
-                                    <Button variant="outline" onClick={handleRefresh}>
+                                    <Button variant="outline" onClick={handleRefresh} className="w-full md:w-auto">
                                         <RefreshCw className="w-4 h-4 mr-2" />
                                         Refresh
                                     </Button>
@@ -398,93 +398,159 @@ export function AdminAuditLogs() {
                                 </div>
                             ) : (
                                 <div className="rounded-md border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Timestamp</TableHead>
-                                                <TableHead>Action</TableHead>
-                                                <TableHead>User</TableHead>
-                                                <TableHead>Details</TableHead>
-                                                <TableHead>IP Address</TableHead>
-                                                <TableHead className="text-right">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {logs.map((log) => {
-                                                const datetime = formatDateTime(log.createdAt)
-                                                return (
-                                                    <TableRow key={log.id}>
-                                                        <TableCell>
-                                                            <div className="text-sm">
-                                                                <div className="font-medium">{datetime.date}</div>
-                                                                <div className="text-muted-foreground">{datetime.time}</div>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
+                                    {/* Desktop Table */}
+                                    <div className="hidden md:block">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Timestamp</TableHead>
+                                                    <TableHead>Action</TableHead>
+                                                    <TableHead>User</TableHead>
+                                                    <TableHead>Details</TableHead>
+                                                    <TableHead>IP Address</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {logs.map((log) => {
+                                                    const datetime = formatDateTime(log.createdAt)
+                                                    return (
+                                                        <TableRow key={log.id}>
+                                                            <TableCell>
+                                                                <div className="text-sm">
+                                                                    <div className="font-medium">{datetime.date}</div>
+                                                                    <div className="text-muted-foreground">{datetime.time}</div>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge className={getActionColor(log.action)}>
+                                                                    {formatActionName(log.action)}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="text-sm">
+                                                                    <div className="font-medium">{log.user?.email || "Unknown"}</div>
+                                                                    {log.user?.role && (
+                                                                        <Badge variant="outline" className="text-xs">
+                                                                            {log.user.role}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="text-sm text-muted-foreground">
+                                                                    {log.tableName && <div>Table: {log.tableName}</div>}
+                                                                    {log.recordId && (
+                                                                        <div className="font-mono text-xs">{log.recordId.slice(0, 8)}...</div>
+                                                                    )}
+                                                                    {/* Show student details for student approval actions */}
+                                                                    {log.action === 'APPROVE_REJECT_STUDENT' && log.newValues && (
+                                                                        <div className="mt-1 text-xs">
+                                                                            {log.newValues.parchiId && (
+                                                                                <div className="font-semibold text-blue-600">
+                                                                                    {log.newValues.parchiId}
+                                                                                </div>
+                                                                            )}
+                                                                            {log.newValues.firstName && log.newValues.lastName && (
+                                                                                <div className="text-foreground">
+                                                                                    {log.newValues.firstName} {log.newValues.lastName}
+                                                                                </div>
+                                                                            )}
+                                                                            {log.newValues.verificationStatus && (
+                                                                                <Badge
+                                                                                    variant={log.newValues.verificationStatus === 'approved' ? 'default' : 'destructive'}
+                                                                                    className="text-xs mt-1"
+                                                                                >
+                                                                                    {log.newValues.verificationStatus}
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="font-mono text-xs text-muted-foreground">
+                                                                    {log.ipAddress || "N/A"}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleViewDetails(log)}
+                                                                >
+                                                                    <Eye className="w-4 h-4" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+
+                                    {/* Mobile Card View */}
+                                    <div className="md:hidden divide-y">
+                                        {logs.map((log) => {
+                                            const datetime = formatDateTime(log.createdAt)
+                                            return (
+                                                <div key={log.id} className="p-4 space-y-3">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="space-y-1">
                                                             <Badge className={getActionColor(log.action)}>
                                                                 {formatActionName(log.action)}
                                                             </Badge>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="text-sm">
-                                                                <div className="font-medium">{log.user?.email || "Unknown"}</div>
-                                                                {log.user?.role && (
-                                                                    <Badge variant="outline" className="text-xs">
-                                                                        {log.user.role}
-                                                                    </Badge>
-                                                                )}
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {datetime.date} at {datetime.time}
                                                             </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {log.tableName && <div>Table: {log.tableName}</div>}
-                                                                {log.recordId && (
-                                                                    <div className="font-mono text-xs">{log.recordId.slice(0, 8)}...</div>
-                                                                )}
-                                                                {/* Show student details for student approval actions */}
-                                                                {log.action === 'APPROVE_REJECT_STUDENT' && log.newValues && (
-                                                                    <div className="mt-1 text-xs">
-                                                                        {log.newValues.parchiId && (
-                                                                            <div className="font-semibold text-blue-600">
-                                                                                {log.newValues.parchiId}
-                                                                            </div>
-                                                                        )}
-                                                                        {log.newValues.firstName && log.newValues.lastName && (
-                                                                            <div className="text-foreground">
-                                                                                {log.newValues.firstName} {log.newValues.lastName}
-                                                                            </div>
-                                                                        )}
-                                                                        {log.newValues.verificationStatus && (
-                                                                            <Badge
-                                                                                variant={log.newValues.verificationStatus === 'approved' ? 'default' : 'destructive'}
-                                                                                className="text-xs mt-1"
-                                                                            >
-                                                                                {log.newValues.verificationStatus}
-                                                                            </Badge>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="font-mono text-xs text-muted-foreground">
-                                                                {log.ipAddress || "N/A"}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => handleViewDetails(log)}
-                                                            >
-                                                                <Eye className="w-4 h-4" />
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )
-                                            })}
-                                        </TableBody>
-                                    </Table>
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleViewDetails(log)}
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="text-sm">
+                                                        <div className="font-medium text-muted-foreground text-xs uppercase tracking-wider mb-1">User</div>
+                                                        <div>{log.user?.email || "Unknown"}</div>
+                                                        {log.user?.role && (
+                                                            <Badge variant="outline" className="text-xs mt-1">
+                                                                {log.user.role}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="text-sm">
+                                                        <div className="font-medium text-muted-foreground text-xs uppercase tracking-wider mb-1">Details</div>
+                                                        <div className="text-muted-foreground">
+                                                            {log.tableName && <div>Table: {log.tableName}</div>}
+                                                            {log.recordId && (
+                                                                <div className="font-mono text-xs">ID: {log.recordId.slice(0, 8)}...</div>
+                                                            )}
+                                                            {/* Show student details for student approval actions */}
+                                                            {log.action === 'APPROVE_REJECT_STUDENT' && log.newValues && (
+                                                                <div className="mt-1 text-xs">
+                                                                    {log.newValues.parchiId && (
+                                                                        <div className="font-semibold text-blue-600">
+                                                                            {log.newValues.parchiId}
+                                                                        </div>
+                                                                    )}
+                                                                    {log.newValues.firstName && log.newValues.lastName && (
+                                                                        <div className="text-foreground">
+                                                                            {log.newValues.firstName} {log.newValues.lastName}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
                             )}
 
@@ -538,7 +604,7 @@ export function AdminAuditLogs() {
 
             {/* Log Details Modal */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Audit Log Details</DialogTitle>
                         <DialogDescription>Full information about this audit log entry</DialogDescription>
@@ -546,7 +612,7 @@ export function AdminAuditLogs() {
 
                     {selectedLog && (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">Timestamp</label>
                                     <p className="text-sm mt-1">{new Date(selectedLog.createdAt).toLocaleString()}</p>
@@ -572,13 +638,13 @@ export function AdminAuditLogs() {
                                     <label className="text-sm font-medium text-muted-foreground">IP Address</label>
                                     <p className="text-sm mt-1 font-mono">{selectedLog.ipAddress || "N/A"}</p>
                                 </div>
-                                <div className="col-span-2">
+                                <div className="col-span-1 md:col-span-2">
                                     <label className="text-sm font-medium text-muted-foreground">Table Name</label>
                                     <p className="text-sm mt-1">{selectedLog.tableName || "N/A"}</p>
                                 </div>
-                                <div className="col-span-2">
+                                <div className="col-span-1 md:col-span-2">
                                     <label className="text-sm font-medium text-muted-foreground">Record ID</label>
-                                    <p className="text-sm mt-1 font-mono">{selectedLog.recordId || "N/A"}</p>
+                                    <p className="text-sm mt-1 font-mono break-all">{selectedLog.recordId || "N/A"}</p>
                                 </div>
                             </div>
 
@@ -586,7 +652,7 @@ export function AdminAuditLogs() {
                             {selectedLog.action === 'APPROVE_REJECT_STUDENT' && selectedLog.newValues && (
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                     <h4 className="font-semibold mb-3 text-blue-900">Student Details</h4>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                         {selectedLog.newValues.parchiId && (
                                             <div>
                                                 <span className="text-muted-foreground">Parchi ID:</span>{' '}
@@ -627,7 +693,7 @@ export function AdminAuditLogs() {
                             {selectedLog.oldValues && (
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">Old Values</label>
-                                    <pre className="text-xs mt-2 p-3 bg-muted rounded-md overflow-x-auto">
+                                    <pre className="text-xs mt-2 p-3 bg-muted rounded-md whitespace-pre-wrap break-all">
                                         {JSON.stringify(selectedLog.oldValues, null, 2)}
                                     </pre>
                                 </div>
@@ -636,7 +702,7 @@ export function AdminAuditLogs() {
                             {selectedLog.newValues && (
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">New Values</label>
-                                    <pre className="text-xs mt-2 p-3 bg-muted rounded-md overflow-x-auto">
+                                    <pre className="text-xs mt-2 p-3 bg-muted rounded-md whitespace-pre-wrap break-all">
                                         {JSON.stringify(selectedLog.newValues, null, 2)}
                                     </pre>
                                 </div>

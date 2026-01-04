@@ -18,8 +18,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
-import { BranchSidebar } from "./branch-sidebar"
+import { BranchSidebar, BranchSidebarContent } from "./branch-sidebar"
 import { DASHBOARD_COLORS } from "@/lib/colors"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
 import { toast } from "sonner"
 
@@ -132,6 +134,26 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-8">
+          {/* Mobile Header */}
+          <div className="md:hidden mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64">
+                  <BranchSidebarContent activeTab={activeTab} onTabChange={(tab) => {
+                    setActiveTab(tab)
+                    document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Escape' }));
+                  }} onLogout={onLogout} />
+                </SheetContent>
+              </Sheet>
+              <img src="/ParchiFullTextNewBlue.svg" alt="Parchi" className="h-6 w-auto" />
+            </div>
+          </div>
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Branch Dashboard</h1>
@@ -409,16 +431,16 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                       <div
                         key={item.id}
                         className={`flex items-center justify-between p-4 rounded-lg transition-colors ${item.isBonusApplied
-                            ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 hover:from-yellow-100 hover:to-orange-100'
-                            : 'bg-muted/50 hover:bg-muted'
+                          ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 hover:from-yellow-100 hover:to-orange-100'
+                          : 'bg-muted/50 hover:bg-muted'
                           }`}
                       >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="flex-shrink-0">
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center ${item.isBonusApplied
-                                  ? 'bg-gradient-to-br from-yellow-400 to-orange-500'
-                                  : ''
+                                ? 'bg-gradient-to-br from-yellow-400 to-orange-500'
+                                : ''
                                 }`}
                               style={{ backgroundColor: item.isBonusApplied ? undefined : `${colors.primary}20` }}
                             >

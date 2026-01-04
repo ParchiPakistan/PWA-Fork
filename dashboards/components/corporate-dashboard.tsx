@@ -16,12 +16,13 @@ import {
   Pie,
   Cell,
 } from "recharts"
-import { TrendingUp, Users, DollarSign, ShoppingCart, Plus, Download } from "lucide-react"
-import { CorporateSidebar } from "./corporate-sidebar"
+import { TrendingUp, Users, DollarSign, ShoppingCart, Plus, Download, Menu } from "lucide-react"
+import { CorporateSidebar, CorporateSidebarContent } from "./corporate-sidebar"
 import { CorporateOffers } from "./corporate-offers"
 import { CorporateBranches } from "./corporate-branches"
 import { CorporateProfile } from "./corporate-profile"
 import { DASHBOARD_COLORS, getChartColor } from "@/lib/colors"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 import {
   getDashboardStats,
@@ -80,6 +81,26 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
 
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-8">
+          {/* Mobile Header */}
+          <div className="md:hidden mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64">
+                  <CorporateSidebarContent activeTab={activeTab} onTabChange={(tab) => {
+                    setActiveTab(tab)
+                    document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Escape' }));
+                  }} onLogout={onLogout} />
+                </SheetContent>
+              </Sheet>
+              <img src="/ParchiFullTextNewBlue.svg" alt="Parchi" className="h-6 w-auto" />
+            </div>
+          </div>
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Corporate Dashboard</h1>

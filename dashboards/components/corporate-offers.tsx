@@ -603,70 +603,126 @@ export function CorporateOffers() {
         </div>
 
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[250px]">Branch Name</TableHead>
-                <TableHead>Standard Offer (Required)</TableHead>
-                <TableHead>Bonus Settings</TableHead>
-                <TableHead className="w-[100px]">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignments.map((assignment) => (
-                <TableRow key={assignment.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Store className="h-4 w-4 text-muted-foreground" />
-                      {assignment.branchName}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={assignment.standardOfferId || "none"}
-                      onValueChange={(val) => handleAssignmentChange(assignment.id, val)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Standard Offer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
-                        {offers.filter(o => o.status === 'active').map(offer => (
-                          <SelectItem key={offer.id} value={offer.id}>
-                            {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
-                    >
-                      <Settings className="mr-2 h-4 w-4" /> Configure Bonus
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      onClick={() => handleSaveAssignment(assignment)}
-                    >
-                      Save
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {assignments.length === 0 && (
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    No branches found. Create branches first.
-                  </TableCell>
+                  <TableHead className="w-[250px]">Branch Name</TableHead>
+                  <TableHead>Standard Offer (Required)</TableHead>
+                  <TableHead>Bonus Settings</TableHead>
+                  <TableHead className="w-[100px]">Action</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {assignments.map((assignment) => (
+                  <TableRow key={assignment.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Store className="h-4 w-4 text-muted-foreground" />
+                        {assignment.branchName}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={assignment.standardOfferId || "none"}
+                        onValueChange={(val) => handleAssignmentChange(assignment.id, val)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select Standard Offer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
+                          {offers.filter(o => o.status === 'active').map(offer => (
+                            <SelectItem key={offer.id} value={offer.id}>
+                              {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
+                      >
+                        <Settings className="mr-2 h-4 w-4" /> Configure Bonus
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveAssignment(assignment)}
+                      >
+                        Save
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {assignments.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      No branches found. Create branches first.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {assignments.map((assignment) => (
+              <div key={assignment.id} className="border rounded-md p-4 space-y-4">
+                <div className="flex items-center gap-2 font-medium">
+                  <Store className="h-4 w-4 text-muted-foreground" />
+                  {assignment.branchName}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">Standard Offer</div>
+                  <Select
+                    value={assignment.standardOfferId || "none"}
+                    onValueChange={(val) => handleAssignmentChange(assignment.id, val)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Standard Offer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" disabled>Select Standard Offer</SelectItem>
+                      {offers.filter(o => o.status === 'active').map(offer => (
+                        <SelectItem key={offer.id} value={offer.id}>
+                          {offer.title} ({offer.discountType === 'percentage' ? `${offer.discountValue}%` : `Rs. ${offer.discountValue}`})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleOpenBonusSettings(assignment.id, assignment.branchName)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" /> Bonus
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => handleSaveAssignment(assignment)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {assignments.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No branches found. Create branches first.
+              </div>
+            )}
+          </div>
         </Card>
       </div>
 
