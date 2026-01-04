@@ -23,7 +23,7 @@ import {
 import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
 import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { AdminKYC } from "./admin-kyc"
 import { AdminMerchants } from "./admin-merchants"
 import { AdminBranches } from "./admin-branches"
@@ -261,6 +261,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-64">
+                  <SheetTitle className="sr-only">Main Menu</SheetTitle>
+                  <SheetDescription className="sr-only">Navigation</SheetDescription>
                   <AdminSidebarContent activeTab={activeTab} onTabChange={(tab) => {
                     setActiveTab(tab)
                     // The Sheet automatically closes on interaction if we don't control open state, 

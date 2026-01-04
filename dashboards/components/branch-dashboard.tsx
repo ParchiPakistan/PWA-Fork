@@ -20,7 +20,7 @@ import {
 } from "recharts"
 import { BranchSidebar, BranchSidebarContent } from "./branch-sidebar"
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
 import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
 import { toast } from "sonner"
@@ -144,6 +144,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-64">
+                  <SheetTitle className="sr-only">Branch Menu</SheetTitle>
+                  <SheetDescription className="sr-only">Navigation</SheetDescription>
                   <BranchSidebarContent activeTab={activeTab} onTabChange={(tab) => {
                     setActiveTab(tab)
                     document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Escape' }));

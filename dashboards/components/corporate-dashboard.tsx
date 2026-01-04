@@ -22,7 +22,7 @@ import { CorporateOffers } from "./corporate-offers"
 import { CorporateBranches } from "./corporate-branches"
 import { CorporateProfile } from "./corporate-profile"
 import { DASHBOARD_COLORS, getChartColor } from "@/lib/colors"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 import {
   getDashboardStats,
@@ -91,6 +91,8 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-64">
+                  <SheetTitle className="sr-only">Corporate Menu</SheetTitle>
+                  <SheetDescription className="sr-only">Navigation</SheetDescription>
                   <CorporateSidebarContent activeTab={activeTab} onTabChange={(tab) => {
                     setActiveTab(tab)
                     document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'Escape' }));
