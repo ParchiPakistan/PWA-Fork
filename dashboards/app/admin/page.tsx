@@ -11,7 +11,7 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await logout()
-    router.push("/portal-access")
+    router.push("/portal")
   }
 
   return (

@@ -11,7 +11,7 @@ export default function BranchPage() {
 
   const handleLogout = async () => {
     await logout()
-    router.push("/portal-access")
+    router.push("/portal")
   }
 
   return (

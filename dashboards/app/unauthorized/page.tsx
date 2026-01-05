@@ -14,7 +14,7 @@ export default function UnauthorizedPage() {
     if (user) {
       await logout()
     }
-    router.push("/portal-access")
+    router.push("/portal")
   }
 
   return (
@@ -35,7 +35,7 @@ export default function UnauthorizedPage() {
         <CardContent className="space-y-4">
           <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800">
             <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center">
-              {user 
+              {user
                 ? `Your account (${user.email}) does not have the required permissions to access this resource.`
                 : "You need to be logged in to access this page."
               }
@@ -43,16 +43,16 @@ export default function UnauthorizedPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Button 
-              onClick={handleGoHome} 
+            <Button
+              onClick={handleGoHome}
               className="w-full"
               variant="default"
             >
               <LogIn className="w-4 h-4 mr-2" />
               Go to Login
             </Button>
-            <Button 
-              onClick={() => router.push("/")} 
+            <Button
+              onClick={() => router.push("/")}
               className="w-full"
               variant="outline"
             >
