@@ -21,7 +21,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
-import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu } from "lucide-react"
+import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { AdminKYC } from "./admin-kyc"
@@ -215,12 +215,18 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // Real-time dashboard statistics
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   // Fetch dashboard stats
   const fetchStats = async (start?: Date, end?: Date) => {
     // Only show loading state on initial load to prevent flashing skeletons on refresh
-    if (!stats) setIsLoading(true);
+    if (!stats) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
     try {
       const data = await getAdminDashboardStats(start, end)
       setStats(data)
@@ -230,6 +236,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       toast.error('Failed to load dashboard statistics')
     } finally {
       setIsLoading(false)
+      setIsRefreshing(false)
     }
   }
 
@@ -237,10 +244,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     fetchStats()
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
       fetchStats()
-    }, 30000)
+    }, 60000)
 
     return () => clearInterval(interval)
   }, [])
@@ -286,8 +293,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <p className="text-muted-foreground mt-1">Platform management and oversight</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => fetchStats()}>
-                <TrendingUp className="h-4 w-4" />
+              <Button variant="outline" size="icon" onClick={() => fetchStats()} disabled={isLoading || isRefreshing}>
+                <RefreshCw className={`h-4 w-4 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>
@@ -297,6 +304,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               {isLoading ? (
                 <div className="flex h-[50vh] items-center justify-center">
                   <Spinner className="size-10" />
+                </div>
+              ) : !stats ? (
+                <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
+                  <p className="text-muted-foreground">Failed to load dashboard data</p>
+                  <Button onClick={() => fetchStats()}>Retry</Button>
                 </div>
               ) : (
                 <>
