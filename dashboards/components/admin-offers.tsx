@@ -227,27 +227,41 @@ export function AdminOffers() {
 
     setIsSubmitting(true)
     try {
-      const payload: CreateOfferRequest = {
-        merchantId: formData.merchantId,
-        title: formData.title,
-        description: formData.description || "",
-        discountType: formData.discountType === 'percentage' ? 'percentage' : 'fixed',
-        discountValue: Number(formData.discountValue),
-        minOrderValue: Number(formData.minOrderValue) || 0,
-        maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
-        validFrom: formData.validFrom,
-        validUntil: formData.validUntil,
-        dailyLimit: Number(formData.dailyLimit) || undefined,
-        totalLimit: Number(formData.totalLimit) || undefined,
-        imageUrl: formData.imageUrl,
-        branchIds: []
-      }
-
       if (editingOffer) {
-        await updateOffer(editingOffer.id, payload)
+        // Update payload - exclude merchantId as it cannot be changed
+        const updatePayload = {
+          title: formData.title,
+          description: formData.description || "",
+          discountType: (formData.discountType === 'percentage' ? 'percentage' : 'fixed') as 'percentage' | 'fixed',
+          discountValue: Number(formData.discountValue),
+          minOrderValue: Number(formData.minOrderValue) || 0,
+          maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
+          validFrom: formData.validFrom,
+          validUntil: formData.validUntil,
+          dailyLimit: Number(formData.dailyLimit) || undefined,
+          totalLimit: Number(formData.totalLimit) || undefined,
+          imageUrl: formData.imageUrl
+        }
+        await updateOffer(editingOffer.id, updatePayload)
         toast.success("Offer updated successfully")
       } else {
-        await createOffer(payload)
+        // Create payload - includes merchantId
+        const createPayload: CreateOfferRequest = {
+          merchantId: formData.merchantId,
+          title: formData.title,
+          description: formData.description || "",
+          discountType: formData.discountType === 'percentage' ? 'percentage' : 'fixed',
+          discountValue: Number(formData.discountValue),
+          minOrderValue: Number(formData.minOrderValue) || 0,
+          maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
+          validFrom: formData.validFrom,
+          validUntil: formData.validUntil,
+          dailyLimit: Number(formData.dailyLimit) || undefined,
+          totalLimit: Number(formData.totalLimit) || undefined,
+          imageUrl: formData.imageUrl,
+          branchIds: []
+        }
+        await createOffer(createPayload)
         toast.success("Offer created successfully")
       }
 
