@@ -211,6 +211,11 @@ export function AdminMerchants() {
           order: b.featuredOrder as number
         }))
         .sort((a, b) => a.order - b.order) // Sort by order
+        // Normalize orders to be 1, 2, 3...
+        .map((b, index) => ({
+          ...b,
+          order: index + 1
+        }))
 
       setFeaturedBrandsList(featured)
     } catch (error) {
@@ -262,23 +267,20 @@ export function AdminMerchants() {
     const currentIndex = featuredBrands.findIndex(b => b.brandId === brandId)
     if (currentIndex === -1) return
 
+    // Create a new array
     const updated = [...featuredBrands]
+    // Remove the item
     const [moved] = updated.splice(currentIndex, 1)
+    // Insert at new position (adjust for 0-based index)
+    updated.splice(newOrder - 1, 0, moved)
 
-    // Adjust other orders
-    updated.forEach(b => {
-      if (b.order >= newOrder && b.order < moved.order) {
-        b.order += 1
-      } else if (b.order <= newOrder && b.order > moved.order) {
-        b.order -= 1
-      }
-    })
+    // Reassign orders to ensure they are sequential
+    const reordered = updated.map((b, index) => ({
+      ...b,
+      order: index + 1
+    }))
 
-    moved.order = newOrder
-    updated.push(moved)
-    updated.sort((a, b) => a.order - b.order)
-
-    setFeaturedBrandsList(updated)
+    setFeaturedBrandsList(reordered)
   }
 
   const handleSaveFeaturedBrands = async () => {
