@@ -87,6 +87,23 @@ export function CorporateBranches() {
     }
   }
 
+  const handleToggleStatus = async (branch: AdminBranch) => {
+    try {
+      await updateBranch(branch.id, { isActive: !branch.is_active })
+      toast({
+        title: "Success",
+        description: `Branch ${branch.is_active ? 'deactivated' : 'activated'} successfully`
+      })
+      fetchBranches()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update branch status",
+        variant: "destructive"
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -183,7 +200,12 @@ export function CorporateBranches() {
                               </DropdownMenuItem>
                               <DropdownMenuItem>View Performance</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+                              <DropdownMenuItem
+                                className={branch.is_active ? "text-destructive" : "text-green-600"}
+                                onClick={() => handleToggleStatus(branch)}
+                              >
+                                {branch.is_active ? "Deactivate" : "Activate"}
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -229,7 +251,12 @@ export function CorporateBranches() {
                           </DropdownMenuItem>
                           <DropdownMenuItem>View Performance</DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+                          <DropdownMenuItem
+                            className={branch.is_active ? "text-destructive" : "text-green-600"}
+                            onClick={() => handleToggleStatus(branch)}
+                          >
+                            {branch.is_active ? "Deactivate" : "Activate"}
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
