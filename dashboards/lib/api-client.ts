@@ -745,6 +745,7 @@ export interface Student {
   firstName: string;
   lastName: string;
   email: string;
+  emailConfirmed: boolean;
   phone: string | null;
   university: string;
   graduationYear: number | null;

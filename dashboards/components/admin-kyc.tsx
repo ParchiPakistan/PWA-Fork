@@ -351,7 +351,8 @@ export function AdminKYC() {
                           <TableHead>University</TableHead>
                           <TableHead>Parchi ID</TableHead>
                           <TableHead>Email</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>Email Status</TableHead>
+                          <TableHead>KYC Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -364,6 +365,11 @@ export function AdminKYC() {
                             <TableCell>{student.university}</TableCell>
                             <TableCell>{student.parchiId}</TableCell>
                             <TableCell>{student.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={student.emailConfirmed ? "default" : "destructive"} className="text-xs">
+                                {student.emailConfirmed ? "Verified" : "Unverified"}
+                              </Badge>
+                            </TableCell>
                             <TableCell>
                               <Badge variant={getStatusVariant(student.verificationStatus)}>
                                 {getStatusText(student.verificationStatus)}
@@ -539,7 +545,12 @@ export function AdminKYC() {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{studentDetail.email}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{studentDetail.email}</p>
+                    <Badge variant={studentDetail.emailConfirmed ? "default" : "destructive"} className="text-xs">
+                      {studentDetail.emailConfirmed ? "Verified" : "Unverified"}
+                    </Badge>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Phone</Label>
