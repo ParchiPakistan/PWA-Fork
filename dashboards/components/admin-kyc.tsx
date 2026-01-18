@@ -165,7 +165,7 @@ export function AdminKYC() {
   // Generate pagination items logic
   const generatePaginationItems = (currentPage: number, totalPages: number) => {
     const items: (number | null)[] = []
-    
+
     // Always show first page
     items.push(1)
 
@@ -467,7 +467,7 @@ export function AdminKYC() {
                               className={!allPagination.hasPrev || allLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
                             />
                           </PaginationItem>
-                          
+
                           {generatePaginationItems(allPagination.page, allPagination.pages).map((p, i) => (
                             <PaginationItem key={i}>
                               {p === null ? (
@@ -612,6 +612,18 @@ export function AdminKYC() {
                   <p className="font-medium">{studentDetail.parchiId}</p>
                 </div>
                 <div>
+                  <Label className="text-muted-foreground">CNIC</Label>
+                  <p className="font-medium">{studentDetail.cnic || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Date of Birth</Label>
+                  <p className="font-medium">
+                    {studentDetail.dateOfBirth
+                      ? new Date(studentDetail.dateOfBirth).toLocaleDateString()
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
                   <Label className="text-muted-foreground">Email</Label>
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{studentDetail.email}</p>
@@ -661,17 +673,19 @@ export function AdminKYC() {
               <X className="mr-2 h-4 w-4" />
               Reject
             </Button>
-            <Button
-              onClick={handleApprove}
-              disabled={approveRejectLoading || !studentDetail}
-            >
-              {approveRejectLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              Approve
-            </Button>
+            {studentDetail?.verificationStatus !== 'approved' && (
+              <Button
+                onClick={handleApprove}
+                disabled={approveRejectLoading || !studentDetail}
+              >
+                {approveRejectLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="mr-2 h-4 w-4" />
+                )}
+                Approve
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

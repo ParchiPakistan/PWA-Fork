@@ -757,6 +757,8 @@ export interface Student {
   verificationExpiresAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  cnic?: string;
+  dateOfBirth?: string | null;
   kyc?: StudentKYC | null;
 }
 
