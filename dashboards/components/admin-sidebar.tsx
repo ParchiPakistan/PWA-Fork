@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store } from "lucide-react"
+import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
@@ -59,6 +59,11 @@ export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminS
       id: "account-creation",
       label: "Account Creation",
       icon: Users,
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: Bell,
     },
   ]
 

@@ -105,4 +105,32 @@ export class SupabaseStorageService {
       throw new Error('Failed to upload banner image')
     }
   }
+
+  static async uploadNotificationImage(file: File): Promise<string> {
+    try {
+      const timestamp = Date.now()
+      const extension = file.name.split('.').pop()
+      const filePath = `notifications/notification-${timestamp}.${extension}`
+
+      const { error: uploadError } = await supabase.storage
+        .from(this.BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const { data } = supabase.storage
+        .from(this.BUCKET_NAME)
+        .getPublicUrl(filePath)
+
+      return data.publicUrl
+    } catch (e) {
+      console.error('Failed to upload notification image:', e)
+      throw new Error('Failed to upload notification image')
+    }
+  }
 }

@@ -1344,3 +1344,24 @@ export const setFeaturedBrands = async (data: SetFeaturedBrandsRequest): Promise
   });
   return response.data;
 };
+
+// ========== Notifications API ==========
+
+export interface BroadcastNotificationRequest {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  linkUrl?: string;
+}
+
+/**
+ * Send a broadcast notification to all users
+ * Requires admin authentication
+ */
+export const sendBroadcastNotification = async (data: BroadcastNotificationRequest): Promise<{ message: string }> => {
+  const response = await apiRequest('/admin/notifications/broadcast', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response.data;
+};
