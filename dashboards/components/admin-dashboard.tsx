@@ -470,19 +470,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                           <Card>
                             <CardHeader className="pb-2">
                               <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Leaderboard Top Performers
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                                {stats?.leaderboardTopPerformers ?? 0}
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">Students</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Founders Club Members
                               </CardTitle>
                             </CardHeader>
