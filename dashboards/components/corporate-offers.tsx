@@ -32,12 +32,16 @@ import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
+interface BranchAssignmentWithOriginal extends BranchAssignment {
+  originalOfferId: string | null;
+}
+
 export function CorporateOffers() {
   const { user } = useAuth()
 
   // Data State
   const [offers, setOffers] = useState<Offer[]>([])
-  const [assignments, setAssignments] = useState<BranchAssignment[]>([])
+  const [assignments, setAssignments] = useState<BranchAssignmentWithOriginal[]>([])
   const [loading, setLoading] = useState(true)
   const [offerToDelete, setOfferToDelete] = useState<string | null>(null)
 
@@ -101,7 +105,10 @@ export function CorporateOffers() {
       // Fetch assignments
       try {
         const assignmentsRes = await getBranchAssignments()
-        setAssignments(assignmentsRes)
+        setAssignments(assignmentsRes.map(a => ({
+          ...a,
+          originalOfferId: a.standardOfferId
+        })))
       } catch (error) {
         console.error("Failed to fetch assignments:", error)
       }
@@ -365,6 +372,11 @@ export function CorporateOffers() {
     try {
       await assignBranchOffers(assignment.id, assignment.standardOfferId)
       toast.success(`Offer assigned to ${assignment.branchName}`)
+
+      // Update originalOfferId after successful save
+      setAssignments(prev => prev.map(a =>
+        a.id === assignment.id ? { ...a, originalOfferId: a.standardOfferId } : a
+      ))
     } catch (error) {
       toast.error("Failed to assign offer")
     }
@@ -666,6 +678,7 @@ export function CorporateOffers() {
                       <Button
                         size="sm"
                         onClick={() => handleSaveAssignment(assignment)}
+                        disabled={assignment.standardOfferId === assignment.originalOfferId}
                       >
                         Save
                       </Button>
@@ -723,6 +736,7 @@ export function CorporateOffers() {
                   <Button
                     className="flex-1"
                     onClick={() => handleSaveAssignment(assignment)}
+                    disabled={assignment.standardOfferId === assignment.originalOfferId}
                   >
                     Save
                   </Button>

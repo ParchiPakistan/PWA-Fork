@@ -417,27 +417,46 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                           </CardHeader>
                           <CardContent>
                             {stats?.universityDistribution && stats.universityDistribution.length > 0 ? (
-                              <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
-                                  <Pie
-                                    data={stats.universityDistribution.map(u => ({
-                                      name: u.university,
-                                      value: u.studentCount
-                                    }))}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
+                              <ResponsiveContainer width="100%" height={400}>
+                                <BarChart
+                                  data={stats.universityDistribution.map(u => ({
+                                    name: u.university,
+                                    students: u.studentCount
+                                  }))}
+                                  margin={{ left: 0, right: 0, top: 20, bottom: 80 }}
+                                >
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                  <XAxis
+                                    dataKey="name"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    interval={0}
+                                    angle={-45}
+                                    textAnchor="end"
+                                    height={100}
+                                  />
+                                  <YAxis
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    allowDecimals={false}
+                                  />
+                                  <Tooltip
+                                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                  />
+                                  <Bar
+                                    dataKey="students"
+                                    fill={colors.primary}
+                                    radius={[4, 4, 0, 0]}
+                                    barSize={30}
                                   >
                                     {stats.universityDistribution.map((entry, index) => (
                                       <Cell key={`cell-${index}`} fill={[colors.primary, "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--muted))"][index % 5]} />
                                     ))}
-                                  </Pie>
-                                  <Tooltip />
-                                  <Legend />
-                                </PieChart>
+                                  </Bar>
+                                </BarChart>
                               </ResponsiveContainer>
                             ) : (
                               <div className="flex items-center justify-center h-[250px] text-muted-foreground">

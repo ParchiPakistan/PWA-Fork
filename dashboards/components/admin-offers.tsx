@@ -31,6 +31,7 @@ interface BranchWithAssignment {
   id: string
   branchName: string
   standardOfferId: string | null
+  originalOfferId: string | null
 }
 
 export function AdminOffers() {
@@ -153,16 +154,17 @@ export function AdminOffers() {
         assignmentMap.set(assignment.id, assignment.standardOfferId)
       })
 
-      // Combine branch data with assignment data
-      const branchesWithAssignments: BranchWithAssignment[] = branches.map(branch => ({
-        id: branch.id,
-        branchName: branch.branch_name,
-        standardOfferId: assignmentMap.get(branch.id) || null
-      }))
-
       setBranchAssignments(prev => ({
         ...prev,
-        [merchantId]: branchesWithAssignments
+        [merchantId]: branches.map(branch => {
+          const standardOfferId = assignmentMap.get(branch.id) || null
+          return {
+            id: branch.id,
+            branchName: branch.branch_name,
+            standardOfferId: standardOfferId,
+            originalOfferId: standardOfferId
+          }
+        })
       }))
     } catch (error: any) {
       console.error("=== BRANCH FETCH ERROR ===")
@@ -331,6 +333,14 @@ export function AdminOffers() {
     try {
       await assignBranchOffers(assignment.id, assignment.standardOfferId)
       toast.success(`Offer assigned to ${assignment.branchName}`)
+
+      // Sync originalOfferId with the new standardOfferId
+      setBranchAssignments(prev => ({
+        ...prev,
+        [merchantId]: prev[merchantId]?.map(a =>
+          a.id === assignment.id ? { ...a, originalOfferId: a.standardOfferId } : a
+        ) || []
+      }))
     } catch (error) {
       toast.error("Failed to assign offer")
     }
@@ -784,6 +794,7 @@ export function AdminOffers() {
                                   <Button
                                     size="sm"
                                     onClick={() => handleSaveAssignment(merchant.id, assignment)}
+                                    disabled={assignment.standardOfferId === assignment.originalOfferId}
                                   >
                                     Save
                                   </Button>
@@ -841,6 +852,7 @@ export function AdminOffers() {
                               <Button
                                 className="flex-1"
                                 onClick={() => handleSaveAssignment(merchant.id, assignment)}
+                                disabled={assignment.standardOfferId === assignment.originalOfferId}
                               >
                                 Save
                               </Button>
