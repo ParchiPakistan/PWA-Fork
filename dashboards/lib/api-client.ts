@@ -445,7 +445,7 @@ export interface Offer {
   title: string;
   description: string | null;
   imageUrl: string | null;
-  discountType: 'percentage' | 'fixed';
+  discountType: 'percentage' | 'fixed' | 'item';
   discountValue: number;
   minOrderValue: number;
   maxDiscountAmount: number | null;
@@ -459,6 +459,12 @@ export interface Offer {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  scheduleType: 'always' | 'custom' | null;
+  allowedDays: number[];
+  startTime: string | null;
+  endTime: string | null;
+  additionalItem: string | null;
+  notes: string | null;
   branches: {
     branchId: string;
     branchName: string;
@@ -578,7 +584,7 @@ export interface CreateOfferRequest {
   title: string;
   description?: string;
   imageUrl?: string;
-  discountType: 'percentage' | 'fixed';
+  discountType: 'percentage' | 'fixed' | 'item';
   discountValue: number;
   minOrderValue?: number;
   maxDiscountAmount?: number;
@@ -589,13 +595,19 @@ export interface CreateOfferRequest {
   totalLimit?: number;
   branchIds?: string[]; // Optional: assign to specific branches on creation
   merchantId?: string; // Required for admin creating offers for merchants
+  scheduleType?: 'always' | 'custom';
+  allowedDays?: number[];
+  startTime?: string;
+  endTime?: string;
+  additionalItem?: string;
+  notes?: string;
 }
 
 export interface UpdateOfferRequest {
   title?: string;
   description?: string;
   imageUrl?: string;
-  discountType?: 'percentage' | 'fixed';
+  discountType?: 'percentage' | 'fixed' | 'item';
   discountValue?: number;
   minOrderValue?: number;
   maxDiscountAmount?: number;
@@ -604,6 +616,12 @@ export interface UpdateOfferRequest {
   validUntil?: string;
   dailyLimit?: number;
   totalLimit?: number;
+  scheduleType?: 'always' | 'custom';
+  allowedDays?: number[];
+  startTime?: string;
+  endTime?: string;
+  additionalItem?: string;
+  notes?: string;
 }
 
 export interface OfferAnalytics {

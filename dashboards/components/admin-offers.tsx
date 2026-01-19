@@ -11,7 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp, X, GripVertical } from "lucide-react"
+import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp, X, GripVertical, Check } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   getOffers, createOffer, updateOffer, deleteOffer,
@@ -26,13 +28,22 @@ import {
 import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
 
-// Combined interface for branches with assignment data
 interface BranchWithAssignment {
   id: string
   branchName: string
   standardOfferId: string | null
   originalOfferId: string | null
 }
+
+const DAYS_OF_WEEK = [
+  { label: 'Sun', value: 0 },
+  { label: 'Mon', value: 1 },
+  { label: 'Tue', value: 2 },
+  { label: 'Wed', value: 3 },
+  { label: 'Thu', value: 4 },
+  { label: 'Fri', value: 5 },
+  { label: 'Sat', value: 6 },
+]
 
 export function AdminOffers() {
   // Data State
@@ -89,9 +100,10 @@ export function AdminOffers() {
   const [isSavingFeatured, setIsSavingFeatured] = useState(false)
   const [draggedOfferId, setDraggedOfferId] = useState<string | null>(null)
 
-  // Form State
   const [formData, setFormData] = useState<Partial<CreateOfferRequest>>({
     discountType: 'percentage',
+    scheduleType: 'always',
+    allowedDays: [0, 1, 2, 3, 4, 5, 6],
     validFrom: new Date().toISOString().split('T')[0],
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   })
@@ -223,48 +235,49 @@ export function AdminOffers() {
       toast.error("Please select a merchant")
       return
     }
-    if (!formData.title || !formData.discountValue || !formData.validFrom || !formData.validUntil) {
-      toast.error("Please fill in all required fields")
+    const isItemType = formData.discountType === 'item';
+    const hasRequiredValue = isItemType ? !!formData.additionalItem : (formData.discountValue !== undefined && formData.discountValue !== null && formData.discountValue > 0);
+
+    if (!formData.title || !hasRequiredValue || !formData.validFrom || !formData.validUntil) {
+      toast.error(isItemType ? "Please fill in title and additional item" : "Please fill in all required fields")
       return
     }
 
     setIsSubmitting(true)
     try {
+      const payload: any = {
+        title: formData.title,
+        description: formData.description || "",
+        discountType: formData.discountType,
+        discountValue: formData.discountType === 'item' ? 0 : Number(formData.discountValue),
+        minOrderValue: Number(formData.minOrderValue) || 0,
+        maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
+        validFrom: formData.validFrom,
+        validUntil: formData.validUntil,
+        dailyLimit: Number(formData.dailyLimit) || undefined,
+        totalLimit: Number(formData.totalLimit) || undefined,
+        imageUrl: formData.imageUrl,
+        scheduleType: formData.scheduleType,
+        additionalItem: formData.additionalItem || null,
+        notes: formData.notes || null,
+        termsConditions: formData.termsConditions || null,
+      }
+
+      if (formData.scheduleType === 'custom') {
+        payload.allowedDays = formData.allowedDays || []
+        payload.startTime = formData.startTime || undefined
+        payload.endTime = formData.endTime || undefined
+      }
+
       if (editingOffer) {
-        // Update payload - exclude merchantId as it cannot be changed
-        const updatePayload = {
-          title: formData.title,
-          description: formData.description || "",
-          discountType: (formData.discountType === 'percentage' ? 'percentage' : 'fixed') as 'percentage' | 'fixed',
-          discountValue: Number(formData.discountValue),
-          minOrderValue: Number(formData.minOrderValue) || 0,
-          maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
-          validFrom: formData.validFrom,
-          validUntil: formData.validUntil,
-          dailyLimit: Number(formData.dailyLimit) || undefined,
-          totalLimit: Number(formData.totalLimit) || undefined,
-          imageUrl: formData.imageUrl
-        }
-        await updateOffer(editingOffer.id, updatePayload)
+        // Update payload - merchantId cannot be changed
+        await updateOffer(editingOffer.id, payload)
         toast.success("Offer updated successfully")
       } else {
         // Create payload - includes merchantId
-        const createPayload: CreateOfferRequest = {
-          merchantId: formData.merchantId,
-          title: formData.title,
-          description: formData.description || "",
-          discountType: formData.discountType === 'percentage' ? 'percentage' : 'fixed',
-          discountValue: Number(formData.discountValue),
-          minOrderValue: Number(formData.minOrderValue) || 0,
-          maxDiscountAmount: Number(formData.maxDiscountAmount) || undefined,
-          validFrom: formData.validFrom,
-          validUntil: formData.validUntil,
-          dailyLimit: Number(formData.dailyLimit) || undefined,
-          totalLimit: Number(formData.totalLimit) || undefined,
-          imageUrl: formData.imageUrl,
-          branchIds: []
-        }
-        await createOffer(createPayload)
+        payload.merchantId = formData.merchantId
+        payload.branchIds = []
+        await createOffer(payload as CreateOfferRequest)
         toast.success("Offer created successfully")
       }
 
@@ -272,6 +285,8 @@ export function AdminOffers() {
       setEditingOffer(null)
       setFormData({
         discountType: 'percentage',
+        scheduleType: 'always',
+        allowedDays: [0, 1, 2, 3, 4, 5, 6],
         validFrom: new Date().toISOString().split('T')[0],
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       })
@@ -297,7 +312,14 @@ export function AdminOffers() {
       validUntil: offer.validUntil.split('T')[0],
       dailyLimit: offer.dailyLimit || undefined,
       totalLimit: offer.totalLimit || undefined,
-      imageUrl: offer.imageUrl || undefined
+      imageUrl: offer.imageUrl || undefined,
+      scheduleType: offer.scheduleType || 'always',
+      allowedDays: offer.allowedDays || [0, 1, 2, 3, 4, 5, 6],
+      startTime: offer.startTime || undefined,
+      endTime: offer.endTime || undefined,
+      additionalItem: offer.additionalItem || undefined,
+      notes: offer.notes || undefined,
+      termsConditions: offer.termsConditions || undefined,
     })
     setIsCreateOpen(true)
   }
@@ -934,37 +956,134 @@ export function AdminOffers() {
                   <SelectContent>
                     <SelectItem value="percentage">Percentage (%)</SelectItem>
                     <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                    <SelectItem value="item">Free Item</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Discount Values */}
+            {/* Conditional Fields for Item or Value */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Discount Value *</Label>
-                <Input
-                  type="number"
-                  placeholder={formData.discountType === 'percentage' ? "e.g. 20" : "e.g. 500"}
-                  value={formData.discountValue || ''}
-                  onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
-                />
-              </div>
-              {formData.discountType === 'percentage' && (
-                <div className="space-y-2">
-                  <Label>Max Discount Amount (Optional)</Label>
+              {formData.discountType === 'item' ? (
+                <div className="space-y-2 col-span-2">
+                  <Label>Additional Item *</Label>
                   <Input
-                    type="number"
-                    placeholder="e.g. 1000"
-                    value={formData.maxDiscountAmount || ''}
-                    onChange={(e) => setFormData({ ...formData, maxDiscountAmount: Number(e.target.value) })}
+                    placeholder="e.g. Free Drink, Extra Topping"
+                    value={formData.additionalItem || ''}
+                    onChange={(e) => setFormData({ ...formData, additionalItem: e.target.value })}
                   />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Discount Value *</Label>
+                    <Input
+                      type="number"
+                      placeholder={formData.discountType === 'percentage' ? "e.g. 20" : "e.g. 500"}
+                      value={formData.discountValue || ''}
+                      onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
+                    />
+                  </div>
+                  {formData.discountType === 'percentage' && (
+                    <div className="space-y-2">
+                      <Label>Max Discount Amount (Optional)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 1000"
+                        value={formData.maxDiscountAmount || ''}
+                        onChange={(e) => setFormData({ ...formData, maxDiscountAmount: Number(e.target.value) })}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Description and Notes */}
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                placeholder="Describe the offer..."
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+
+            {/* Scheduling */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <h4 className="font-medium text-sm">Offer Availability & Schedule</h4>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Schedule Type</Label>
+                  <Select
+                    value={formData.scheduleType}
+                    onValueChange={(val: any) => setFormData({ ...formData, scheduleType: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="always">Always Available</SelectItem>
+                      <SelectItem value="custom">Custom Schedule</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {formData.scheduleType === 'custom' && (
+                <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1">
+                  <div className="space-y-2">
+                    <Label>Allowed Days</Label>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 p-3 border rounded-md bg-muted/30">
+                      {DAYS_OF_WEEK.map((day) => (
+                        <div key={day.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`day-${day.value}`}
+                            checked={formData.allowedDays?.includes(day.value)}
+                            onCheckedChange={(checked) => {
+                              const current = formData.allowedDays || []
+                              const updated = checked
+                                ? [...current, day.value]
+                                : current.filter(d => d !== day.value)
+                              setFormData({ ...formData, allowedDays: updated })
+                            }}
+                          />
+                          <Label htmlFor={`day-${day.value}`} className="text-sm font-normal cursor-pointer text-muted-foreground hover:text-foreground">
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Start Time</Label>
+                      <Input
+                        type="time"
+                        value={formData.startTime || ''}
+                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>End Time</Label>
+                      <Input
+                        type="time"
+                        value={formData.endTime || ''}
+                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Limits */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
               <div className="space-y-2">
                 <Label>Min Order Value (Optional)</Label>
                 <Input
@@ -985,7 +1104,7 @@ export function AdminOffers() {
               </div>
             </div>
 
-            {/* Validity */}
+            {/* Date Range */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Valid From *</Label>
@@ -1005,8 +1124,30 @@ export function AdminOffers() {
               </div>
             </div>
 
+            {/* Notes and T&C */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Internal Notes (Optional)</Label>
+                <Textarea
+                  placeholder="Internal only notes..."
+                  className="h-20"
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Terms & Conditions (Optional)</Label>
+                <Textarea
+                  placeholder="Special usage terms..."
+                  className="h-20"
+                  value={formData.termsConditions || ''}
+                  onChange={(e) => setFormData({ ...formData, termsConditions: e.target.value })}
+                />
+              </div>
+            </div>
+
             {/* Image Upload */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-4 border-t">
               <Label>Offer Image</Label>
               <div className="flex items-center gap-4">
                 <input
@@ -1019,10 +1160,9 @@ export function AdminOffers() {
                 />
                 <Button
                   type="button"
-                  variant="default"
+                  variant="outline"
                   onClick={() => document.getElementById('offer-image-upload')?.click()}
                   disabled={isImageUploading}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   {isImageUploading ? 'Uploading...' : 'Choose File'}
@@ -1030,7 +1170,9 @@ export function AdminOffers() {
                 {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
               </div>
               {formData.imageUrl && (
-                <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+                <div className="relative h-24 w-24 rounded-md overflow-hidden border mt-2">
+                  <img src={formData.imageUrl} alt="Preview" className="object-cover h-full w-full" />
+                </div>
               )}
             </div>
           </div>
