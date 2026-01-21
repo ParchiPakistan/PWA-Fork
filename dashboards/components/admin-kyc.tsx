@@ -735,19 +735,17 @@ export function AdminKYC() {
               <X className="mr-2 h-4 w-4" />
               Reject
             </Button>
-            {studentDetail?.verificationStatus !== 'approved' && (
-              <Button
-                onClick={handleApprove}
-                disabled={approveRejectLoading || !studentDetail}
-              >
-                {approveRejectLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="mr-2 h-4 w-4" />
-                )}
-                Approve
-              </Button>
-            )}
+            <Button
+              onClick={handleApprove}
+              disabled={approveRejectLoading || !studentDetail || studentDetail?.verificationStatus === 'approved'}
+            >
+              {approveRejectLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 h-4 w-4" />
+              )}
+              {studentDetail?.verificationStatus === 'approved' ? 'Approved' : 'Approve'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
