@@ -22,7 +22,7 @@ import { BranchSidebar, BranchSidebarContent } from "./branch-sidebar"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
-import { getStudentByParchiId, createRedemption, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
+import { getStudentByParchiId, createRedemption, rejectRedemptionAttempt, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
 import { toast } from "sonner"
 
 const colors = DASHBOARD_COLORS("branch")
@@ -41,7 +41,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false)
   const [isLoadingStudent, setIsLoadingStudent] = useState(false)
   const [isCreatingRedemption, setIsCreatingRedemption] = useState(false)
+  const [isRejectingRedemption, setIsRejectingRedemption] = useState(false)
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -124,6 +127,42 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
         toast.error("Failed to process redemption. Please try again.")
       } finally {
         setIsCreatingRedemption(false)
+      }
+    }
+  }
+
+  const handleRejectRedemption = () => {
+    setIsRejectDialogOpen(true)
+  }
+
+  const handleConfirmRejection = async () => {
+    if (!rejectionReason.trim()) {
+      toast.error("Please enter a rejection reason")
+      return
+    }
+
+    if (parchiIdInput && applicableOffer && studentDetails) {
+      setIsRejectingRedemption(true)
+      try {
+        const fullParchiId = `PK-${parchiIdInput}`
+        await rejectRedemptionAttempt({
+          parchiId: fullParchiId,
+          offerId: applicableOffer.id,
+          rejectionReason: rejectionReason
+        })
+
+        // Reset UI
+        setParchiIdInput("")
+        setApplicableOffer(null)
+        setStudentDetails(null)
+        setRejectionReason("")
+        setIsVerificationDialogOpen(false)
+        setIsRejectDialogOpen(false)
+        toast.info("Redemption attempt rejected")
+      } catch (error) {
+        toast.error("Failed to reject redemption")
+      } finally {
+        setIsRejectingRedemption(false)
       }
     }
   }
@@ -605,10 +644,15 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={() => setIsVerificationDialogOpen(false)}
+              onClick={handleRejectRedemption}
               className="flex-1"
+              disabled={isRejectingRedemption || isCreatingRedemption}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              {isRejectingRedemption ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4 mr-2" />
+              )}
               Reject
             </Button>
             <Button
@@ -650,6 +694,41 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+      {/* Rejection Reason Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Redemption</DialogTitle>
+            <DialogDescription>
+              Please explain why this redemption is being rejected. This will be logged for audit purposes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Reason for rejection (e.g. Student ID expired)"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRejectDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmRejection}
+              disabled={isRejectingRedemption}
+            >
+              {isRejectingRedemption && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

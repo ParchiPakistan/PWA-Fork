@@ -895,6 +895,12 @@ export interface CreateRedemptionRequest {
   notes?: string;
 }
 
+export interface RejectRedemptionAttemptRequest {
+  parchiId: string;
+  offerId: string;
+  rejectionReason: string;
+}
+
 export interface RedemptionResponse {
   id: string;
   studentId: string;
@@ -931,6 +937,18 @@ export interface RedemptionResponse {
  */
 export const createRedemption = async (data: CreateRedemptionRequest): Promise<RedemptionResponse> => {
   const response = await apiRequest('/admin/redemptions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response.data;
+};
+
+/**
+ * Reject a redemption attempt
+ * Requires branch authentication
+ */
+export const rejectRedemptionAttempt = async (data: RejectRedemptionAttemptRequest): Promise<RedemptionResponse> => {
+  const response = await apiRequest('/admin/redemptions/reject-attempt', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -1444,7 +1462,7 @@ export interface GetHistoryResponse {
 export const getNotificationQueue = async (status?: string): Promise<GetQueueResponse> => {
   const queryParams = new URLSearchParams();
   if (status) queryParams.append('status', status);
-  
+
   const endpoint = `/admin/notifications/queue${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   const response = await apiRequest(endpoint, {
     method: 'GET',
@@ -1459,7 +1477,7 @@ export const getNotificationHistory = async (page: number = 1, limit: number = 1
   const queryParams = new URLSearchParams();
   queryParams.append('page', page.toString());
   queryParams.append('limit', limit.toString());
-  
+
   const endpoint = `/admin/notifications/history?${queryParams.toString()}`;
   const response = await apiRequest(endpoint, {
     method: 'GET',
