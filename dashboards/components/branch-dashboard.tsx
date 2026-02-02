@@ -20,6 +20,7 @@ import {
 } from "recharts"
 import { BranchSidebar, BranchSidebarContent } from "./branch-sidebar"
 import { DASHBOARD_COLORS } from "@/lib/colors"
+import { formatPakistanTime } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
 import { getStudentByParchiId, createRedemption, rejectRedemptionAttempt, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats } from "@/lib/api-client"
@@ -516,7 +517,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                         <div className="text-right flex-shrink-0 ml-4">
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatPakistanTime(item.createdAt)}
                           </p>
                         </div>
                       </div>
