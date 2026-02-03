@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, MoreHorizontal, Search, CheckCircle, XCircle, Edit } from "lucide-react"
+import { Loader2, MoreHorizontal, Search, CheckCircle, XCircle, Edit, Key } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { getBranches, approveRejectBranch, updateBranch, AdminBranch } from "@/lib/api-client"
+import { getBranches, approveRejectBranch, updateBranch, adminResetPassword, AdminBranch } from "@/lib/api-client"
 
 export function AdminBranches() {
   const [branches, setBranches] = useState<AdminBranch[]>([])
@@ -31,6 +31,15 @@ export function AdminBranches() {
     longitude: null as number | null,
   })
   const [isSaving, setIsSaving] = useState(false)
+
+  // Password Reset Modal State
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
+  const [resettingBranch, setResettingBranch] = useState<AdminBranch | null>(null)
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   const fetchBranches = useCallback(async (search?: string) => {
     try {
@@ -124,6 +133,46 @@ export function AdminBranches() {
     }
   }
 
+  const openPasswordResetModal = (branch: AdminBranch) => {
+    setResettingBranch(branch)
+    setPasswordForm({
+      newPassword: "",
+      confirmPassword: "",
+    })
+    setIsPasswordResetOpen(true)
+  }
+
+  const handlePasswordReset = async () => {
+    if (!resettingBranch) return
+
+    // Validation
+    if (passwordForm.newPassword.length < 8) {
+      toast({ title: "Error", description: "Password must be at least 8 characters long", variant: "destructive" })
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" })
+      return
+    }
+
+    try {
+      setIsResettingPassword(true)
+      await adminResetPassword(resettingBranch.user_id!, passwordForm.newPassword)
+      toast({ title: "Success", description: "Password reset successfully" })
+      setIsPasswordResetOpen(false)
+      setPasswordForm({ newPassword: "", confirmPassword: "" })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive"
+      })
+    } finally {
+      setIsResettingPassword(false)
+    }
+  }
+
   // Branches are already filtered server-side based on searchQuery
   const filteredBranches = branches
 
@@ -204,6 +253,9 @@ export function AdminBranches() {
                               <DropdownMenuItem onClick={() => openEditModal(branch)}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openPasswordResetModal(branch)} disabled={!branch.user_id}>
+                                <Key className="mr-2 h-4 w-4 text-blue-600" /> Reset Password
+                              </DropdownMenuItem>
                               {!branch.is_active && (
                                 <DropdownMenuItem onClick={() => handleApprove(branch.id)}>
                                   <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Approve
@@ -255,6 +307,9 @@ export function AdminBranches() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => openEditModal(branch)}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openPasswordResetModal(branch)} disabled={!branch.user_id}>
+                            <Key className="mr-2 h-4 w-4 text-blue-600" /> Reset Password
                           </DropdownMenuItem>
                           {!branch.is_active && (
                             <DropdownMenuItem onClick={() => handleApprove(branch.id)}>
@@ -359,6 +414,48 @@ export function AdminBranches() {
             <Button onClick={handleUpdate} disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Modal */}
+      <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Reset password for {resettingBranch?.branch_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Enter new password (min 8 characters)"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must contain at least 8 characters with uppercase, lowercase, number, and special character
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Password</Label>
+              <Input
+                type="password"
+                placeholder="Confirm new password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPasswordResetOpen(false)}>Cancel</Button>
+            <Button onClick={handlePasswordReset} disabled={isResettingPassword}>
+              {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reset Password
             </Button>
           </DialogFooter>
         </DialogContent>

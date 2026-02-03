@@ -1568,3 +1568,14 @@ export const deleteInstitute = async (id: string): Promise<void> => {
     method: 'DELETE',
   });
 };
+
+/**
+ * Admin reset password for branch and merchant accounts
+ * Requires admin authentication
+ */
+export const adminResetPassword = async (userId: string, newPassword: string): Promise<void> => {
+  await apiRequest(`/auth/admin/reset-password/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ newPassword }),
+  });
+};

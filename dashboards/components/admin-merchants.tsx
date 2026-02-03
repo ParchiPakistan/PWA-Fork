@@ -10,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Building2, Store, MoreHorizontal, Search, Loader2, AlertCircle, RefreshCw, Edit, Upload, X, Image as ImageIcon, GripVertical } from "lucide-react"
+import { Plus, Building2, Store, MoreHorizontal, Search, Loader2, AlertCircle, RefreshCw, Edit, Upload, X, Image as ImageIcon, GripVertical, Key } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useMerchants } from "@/hooks/use-merchants"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { updateCorporateMerchant, toggleCorporateMerchant, CorporateMerchant, getBrands, setFeaturedBrands, Brand, FeaturedBrand } from "@/lib/api-client"
+import { updateCorporateMerchant, toggleCorporateMerchant, adminResetPassword, CorporateMerchant, getBrands, setFeaturedBrands, Brand, FeaturedBrand } from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 
@@ -50,6 +50,15 @@ export function AdminMerchants() {
   const [isSaving, setIsSaving] = useState(false)
   const [isLogoUploading, setIsLogoUploading] = useState(false)
   const [isBannerUploading, setIsBannerUploading] = useState(false)
+
+  // Password Reset Modal State
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
+  const [resettingMerchant, setResettingMerchant] = useState<CorporateMerchant | null>(null)
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   // Merchants are already filtered server-side based on searchQuery
   const filteredMerchants = merchants
@@ -180,6 +189,46 @@ export function AdminMerchants() {
         description: "Failed to update merchant status",
         variant: "destructive"
       })
+    }
+  }
+
+  const openPasswordResetModal = (merchant: CorporateMerchant) => {
+    setResettingMerchant(merchant)
+    setPasswordForm({
+      newPassword: "",
+      confirmPassword: "",
+    })
+    setIsPasswordResetOpen(true)
+  }
+
+  const handlePasswordReset = async () => {
+    if (!resettingMerchant) return
+
+    // Validation
+    if (passwordForm.newPassword.length < 8) {
+      toast({ title: "Error", description: "Password must be at least 8 characters long", variant: "destructive" })
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" })
+      return
+    }
+
+    try {
+      setIsResettingPassword(true)
+      await adminResetPassword(resettingMerchant.userId, passwordForm.newPassword)
+      toast({ title: "Success", description: "Password reset successfully" })
+      setIsPasswordResetOpen(false)
+      setPasswordForm({ newPassword: "", confirmPassword: "" })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive"
+      })
+    } finally {
+      setIsResettingPassword(false)
     }
   }
 
@@ -491,7 +540,11 @@ export function AdminMerchants() {
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => openEditModal(merchant)}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
-                              </DropdownMenuItem>                              <DropdownMenuSeparator />
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openPasswordResetModal(merchant)}>
+                                <Key className="mr-2 h-4 w-4 text-blue-600" /> Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => handleToggleStatus(merchant)}
@@ -530,6 +583,9 @@ export function AdminMerchants() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => openEditModal(merchant)}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openPasswordResetModal(merchant)}>
+                            <Key className="mr-2 h-4 w-4 text-blue-600" /> Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuItem>View Dashboard</DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -1021,6 +1077,48 @@ export function AdminMerchants() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
             <Button onClick={() => setIsCreateOpen(false)}>Create Account</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Modal */}
+      <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Reset password for {resettingMerchant?.businessName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Enter new password (min 8 characters)"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must contain at least 8 characters with uppercase, lowercase, number, and special character
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Password</Label>
+              <Input
+                type="password"
+                placeholder="Confirm new password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPasswordResetOpen(false)}>Cancel</Button>
+            <Button onClick={handlePasswordReset} disabled={isResettingPassword}>
+              {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reset Password
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
