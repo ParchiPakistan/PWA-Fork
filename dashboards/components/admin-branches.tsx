@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, MoreHorizontal, Search, CheckCircle, XCircle, Edit, Key } from "lucide-react"
+import { Loader2, MoreHorizontal, Search, CheckCircle, XCircle, Edit, Key, AlertTriangle } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -40,6 +40,10 @@ export function AdminBranches() {
     confirmPassword: "",
   })
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+
+  // Reject Modal State
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
+  const [branchToReject, setBranchToReject] = useState<AdminBranch | null>(null)
 
   const fetchBranches = useCallback(async (search?: string) => {
     try {
@@ -88,14 +92,22 @@ export function AdminBranches() {
     }
   }
 
-  const handleReject = async (id: string) => {
-    if (!confirm("Are you sure you want to reject and delete this branch?")) return
+  const openRejectModal = (branch: AdminBranch) => {
+    setBranchToReject(branch)
+    setIsRejectOpen(true)
+  }
+
+  const confirmReject = async () => {
+    if (!branchToReject) return
     try {
-      await approveRejectBranch(id, 'rejected')
+      setLoading(true) // Reuse main loading or add specific one
+      await approveRejectBranch(branchToReject.id, 'rejected')
       toast({ title: "Success", description: "Branch rejected successfully" })
-      fetchBranches()
+      setIsRejectOpen(false)
+      fetchBranches() // This will also handle loading state
     } catch (error) {
       toast({ title: "Error", description: "Failed to reject branch", variant: "destructive" })
+      setLoading(false)
     }
   }
 
@@ -264,7 +276,7 @@ export function AdminBranches() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => handleReject(branch.id)}
+                                onClick={() => openRejectModal(branch)}
                               >
                                 <XCircle className="mr-2 h-4 w-4" /> {branch.is_active ? "Delete" : "Reject"}
                               </DropdownMenuItem>
@@ -319,7 +331,7 @@ export function AdminBranches() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => handleReject(branch.id)}
+                            onClick={() => openRejectModal(branch)}
                           >
                             <XCircle className="mr-2 h-4 w-4" /> {branch.is_active ? "Delete" : "Reject"}
                           </DropdownMenuItem>
@@ -456,6 +468,37 @@ export function AdminBranches() {
             <Button onClick={handlePasswordReset} disabled={isResettingPassword}>
               {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject/Delete Confirmation Modal */}
+      <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Rejection</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reject and delete this branch? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center gap-4 py-4 rounded-md bg-destructive/10 p-4 border border-destructive/20">
+            <AlertTriangle className="h-6 w-6 text-destructive shrink-0" />
+            <div className="text-sm text-destructive font-medium">
+              Warning: This will permanently remove the branch "{branchToReject?.branch_name}" and strictly prohibit any access.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={confirmReject}
+              disabled={loading} // Reuse loading state or add specific one if needed, mostly redundant since fetchBranches sets loading
+            >
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Confirm Reject
             </Button>
           </DialogFooter>
         </DialogContent>
