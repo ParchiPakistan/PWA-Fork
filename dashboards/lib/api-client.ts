@@ -1654,3 +1654,54 @@ export const adminResetPassword = async (userId: string, newPassword: string): P
     body: JSON.stringify({ newPassword }),
   });
 };
+// Admin Financials
+export interface AdminFinancialsResponse {
+  grandTotalReceivables: number;
+  merchants: {
+    id: string;
+    name: string;
+    redemptionFee: number;
+    totalRedemptions: number;
+    totalReceivables: number;
+    branches: {
+      id: string;
+      name: string;
+      redemptionCount: number;
+      receivables: number;
+    }[];
+  }[];
+}
+
+export const getAdminFinancials = async (startDate?: Date, endDate?: Date): Promise<AdminFinancialsResponse> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate.toISOString());
+  if (endDate) params.append('endDate', endDate.toISOString());
+
+  const response = await apiRequest(`/admin/dashboard/financials?${params.toString()}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export interface AdminBranchRedemption {
+  id: string;
+  date: string;
+  studentName: string;
+  parchiId: string;
+  university: string;
+  offerTitle: string;
+  discount: string;
+  payableAmount: number;
+  status: string;
+}
+
+export const getAdminBranchRedemptions = async (branchId: string, startDate?: Date, endDate?: Date): Promise<AdminBranchRedemption[]> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate.toISOString());
+  if (endDate) params.append('endDate', endDate.toISOString());
+
+  const response = await apiRequest(`/admin/dashboard/branch-redemptions/${branchId}?${params.toString()}`, {
+    method: 'GET',
+  });
+  return response.data;
+};

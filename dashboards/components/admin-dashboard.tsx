@@ -31,6 +31,7 @@ import { AdminOffers } from "./admin-offers"
 import { AccountCreation } from "./account-creation"
 import { AdminAuditLogs } from "./admin-audit-logs"
 import { AdminNotifications } from "./admin-notifications"
+import { AdminFinancials } from "./admin-financials"
 import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats } from "@/lib/api-client"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -484,6 +485,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           )}
 
           {activeTab === "kyc" && <AdminKYC />}
+
+          {activeTab === "financials" && <AdminFinancials />}
 
           {activeTab === "merchants" && <AdminMerchants />}
 

@@ -36,6 +36,11 @@ export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminS
       icon: Users,
     },
     {
+      id: "financials",
+      label: "Financials",
+      icon: CheckCircle2, // Using CheckCircle2 for now, or DollarSign if imported. Let's check imports.
+    },
+    {
       id: "merchants",
       label: "Merchants",
       icon: ShoppingCart,
