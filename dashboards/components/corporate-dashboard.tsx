@@ -35,9 +35,12 @@ import {
   DashboardStats,
   DashboardAnalytics,
   BranchPerformance,
-  OfferPerformance
+  OfferPerformance,
+  getCorporateMerchant,
+  getCorporateRedemptionReport
 } from "@/lib/api-client"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/AuthContext"
 import { Spinner } from "@/components/ui/spinner"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
@@ -87,6 +90,16 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
   })
   const [isOffersLoading, setIsOffersLoading] = useState(true)
 
+  // Payables State
+  const [payablesDateRange, setPayablesDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  })
+  const [payablesStats, setPayablesStats] = useState<DashboardStats | null>(null)
+  const [isPayablesLoading, setIsPayablesLoading] = useState(true)
+  const [merchantProfile, setMerchantProfile] = useState<any>(null)
+
+  const { user } = useAuth()
   const colors = DASHBOARD_COLORS("corporate")
 
   // Sync activeTab with URL parameter on mount and when URL changes (e.g., browser back/forward)
@@ -185,6 +198,37 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
     if (activeTab === "overview") fetchOffers()
   }, [activeTab, offersDateRange])
 
+  // Fetch Merchant Profile for Redemption Fee
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user?.merchant?.id) {
+        try {
+          const profile = await getCorporateMerchant(user.merchant.id)
+          setMerchantProfile(profile)
+        } catch (error) {
+          console.error("Failed to fetch merchant profile", error)
+        }
+      }
+    }
+    fetchProfile()
+  }, [user])
+
+  // Fetch Payables Stats
+  useEffect(() => {
+    const fetchPayablesStats = async () => {
+      try {
+        setIsPayablesLoading(true)
+        const statsData = await getDashboardStats(payablesDateRange?.from, payablesDateRange?.to)
+        setPayablesStats(statsData)
+      } catch (error) {
+        console.error("Failed to load payables stats")
+      } finally {
+        setIsPayablesLoading(false)
+      }
+    }
+    if (activeTab === "overview") fetchPayablesStats()
+  }, [activeTab, payablesDateRange])
+
   return (
     <div className="flex min-h-screen bg-background">
       <CorporateSidebar activeTab={activeTab} onTabChange={handleTabChange} onLogout={onLogout} />
@@ -272,6 +316,37 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                           {studentStats?.uniqueStudents || 0}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">Students who redeemed</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Payables to Parchi Row */}
+              <div className="mb-8">
+                <Card>
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <div className="flex flex-col">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <span>Payables to Parchi</span>
+                        <DollarSign className="w-4 h-4" style={{ color: colors.primary }} />
+                      </CardTitle>
+                    </div>
+                    <DatePickerWithRange date={payablesDateRange} setDate={setPayablesDateRange} className="w-auto" />
+                  </CardHeader>
+                  <CardContent>
+                    {isPayablesLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Spinner className="size-6" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+                          PKR {(payablesStats?.totalRedemptions || 0) * (merchantProfile?.redemptionFee || 0)}
+                        </div>
+                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
+                          <TrendingUp className="w-3 h-3" /> Based on {payablesStats?.totalRedemptions || 0} redemptions × PKR {merchantProfile?.redemptionFee || 0} fee
+                        </p>
                       </>
                     )}
                   </CardContent>
@@ -469,19 +544,113 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
 
           {activeTab === "reports" && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle style={{ color: colors.primary }}>Reports & Export</CardTitle>
-                  <CardDescription>Download detailed analytics reports</CardDescription>
-                </div>
-                <Button className="gap-2" style={{ backgroundColor: colors.primary }}>
-                  <Download className="w-4 h-4" />
-                  Export Report
-                </Button>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: colors.primary }}>
+                  <Download className="w-5 h-5" />
+                  Monthly Redemption Reports
+                </CardTitle>
+                <CardDescription>
+                  Download detailed PDF reports of monthly redemptions and payables
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Reports functionality coming soon</p>
+                <div className="flex flex-col md:flex-row items-end gap-4">
+                  <div className="space-y-2 w-full md:w-auto">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Select Month</label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      id="report-month-select"
+                    >
+                      {Array.from({ length: 12 }).map((_, i) => {
+                        const date = new Date();
+                        date.setMonth(date.getMonth() - i);
+                        const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        const label = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                        return (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <Button
+                    className="w-full md:w-auto gap-2"
+                    style={{ backgroundColor: colors.primary }}
+                    onClick={async () => {
+                      const select = document.getElementById('report-month-select') as HTMLSelectElement;
+                      if (!select) return;
+
+                      const [year, month] = select.value.split('-').map(Number);
+                      const startDate = new Date(year, month - 1, 1);
+                      const endDate = new Date(year, month, 0, 23, 59, 59);
+
+                      try {
+                        toast.loading("Generating report...");
+                        const response = await getCorporateRedemptionReport(startDate, endDate);
+                        const reportData = response.data;
+
+                        // Import jsPDF dynamically
+                        const jsPDF = (await import('jspdf')).default;
+                        const autoTable = (await import('jspdf-autotable')).default;
+
+                        const doc = new jsPDF();
+
+                        // Header
+                        doc.setFontSize(20);
+                        doc.setTextColor(colors.primary);
+                        doc.text(reportData.merchantDetails.businessName || "Merchant Report", 14, 22);
+
+                        doc.setFontSize(14);
+                        doc.setTextColor(100);
+                        const monthName = startDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                        doc.text(`Redemption Report - ${monthName}`, 14, 32);
+
+                        // Summary Box
+                        doc.setFillColor(245, 245, 245);
+                        doc.rect(14, 40, 182, 30, 'F');
+
+                        doc.setFontSize(10);
+                        doc.setTextColor(0);
+                        doc.text("Total Redemptions", 20, 50);
+                        doc.text("Redemption Fee", 80, 50);
+                        doc.text("Total Payable", 140, 50);
+
+                        doc.setFontSize(12);
+                        doc.setFont("helvetica", "bold");
+                        doc.text(String(reportData.summary.totalRedemptions), 20, 60);
+                        doc.text(`PKR ${reportData.merchantDetails.redemptionFee}`, 80, 60);
+                        doc.text(`PKR ${reportData.summary.totalPayable}`, 140, 60);
+
+                        // Table
+                        const tableData = reportData.redemptions.map((r: any) => [
+                          new Date(r.date).toLocaleDateString() + ' ' + new Date(r.date).toLocaleTimeString(),
+                          r.branchName,
+                          r.offerTitle,
+                          r.studentInfo
+                        ]);
+
+                        autoTable(doc, {
+                          startY: 80,
+                          head: [['Date', 'Branch', 'Offer', 'Student ID/Email']],
+                          body: tableData,
+                          headStyles: { fillColor: colors.primary },
+                          theme: 'grid'
+                        });
+
+                        doc.save(`Redemption_Report_${select.value}.pdf`);
+                        toast.dismiss();
+                        toast.success("Report downloaded successfully");
+                      } catch (error) {
+                        console.error("Report generation failed:", error);
+                        toast.dismiss();
+                        toast.error("Failed to generate report");
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download PDF
+                  </Button>
                 </div>
               </CardContent>
             </Card>

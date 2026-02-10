@@ -59,6 +59,7 @@ export interface CorporateMerchant {
   updatedAt: string | null;
   bannerUrl: string | null;
   termsAndConditions: string | null;
+  redemptionFee?: number;
 }
 
 export interface CorporateMerchantsResponse {
@@ -221,6 +222,23 @@ export async function getCorporateMerchants(search?: string): Promise<CorporateM
   });
 }
 
+/**
+ * Fetch corporate redemption report
+ */
+export async function getCorporateRedemptionReport(
+  startDate: Date,
+  endDate: Date
+): Promise<any> {
+  const queryParams = new URLSearchParams({
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+  });
+  
+  return apiRequest(`/merchants/dashboard/reports/redemptions?${queryParams}`, {
+    method: 'GET',
+  });
+}
+
 export interface Branch {
   id: string
   merchant_id: string
@@ -281,6 +299,7 @@ export interface UpdateMerchantRequest {
   termsAndConditions?: string | null
   isActive?: boolean
   verificationStatus?: 'pending' | 'approved' | 'rejected' | 'expired'
+  redemptionFee?: number
 }
 
 // Branch Management API Functions

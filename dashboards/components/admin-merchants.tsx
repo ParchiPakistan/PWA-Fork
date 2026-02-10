@@ -46,6 +46,7 @@ export function AdminMerchants() {
     category: "",
     bannerUrl: "",
     termsAndConditions: "",
+    redemptionFee: 0,
   })
   const [isSaving, setIsSaving] = useState(false)
   const [isLogoUploading, setIsLogoUploading] = useState(false)
@@ -84,6 +85,7 @@ export function AdminMerchants() {
       category: merchant.category || "",
       bannerUrl: merchant.bannerUrl || "",
       termsAndConditions: merchant.termsAndConditions || "",
+      redemptionFee: merchant.redemptionFee || 0,
     })
     setIsEditOpen(true)
   }
@@ -162,6 +164,7 @@ export function AdminMerchants() {
         category: editForm.category || null,
         bannerUrl: editForm.bannerUrl || null,
         termsAndConditions: editForm.termsAndConditions || null,
+        redemptionFee: Number(editForm.redemptionFee),
       }
 
       await updateCorporateMerchant(editingMerchant.id, updateData)
@@ -492,6 +495,7 @@ export function AdminMerchants() {
                       <TableHead>Business Name</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead>Redemption Fee</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -521,6 +525,11 @@ export function AdminMerchants() {
                         <TableCell>
                           <span className="text-muted-foreground">
                             {merchant.category || 'N/A'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium">
+                            PKR {merchant.redemptionFee ?? 0}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -569,7 +578,7 @@ export function AdminMerchants() {
                         <Building2 className="h-5 w-5 text-blue-500 flex-shrink-0" />
                         <div>
                           <div className="font-medium">{merchant.businessName}</div>
-                          <div className="text-xs text-muted-foreground">{merchant.category || 'N/A'}</div>
+                          <div className="text-xs text-muted-foreground">{merchant.category || 'N/A'} • Fee: PKR {merchant.redemptionFee ?? 0}</div>
                         </div>
                       </div>
                       <DropdownMenu>
@@ -653,6 +662,16 @@ export function AdminMerchants() {
                   placeholder="e.g., Food & Beverage, Retail"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Redemption Fee (PKR)</Label>
+              <Input
+                type="number"
+                value={editForm.redemptionFee}
+                onChange={(e) => setEditForm({ ...editForm, redemptionFee: Number(e.target.value) })}
+                placeholder="0"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -834,8 +853,8 @@ export function AdminMerchants() {
               Save Changes
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </DialogContent >
+      </Dialog >
 
       {/* Featured Brands Dialog */}
       <Dialog open={isFeaturedBrandsOpen} onOpenChange={setIsFeaturedBrandsOpen}>
@@ -992,7 +1011,7 @@ export function AdminMerchants() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Create Merchant Dialog (Kept for reference, but functionality might be moved to Account Creation tab) */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -1079,7 +1098,7 @@ export function AdminMerchants() {
             <Button onClick={() => setIsCreateOpen(false)}>Create Account</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Password Reset Modal */}
       <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
@@ -1121,7 +1140,7 @@ export function AdminMerchants() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+      </Dialog >
+    </div >
   )
 }
