@@ -574,17 +574,6 @@ export const deleteOffer = async (id: string): Promise<void> => {
 
 export interface FeaturedOffersResponse {
   data: Offer[];
-  status: number;
-  message: string;
-}
-
-/**
- * Get featured offers
- */
-export const getFeaturedOffers = async (): Promise<FeaturedOffersResponse> => {
-  return apiRequest('/offers/featured', {
-    method: 'GET',
-  });
 };
 
 /**
@@ -815,6 +804,12 @@ export interface Student {
 
 export interface StudentDetail extends Student {
   kyc: StudentKYC;
+}
+
+export interface ApiResponse<T> {
+  status: number;
+  message: string;
+  data: T;
 }
 
 export interface PaginatedResponse<T> {
@@ -1412,6 +1407,55 @@ export const setFeaturedBrands = async (data: SetFeaturedBrandsRequest): Promise
     body: JSON.stringify(data),
   });
   return response.data;
+};
+
+export interface FeaturedOffersResponse {
+  data: Offer[];
+  status: number;
+  message: string;
+}
+
+/**
+ * Get featured offers
+ */
+export const getFeaturedOffers = async (): Promise<FeaturedOffersResponse> => {
+  return apiRequest('/offers/featured', {
+    method: 'GET',
+  });
+};
+
+/**
+ * Get all offers (Admin)
+ */
+export const getAllAdminOffers = async (
+  status?: string,
+  page: number = 1,
+  limit: number = 10,
+  search?: string
+): Promise<PaginatedResponse<Offer>> => {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(status && { status }),
+    ...(search && { search }),
+  });
+  
+  const response = await apiRequest(`/admin/offers?${queryParams}`);
+  return response;
+};
+
+/**
+ * Review offer (Admin)
+ */
+export const reviewAdminOffer = async (
+  id: string,
+  status: 'active' | 'rejected',
+  reason?: string
+): Promise<ApiResponse<Offer>> => {
+  return apiRequest(`/admin/offers/${id}/approve-reject`, {
+    method: 'PUT',
+    body: JSON.stringify({ action: status === 'active' ? 'approve' : 'reject', notes: reason }),
+  });
 };
 
 // ========== Notifications API ==========
