@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import {
     getAdminFinancials,
     getAdminBranchRedemptions,
+    getAdminCorporateRedemptions,
     AdminFinancialsResponse,
     AdminBranchRedemption
 } from "@/lib/api-client"
@@ -45,8 +46,7 @@ export function AdminFinancials() {
     const [loading, setLoading] = useState(true)
     const [expandedMerchants, setExpandedMerchants] = useState<Set<string>>(new Set())
 
-    // Sheet state for branch details
-    const [selectedBranch, setSelectedBranch] = useState<{ id: string, name: string } | null>(null)
+    const [selectedBranch, setSelectedBranch] = useState<{ id: string, name: string, type: 'branch' | 'corporate' } | null>(null)
     const [branchLogs, setBranchLogs] = useState<AdminBranchRedemption[]>([])
     const [logsLoading, setLogsLoading] = useState(false)
 
@@ -80,7 +80,7 @@ export function AdminFinancials() {
     }
 
     const handleBranchClick = async (branchId: string, branchName: string) => {
-        setSelectedBranch({ id: branchId, name: branchName })
+        setSelectedBranch({ id: branchId, name: branchName, type: 'branch' })
         setLogsLoading(true)
         try {
             const logs = await getAdminBranchRedemptions(branchId, dateRange?.from, dateRange?.to)
@@ -90,6 +90,98 @@ export function AdminFinancials() {
             toast.error("Failed to load redemption logs")
         } finally {
             setLogsLoading(false)
+        }
+    }
+
+    const handleCorporateClick = async (merchantId: string, merchantName: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        setSelectedBranch({ id: merchantId, name: merchantName, type: 'corporate' })
+        setLogsLoading(true)
+        try {
+            const logs = await getAdminCorporateRedemptions(merchantId, dateRange?.from, dateRange?.to)
+            setBranchLogs(logs)
+        } catch (error) {
+            console.error("Failed to fetch corporate logs:", error)
+            toast.error("Failed to load redemption logs")
+        } finally {
+            setLogsLoading(false)
+        }
+    }
+
+    const handleDownloadReport = async () => {
+        if (!selectedBranch || branchLogs.length === 0) return
+
+        try {
+            toast.loading("Generating report...")
+
+            // Import jsPDF dynamically
+            const jsPDF = (await import('jspdf')).default
+            const autoTable = (await import('jspdf-autotable')).default
+
+            const doc = new jsPDF()
+
+            // Header
+            doc.setFontSize(20)
+            doc.setTextColor(colors.primary)
+            doc.text(selectedBranch.name, 14, 22)
+
+            doc.setFontSize(14)
+            doc.setTextColor(100)
+            const dateStr = dateRange?.from ?
+                `${dateRange.from.toLocaleDateString()} - ${dateRange.to?.toLocaleDateString() || 'Present'}` :
+                'All Time'
+            doc.text(`Redemption Report (${selectedBranch.type === 'corporate' ? 'All Branches' : 'Branch'}) - ${dateStr}`, 14, 32)
+
+            // Summary Box
+            doc.setFillColor(245, 245, 245)
+            doc.rect(14, 40, 182, 30, 'F')
+
+            const totalPayable = branchLogs.reduce((sum, log) => sum + log.payableAmount, 0)
+
+            doc.setFontSize(10)
+            doc.setTextColor(0)
+            doc.text("Total Redemptions", 20, 50)
+            doc.text("Total Payable", 80, 50)
+
+            doc.setFontSize(12)
+            doc.setFont("helvetica", "bold")
+            doc.text(String(branchLogs.length), 20, 60)
+            doc.text(`PKR ${totalPayable}`, 80, 60)
+
+            // Table
+            const tableData = branchLogs.map((r) => [
+                new Date(r.date).toLocaleDateString() + ' ' + new Date(r.date).toLocaleTimeString(),
+                selectedBranch.type === 'corporate' ? (r.branchName || '-') : selectedBranch.name,
+                r.offerTitle,
+                r.studentName,
+                `${r.parchiId} (${r.university})`,
+                `PKR ${r.payableAmount}`
+            ])
+
+            autoTable(doc, {
+                startY: 80,
+                head: [['Date', 'Branch', 'Offer', 'Student', 'ID/Health', 'Payable']],
+                body: tableData,
+                headStyles: { fillColor: colors.primary },
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                columnStyles: {
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 35 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 45 },
+                    5: { cellWidth: 20, halign: 'right' }
+                }
+            })
+
+            doc.save(`Redemption_Report_${selectedBranch.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+            toast.dismiss()
+            toast.success("Report downloaded successfully")
+        } catch (error) {
+            console.error("Report generation failed:", error)
+            toast.dismiss()
+            toast.error("Failed to generate report")
         }
     }
 
@@ -165,6 +257,15 @@ export function AdminFinancials() {
                                             <Building2 className="h-4 w-4 text-blue-500" />
                                             {merchant.name}
                                             <TestMerchantAlert merchantName={merchant.name} />
+
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-xs ml-2 text-muted-foreground hover:text-foreground"
+                                                onClick={(e) => handleCorporateClick(merchant.id, merchant.name, e)}
+                                            >
+                                                View Logs
+                                            </Button>
                                         </div>
                                         <div className="col-span-3 md:col-span-2 text-right text-sm">
                                             {merchant.totalRedemptions}
@@ -227,14 +328,22 @@ export function AdminFinancials() {
             {/* Redemption Logs Sheet */}
             <Sheet open={!!selectedBranch} onOpenChange={(open) => !open && setSelectedBranch(null)}>
                 <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-                    <SheetHeader>
-                        <SheetTitle>Redemption Logs</SheetTitle>
-                        <SheetDescription>
-                            {selectedBranch?.name}
-                        </SheetDescription>
+                    <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                        <div>
+                            <SheetTitle>Redemption Logs</SheetTitle>
+                            <SheetDescription>
+                                {selectedBranch?.name} {selectedBranch?.type === 'corporate' && '(All Branches)'}
+                            </SheetDescription>
+                        </div>
+                        {branchLogs.length > 0 && (
+                            <Button size="sm" variant="outline" onClick={handleDownloadReport} className="gap-2">
+                                <DollarSign className="w-4 h-4" />
+                                Download PDF
+                            </Button>
+                        )}
                     </SheetHeader>
 
-                    <div className="mt-6">
+                    <div className="mt-2">
                         {logsLoading ? (
                             <div className="flex justify-center py-8">
                                 <Spinner className="size-6" />
@@ -247,6 +356,11 @@ export function AdminFinancials() {
                                             <div>
                                                 <div className="font-medium">{log.studentName}</div>
                                                 <div className="text-xs text-muted-foreground">{log.parchiId} • {log.university}</div>
+                                                {selectedBranch?.type === 'corporate' && (
+                                                    <div className="text-xs font-semibold text-blue-600 mt-1">
+                                                        Branch: {log.branchName}
+                                                    </div>
+                                                )}
                                             </div>
                                             <Badge variant={log.status === 'Verified' ? 'secondary' : 'outline'}>
                                                 {log.status}

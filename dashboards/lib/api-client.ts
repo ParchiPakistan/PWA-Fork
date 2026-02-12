@@ -1689,6 +1689,7 @@ export interface AdminBranchRedemption {
   studentName: string;
   parchiId: string;
   university: string;
+  branchName?: string; // For corporate view
   offerTitle: string;
   discount: string;
   payableAmount: number;
@@ -1701,6 +1702,17 @@ export const getAdminBranchRedemptions = async (branchId: string, startDate?: Da
   if (endDate) params.append('endDate', endDate.toISOString());
 
   const response = await apiRequest(`/admin/dashboard/branch-redemptions/${branchId}?${params.toString()}`, {
+    method: 'GET',
+  });
+  return response.data;
+};
+
+export const getAdminCorporateRedemptions = async (merchantId: string, startDate?: Date, endDate?: Date): Promise<AdminBranchRedemption[]> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate.toISOString());
+  if (endDate) params.append('endDate', endDate.toISOString());
+
+  const response = await apiRequest(`/admin/dashboard/corporate-redemptions/${merchantId}?${params.toString()}`, {
     method: 'GET',
   });
   return response.data;
