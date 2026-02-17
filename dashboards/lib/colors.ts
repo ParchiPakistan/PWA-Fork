@@ -1,14 +1,17 @@
 export const ROLE_COLORS = {
   admin: {
     primary: "#007AFF", 
+    secondary: "#FFF700",
     name: "Admin",
   },
   corporate: {
     primary: "#007AFF", 
+    secondary: "#FFF700",
     name: "Corporate",
   },
   branch: {
     primary: "#007AFF", 
+    secondary: "#FFF700",
     name: "Branch",
   },
 }

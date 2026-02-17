@@ -620,11 +620,9 @@ export function AdminOffers() {
                                   setFormData({
                                     merchantId: offer.merchantId,
                                     title: offer.title,
-                                    // ... simplistic form reset for brevity
                                     discountType: offer.discountType,
                                     validFrom: offer.validFrom.split('T')[0],
                                     validUntil: offer.validUntil.split('T')[0],
-                                    // populate full fields in real app
                                   })
                                   setIsCreateOpen(true)
                                 }}>
