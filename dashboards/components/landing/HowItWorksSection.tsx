@@ -6,19 +6,19 @@ export function HowItWorksSection() {
             icon: UserCheck,
             title: "Sign Up & Verify",
             description: "Download the app and verify your student status instantly using your Student ID card or .edu email.",
-            color: "bg-primary/10 text-primary",
+            color: "text-primary",
         },
         {
             icon: Smartphone,
             title: "Explore Offers",
             description: "Browse thousands of exclusive deals from your favorite brands, sorted by category and location.",
-            color: "bg-secondary/20 text-yellow-600",
+            color: "text-primary",
         },
         {
             icon: QrCode,
             title: "Instant Redemption",
             description: "Walk in, show your Parchi ID on the app, and get your discount applied instantly at the counter.",
-            color: "bg-green-100 text-green-600",
+            color: "text-primary",
         },
     ]
 
