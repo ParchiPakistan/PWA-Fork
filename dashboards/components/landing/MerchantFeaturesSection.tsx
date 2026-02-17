@@ -31,7 +31,7 @@ export function MerchantFeaturesSection() {
                             </div>
 
                             {/* Badge */}
-                            <div className="absolute bottom-6 right-6 bg-white text-black px-4 py-2 rounded-full font-bold text-sm shadow-lg transform group-hover:scale-110 transition-transform">
+                            <div className="absolute bottom-6 right-6 bg-white text-primary px-4 py-2 rounded-full font-bold text-sm shadow-lg transform group-hover:scale-110 transition-transform">
                                 Partner Dashboard
                             </div>
                         </div>

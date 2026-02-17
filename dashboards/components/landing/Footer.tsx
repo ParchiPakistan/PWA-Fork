@@ -36,12 +36,24 @@ export function Footer() {
 
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg">Download App</h3>
-                        <div className="flex flex-col gap-2">
-                            <Link href="#" className="block w-36 bg-gray-800 rounded-lg p-2 border border-gray-700 hover:border-gray-500 transition-colors text-center">
-                                App Store
+                        <div className="flex flex-col gap-3">
+                            <Link href="#" className="transition-transform hover:scale-105 w-fit">
+                                <Image
+                                    src="/app-store-badge.svg"
+                                    alt="Download on the App Store"
+                                    width={120}
+                                    height={36}
+                                    className="h-10 w-auto"
+                                />
                             </Link>
-                            <Link href="#" className="block w-36 bg-blue-600 rounded-lg p-2 border border-blue-500 hover:border-blue-400 transition-colors text-center">
-                                Google Play
+                            <Link href="#" className="transition-transform hover:scale-105 w-fit">
+                                <Image
+                                    src="/google-play-badge.svg"
+                                    alt="Get it on Google Play"
+                                    width={120}
+                                    height={36}
+                                    className="h-10 w-auto"
+                                />
                             </Link>
                         </div>
                     </div>
