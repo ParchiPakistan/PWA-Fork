@@ -474,7 +474,7 @@ export interface Offer {
   dailyLimit: number | null;
   totalLimit: number | null;
   currentRedemptions: number;
-  status: 'active' | 'inactive' | 'expired';
+  status: 'active' | 'inactive' | 'expired' | 'pending_approval' | 'rejected';
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -499,7 +499,7 @@ export interface Offer {
 }
 
 export interface OfferFilter {
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'pending_approval' | 'rejected' | 'expired';
   merchantId?: string;
   page?: number;
   limit?: number;

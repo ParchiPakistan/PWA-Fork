@@ -45,21 +45,6 @@ export function HeroSection() {
                                 />
                             </Link>
                         </div>
-
-                        <div className="grid grid-cols-3 gap-4 pt-8">
-                            <div className="flex flex-col space-y-1">
-                                <span className="text-xl font-bold text-primary font-sans">Hundreds of</span>
-                                <span className="text-sm text-muted-foreground font-medium">Merchants</span>
-                            </div>
-                            <div className="flex flex-col space-y-1">
-                                <span className="text-xl font-bold text-secondary font-sans" style={{ color: '#E8C500' }}>Thousands of</span>
-                                <span className="text-sm text-muted-foreground font-medium">Students</span>
-                            </div>
-                            <div className="flex flex-col space-y-1">
-                                <span className="text-xl font-bold text-primary font-sans">Millions</span>
-                                <span className="text-sm text-muted-foreground font-medium">Saved</span>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="mx-auto flex w-full max-w-[400px] lg:max-w-none items-center justify-center">
