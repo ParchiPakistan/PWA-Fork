@@ -155,12 +155,6 @@ export default function AccountDeletionPage() {
                     </Form>
                 </CardContent>
             </Card>
-
-            <div className="mt-8 text-center text-sm text-muted-foreground">
-                <p>
-                    Need help? <Link href="/contact" className="underline underline-offset-4 hover:text-primary">Contact Support</Link>
-                </p>
-            </div>
         </div>
     )
 }
