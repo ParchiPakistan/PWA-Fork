@@ -99,6 +99,30 @@ export interface BranchSignupResponse {
   };
 }
 
+// Account Deletion Types
+export interface DeletionRequest {
+  identifier: string;
+  reason: string;
+  confirm: boolean;
+}
+
+export interface DeletionResponse {
+  message: string;
+  requestId: string;
+}
+
+/**
+ * Submit an account deletion request
+ */
+export async function createDeletionRequest(
+  data: DeletionRequest
+): Promise<DeletionResponse> {
+  return apiRequest('/account-deletion', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function apiRequest(
   endpoint: string,
   options: RequestInit = {}

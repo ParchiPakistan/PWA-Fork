@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { createDeletionRequest } from "@/lib/api-client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -47,18 +48,26 @@ export default function AccountDeletionPage() {
         },
     })
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true)
-        // Simulate API call
-        console.log("Deletion Request Submitted:", values)
-
-        setTimeout(() => {
-            setIsSubmitting(false)
+        try {
+            await createDeletionRequest({
+                identifier: values.identifier,
+                reason: values.reason,
+                confirm: values.confirm,
+            })
             toast.success("Request Submitted", {
                 description: "Your account deletion request has been received. We will process it shortly.",
             })
             form.reset()
-        }, 1500)
+        } catch (error) {
+            console.error("Deletion request failed:", error)
+            toast.error("Submission Failed", {
+                description: "There was a problem submitting your request. Please try again.",
+            })
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
