@@ -28,5 +28,6 @@ export default async function LandingPage() {
       <FAQSection />
       <Footer />
     </main>
+
   )
 }
