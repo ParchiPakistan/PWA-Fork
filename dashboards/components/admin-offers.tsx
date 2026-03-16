@@ -213,7 +213,7 @@ export function AdminOffers() {
   const handleReviewOffer = async (id: string, action: 'active' | 'rejected', reason?: string) => {
     try {
       await reviewAdminOffer(id, action, reason)
-      toast.success(`Offer ${action === 'active' ? 'approved' : 'rejected'} successfully`)
+      toast.success(`Offer ${action === 'active' ? 'accepted' : 'rejected'} successfully`)
       fetchOversightOffers(oversightPagination.page) // Refresh current page
       setIsReviewDialogOpen(false)
       setRejectionReason("")
@@ -251,7 +251,7 @@ export function AdminOffers() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
+        return <Badge className="bg-green-500 hover:bg-green-600">Accepted</Badge>
       case 'inactive':
         return <Badge variant="secondary">Inactive</Badge>
       case 'pending_approval':
@@ -529,7 +529,7 @@ export function AdminOffers() {
       if (direction === 'down' && idx === prev.length - 1) return prev
       const next = [...prev]
       const swapIdx = direction === 'up' ? idx - 1 : idx + 1
-      ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+        ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
       return next.map((f, i) => ({ ...f, order: i + 1 }))
     })
   }
@@ -849,7 +849,7 @@ export function AdminOffers() {
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="pending_approval" className="text-yellow-600">Pending</TabsTrigger>
-                <TabsTrigger value="active" className="text-green-600">Active</TabsTrigger>
+                <TabsTrigger value="active" className="text-green-600">Accepted</TabsTrigger>
                 <TabsTrigger value="rejected" className="text-red-600">Rejected</TabsTrigger>
                 <TabsTrigger value="inactive">Inactive</TabsTrigger>
               </TabsList>
@@ -904,7 +904,9 @@ export function AdminOffers() {
                         <TableCell>
                           <div className="text-xs">
                             <div>From: {new Date(offer.validFrom).toLocaleDateString()}</div>
-                            <div>Until: {new Date(offer.validUntil).toLocaleDateString()}</div>
+                            <div className={cn(new Date(offer.validUntil) < new Date() && "text-red-600 font-medium")}>
+                              Until: {new Date(offer.validUntil).toLocaleDateString()}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1096,118 +1098,118 @@ export function AdminOffers() {
 
       {/* Bonus Settings Dialog (Simplified) */}
       <Dialog open={isBonusSettingsOpen} onOpenChange={setIsBonusSettingsOpen}>        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Bonus Settings - {selectedBranchName}</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2 pt-4 border-t col-span-2">
-              <Label>Bonus Image (Optional)</Label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBonusImageUpload}
-                  disabled={isImageUploading}
-                  className="hidden"
-                  id={`bonus-image-upload-${selectedBranchId}`}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById(`bonus-image-upload-${selectedBranchId}`)?.click()}
-                  disabled={isImageUploading}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isImageUploading ? 'Uploading...' : 'Choose File'}
-                </Button>
-                {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
-              </div>
-              {bonusSettings.imageUrl && (
-                <div className="relative h-24 w-24 rounded-md overflow-hidden border mt-2">
-                  <img src={bonusSettings.imageUrl} alt="Preview" className="object-cover h-full w-full" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Redemptions Required</Label>
-              <Input type="number" value={bonusSettings.redemptionsRequired} onChange={e => setBonusSettings(p => ({ ...p, redemptionsRequired: Number(e.target.value) }))} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Discount Type</Label>
-              <Select
-                value={bonusSettings.discountType}
-                onValueChange={(val: any) => setBonusSettings(p => ({ ...p, discountType: val }))}
+        <DialogHeader><DialogTitle>Bonus Settings - {selectedBranchName}</DialogTitle></DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2 pt-4 border-t col-span-2">
+            <Label>Bonus Image (Optional)</Label>
+            <div className="flex items-center gap-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBonusImageUpload}
+                disabled={isImageUploading}
+                className="hidden"
+                id={`bonus-image-upload-${selectedBranchId}`}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById(`bonus-image-upload-${selectedBranchId}`)?.click()}
+                disabled={isImageUploading}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percentage">Percentage (%)</SelectItem>
-                  <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
-                  <SelectItem value="item">Free Item</SelectItem>
-                </SelectContent>
-              </Select>
+                <Upload className="h-4 w-4 mr-2" />
+                {isImageUploading ? 'Uploading...' : 'Choose File'}
+              </Button>
+              {isImageUploading && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
+            {bonusSettings.imageUrl && (
+              <div className="relative h-24 w-24 rounded-md overflow-hidden border mt-2">
+                <img src={bonusSettings.imageUrl} alt="Preview" className="object-cover h-full w-full" />
+              </div>
+            )}
+          </div>
 
-            {bonusSettings.discountType === 'item' ? (
+          <div className="space-y-2">
+            <Label>Redemptions Required</Label>
+            <Input type="number" value={bonusSettings.redemptionsRequired} onChange={e => setBonusSettings(p => ({ ...p, redemptionsRequired: Number(e.target.value) }))} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Discount Type</Label>
+            <Select
+              value={bonusSettings.discountType}
+              onValueChange={(val: any) => setBonusSettings(p => ({ ...p, discountType: val }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage (%)</SelectItem>
+                <SelectItem value="fixed">Flat Amount (PKR)</SelectItem>
+                <SelectItem value="item">Free Item</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {bonusSettings.discountType === 'item' ? (
+            <div className="space-y-2">
+              <Label>Additional Item</Label>
+              <Input
+                placeholder="e.g. Free Dessert"
+                value={bonusSettings.additionalItem || ''}
+                onChange={(e) => setBonusSettings(p => ({ ...p, additionalItem: e.target.value }))}
+              />
+            </div>
+          ) : (
+            <>
               <div className="space-y-2">
-                <Label>Additional Item</Label>
+                <Label>Discount Value</Label>
                 <Input
-                  placeholder="e.g. Free Dessert"
-                  value={bonusSettings.additionalItem || ''}
-                  onChange={(e) => setBonusSettings(p => ({ ...p, additionalItem: e.target.value }))}
+                  type="number"
+                  value={bonusSettings.discountValue || ''}
+                  onChange={(e) => setBonusSettings(p => ({ ...p, discountValue: Number(e.target.value) }))}
                 />
               </div>
-            ) : (
-              <>
+              {bonusSettings.discountType === 'percentage' && (
                 <div className="space-y-2">
-                  <Label>Discount Value</Label>
+                  <Label>Max Discount Amount (Optional)</Label>
                   <Input
                     type="number"
-                    value={bonusSettings.discountValue || ''}
-                    onChange={(e) => setBonusSettings(p => ({ ...p, discountValue: Number(e.target.value) }))}
+                    placeholder="e.g. 1000"
+                    value={bonusSettings.maxDiscountAmount || ''}
+                    onChange={(e) => setBonusSettings(p => ({ ...p, maxDiscountAmount: Number(e.target.value) || null }))}
                   />
                 </div>
-                {bonusSettings.discountType === 'percentage' && (
-                  <div className="space-y-2">
-                    <Label>Max Discount Amount (Optional)</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 1000"
-                      value={bonusSettings.maxDiscountAmount || ''}
-                      onChange={(e) => setBonusSettings(p => ({ ...p, maxDiscountAmount: Number(e.target.value) || null }))}
-                    />
-                  </div>
-                )}
-              </>
-            )}
+              )}
+            </>
+          )}
 
-            <div className="space-y-2">
-              <Label>Validity Days (Optional)</Label>
-              <Input
-                type="number"
-                placeholder="e.g. 30"
-                value={bonusSettings.validityDays || ''}
-                onChange={e => setBonusSettings(p => ({ ...p, validityDays: Number(e.target.value) || null }))}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2 pt-2">
-              <Switch
-                id={`bonus-active-${selectedBranchId}`}
-                checked={bonusSettings.isActive ?? true}
-                onCheckedChange={(checked) => setBonusSettings(p => ({ ...p, isActive: checked }))}
-              />
-              <Label htmlFor={`bonus-active-${selectedBranchId}`}>Active</Label>
-            </div>
-
+          <div className="space-y-2">
+            <Label>Validity Days (Optional)</Label>
+            <Input
+              type="number"
+              placeholder="e.g. 30"
+              value={bonusSettings.validityDays || ''}
+              onChange={e => setBonusSettings(p => ({ ...p, validityDays: Number(e.target.value) || null }))}
+            />
           </div>
-          <DialogFooter>
-            <Button onClick={handleSaveBonusSettings} disabled={isBonusSaving}>
-              {isBonusSaving ? "Saving..." : "Save Settings"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+
+          <div className="flex items-center space-x-2 pt-2">
+            <Switch
+              id={`bonus-active-${selectedBranchId}`}
+              checked={bonusSettings.isActive ?? true}
+              onCheckedChange={(checked) => setBonusSettings(p => ({ ...p, isActive: checked }))}
+            />
+            <Label htmlFor={`bonus-active-${selectedBranchId}`}>Active</Label>
+          </div>
+
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSaveBonusSettings} disabled={isBonusSaving}>
+            {isBonusSaving ? "Saving..." : "Save Settings"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
       </Dialog>
 
       {/* Featured Offers Dialog */}

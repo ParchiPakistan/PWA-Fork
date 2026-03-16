@@ -724,7 +724,7 @@ export function CorporateOffers() {
         <div>
           <h3 className="text-sm font-medium text-yellow-800">Admin Approval Required</h3>
           <div className="mt-1 text-sm text-yellow-700">
-            <p>New offers are subject to admin approval before they become active. You can track their status below.</p>
+            <p>New offers are subject to admin approval before they become accepted. You can track their status below.</p>
           </div>
         </div>
       </div>
@@ -769,7 +769,7 @@ export function CorporateOffers() {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant={offer.status === 'active' ? 'default' : offer.status === 'rejected' ? 'destructive' : 'secondary'} className={offer.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' : ''}>
-                    {offer.status === 'pending_approval' ? 'Pending Approval' : offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
+                    {offer.status === 'pending_approval' ? 'Pending Approval' : offer.status === 'active' ? 'Accepted' : offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
                   </Badge>
                 </div>
               </div>
