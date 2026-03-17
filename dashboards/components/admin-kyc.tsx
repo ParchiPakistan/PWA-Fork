@@ -320,12 +320,12 @@ export function AdminKYC() {
                   <Card key={student.id}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">
-                        {student.firstName} {student.lastName}
+                        {student.university}
                       </CardTitle>
                       <Badge variant="outline">Pending</Badge>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{student.university}</div>
+                      <div className="text-2xl font-bold">{student.firstName} {student.lastName}</div>
                       <p className="text-xs text-muted-foreground">
                         ID: {student.parchiId}
                       </p>
@@ -737,12 +737,12 @@ export function AdminKYC() {
 
               <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">Full Name</Label>
-                  <p className="font-medium">{studentDetail.firstName} {studentDetail.lastName}</p>
-                </div>
-                <div>
                   <Label className="text-muted-foreground">University</Label>
                   <p className="font-medium">{studentDetail.university}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Full Name</Label>
+                  <p className="font-medium">{studentDetail.firstName} {studentDetail.lastName}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Parchi ID</Label>
