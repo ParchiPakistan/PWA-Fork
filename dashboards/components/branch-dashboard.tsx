@@ -103,10 +103,15 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
       setIsCreatingRedemption(true)
       try {
         const fullParchiId = `PK-${parchiIdInput}`
+        // Include merchant logo so the redemption record stores the branding snapshot
+        const merchantLogoUrl = studentDetails.merchantLogoUrl
+          ?? studentDetails.offer?.merchant?.logoPath
+          ?? null
         await createRedemption({
           parchiId: fullParchiId,
           offerId: applicableOffer.id,
-          notes: applicableOffer.isBonus ? "Bonus Redemption" : "Standard Redemption"
+          notes: applicableOffer.isBonus ? "Bonus Redemption" : "Standard Redemption",
+          imageUrl: merchantLogoUrl,
         })
 
         // Refresh data

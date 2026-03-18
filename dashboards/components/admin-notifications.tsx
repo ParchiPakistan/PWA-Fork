@@ -93,7 +93,7 @@ function NotificationCompose() {
   }
 
   const handleRemoveImage = () => {
-    setFormData(prev => ({ ...prev, imageUrl: "" }))
+    setFormData(prev => ({ ...prev, imageUrl: "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png" }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,10 +110,11 @@ function NotificationCompose() {
 
     setIsSending(true)
     try {
+      const defaultImageUrl = "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png"
       await sendBroadcastNotification({
         title: formData.title,
         content: formData.content,
-        imageUrl: formData.imageUrl || undefined,
+        imageUrl: formData.imageUrl || defaultImageUrl,
         linkUrl: formData.linkUrl || undefined,
       })
 

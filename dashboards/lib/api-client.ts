@@ -925,6 +925,7 @@ export interface StudentVerificationResponse {
   verificationStatus: string;
   profilePicture: string | null;
   verificationSelfie: string | null;
+  merchantLogoUrl?: string | null;
   offer: {
     id: string;
     title: string;
@@ -934,6 +935,9 @@ export interface StudentVerificationResponse {
     maxDiscountAmount: number;
     additionalItem?: string | null;
     isBonus: boolean;
+    merchant?: {
+      logoPath?: string | null;
+    };
   };
 }
 
@@ -952,6 +956,7 @@ export interface CreateRedemptionRequest {
   parchiId: string;
   offerId: string;
   notes?: string;
+  imageUrl?: string | null;
 }
 
 export interface RejectRedemptionAttemptRequest {
