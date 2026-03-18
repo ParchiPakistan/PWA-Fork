@@ -121,7 +121,7 @@ function StudentIDCard({
                             <path d="M5.5 1L10 3.5V7.5L5.5 10L1 7.5V3.5Z" stroke="rgba(255,255,255,0.8)" strokeWidth="0.9" fill="none" />
                         </svg>
                     </div>
-                    <span style={{ fontSize: 8, letterSpacing: "0.16em", color: "rgba(255,255,255,0.7)", fontFamily: "monospace", textTransform: "uppercase" }}>
+                    <span style={{ fontSize: 8, letterSpacing: "0.16em", color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-sans)", textTransform: "uppercase" }}>
                         Student ID
                     </span>
                 </div>
@@ -158,13 +158,26 @@ function StudentIDCard({
 export function HeroSection() {
     const cardWrapRef = useRef<HTMLDivElement>(null)
     const phoneWrapRef = useRef<HTMLDivElement>(null)
+    const stageRef = useRef<HTMLDivElement>(null)
+    const [inView, setInView] = useState(false)
+
+    useEffect(() => {
+        const el = stageRef.current
+        if (!el) return
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) setInView(true) },
+            { threshold: 0.4 }
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
 
     const [isPulsing, setIsPulsing] = useState(true)
     const [isTiltLive, setIsTiltLive] = useState(true)
     const [phoneFlash, setPhoneFlash] = useState(false)
     const [beamKey, setBeamKey] = useState<number | null>(null)
-    const [scansDone, setScansDone] = useState(0)
     const [visibleBadges, setVisibleBadges] = useState<number[]>([])
+    const [imageReady, setImageReady] = useState(false)
 
     // Slide card centre → phone centre (card ends up in front of phone)
     const getSlideToPhone = useCallback(() => {
@@ -210,7 +223,6 @@ export function HeroSection() {
 
         // 5. Slide card back to rest
         applyCardTranslate(0)
-        setScansDone(iteration + 1)
         await sleep(700)
         setIsTiltLive(true)
     }, [applyCardTranslate, getSlideToPhone])
@@ -236,9 +248,9 @@ export function HeroSection() {
             }
         }
 
-        loop()
+        if (imageReady && inView) loop()
         return () => { cancelled = true }
-    }, [runScan])
+    }, [runScan, imageReady, inView])
 
     return (
         <>
@@ -311,6 +323,7 @@ export function HeroSection() {
 
                     {/* ── Stage: hidden on mobile, shown md+ ── */}
                     <motion.div
+                        ref={stageRef}
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.9, delay: 0.6, ease: "easeOut" }}
@@ -336,12 +349,6 @@ export function HeroSection() {
                                 zIndex: 10,
                             }}
                         >
-                            {/* Glow */}
-                            <div
-                                className="absolute -bottom-6 left-1/2 -translate-x-1/2 -z-10 rounded-full"
-                                style={{ width: "80%", height: 60, background: "rgba(0,122,255,0.16)", filter: "blur(40px)" }}
-                            />
-
                             {/* Screen flash */}
                             <div
                                 className="absolute inset-1 rounded-2xl pointer-events-none z-[11] transition-opacity duration-100"
@@ -363,12 +370,13 @@ export function HeroSection() {
                             )}
 
                             <Image
-                                src="/phone.png"
+                                src="/asd.png.webp"
                                 alt="Parchi App"
                                 width={828}
                                 height={1792}
-                                className="w-full h-auto drop-shadow-2xl relative z-10"
+                                className="w-full h-auto relative z-10"
                                 priority
+                                onLoad={() => setImageReady(true)}
                             />
                         </div>
 
@@ -403,16 +411,7 @@ export function HeroSection() {
                             ))}
                         </div>
 
-                        {/* Scan progress dots */}
-                        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 flex gap-1.5">
-                            {Array.from({ length: MAX_SCANS }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="w-1.5 h-1.5 rounded-full transition-colors duration-300"
-                                    style={{ background: i < scansDone ? PRIMARY : "#e0e0e0" }}
-                                />
-                            ))}
-                        </div>
+
                     </motion.div>
 
                     {/* Mobile fallback — just the phone */}

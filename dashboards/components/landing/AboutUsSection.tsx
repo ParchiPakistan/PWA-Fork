@@ -31,7 +31,7 @@ export function AboutUsSection() {
                 {/* Decorative circle */}
                 <div className="pointer-events-none absolute -bottom-20 -right-16 h-72 w-72 rounded-full border-[56px] border-black/[0.05]" />
 
-                <p className="mb-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.22em] text-black/40">
+                <p className="mb-5 flex items-center gap-3 font-sans text-[9px] uppercase tracking-[0.22em] text-black/40">
                     <span className="inline-block h-px w-7 bg-black/30" />
                     Pakistan's first student ecosystem
                 </p>
@@ -47,7 +47,7 @@ export function AboutUsSection() {
                         connecting the country's most ambitious demographic directly to the nation's leading
                         brands. Not just deals. Infrastructure.
                     </p>
-                    <span className="flex-shrink-0 rounded-sm bg-primary px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                    <span className="flex-shrink-0 rounded-sm bg-primary px-5 py-3 font-sans text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                         Est. 2024 · Karachi
                     </span>
                 </div>
@@ -61,7 +61,7 @@ export function AboutUsSection() {
                             {s.num}
                             <sup className="align-super text-[0.4em] text-white">{s.sup}</sup>
                         </div>
-                        <div className="mx-auto mt-3 max-w-[80px] font-mono text-[9px] uppercase leading-tight tracking-[0.1em] text-white/40 md:max-w-none md:text-[11px]">
+                        <div className="mx-auto mt-3 max-w-[80px] font-sans text-[9px] uppercase leading-tight tracking-[0.1em] text-white/40 md:max-w-none md:text-[11px]">
                             {s.label}
                         </div>
                     </div>
@@ -78,7 +78,7 @@ export function AboutUsSection() {
                         {/* Hover accent line */}
                         <div className="absolute left-0 right-0 top-0 h-[3px] origin-left scale-x-0 bg-primary transition-transform duration-300 group-hover:scale-x-100" />
 
-                        <span className="mb-5 block font-mono text-[10px] tracking-[0.14em] text-muted-foreground/50">
+                        <span className="mb-5 block font-sans text-[10px] tracking-[0.14em] text-muted-foreground/50">
                             {p.num}
                         </span>
                         <h3 className="mb-3 font-heading text-[17px] font-extrabold leading-[1.2] tracking-[-0.01em] text-foreground">
@@ -92,26 +92,29 @@ export function AboutUsSection() {
             </div>
 
             {/* ── BAND 4: Quote + pull stats ── */}
+            {/* Bottom row intentionally mirrors MerchantFeaturesSection's two-column layout.
+                Left stays blue, right fades from yellow → white so the eye naturally
+                continues into the white bg-background of the next section. */}
             <div className="grid min-h-[260px] grid-cols-1 sm:grid-cols-2">
 
                 {/* Left: blue quote */}
                 <div className="flex flex-col justify-between gap-8 bg-primary px-10 py-12 md:px-14">
                     <div>
-                        <div className="-mb-3 font-serif text-[72px] leading-none text-white/20">"</div>
+                        <div className="-mb-3 font-sans text-[72px] leading-none text-white/20">"</div>
                         <p className="font-heading text-[clamp(18px,2.4vw,26px)] font-extrabold italic leading-[1.35] tracking-[-0.01em] text-white">
                             More than an app.<br />
                             The <span className="text-secondary">new standard</span><br />
                             for the Pakistani student.
                         </p>
                     </div>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                    <p className="font-sans text-[10px] uppercase tracking-[0.14em] text-white/40">
                         — Parchi Mission Statement
                     </p>
                 </div>
 
                 {/* Right: yellow pull stats */}
                 <div className="flex flex-col justify-center bg-secondary px-8 py-12 md:px-14">
-                    <p className="mb-8 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-black/40 md:text-left">
+                    <p className="mb-8 text-center font-sans text-[10px] uppercase tracking-[0.16em] text-black/40 md:text-left">
                         Why it matters
                     </p>
 
