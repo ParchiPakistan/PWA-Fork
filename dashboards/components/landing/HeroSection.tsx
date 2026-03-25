@@ -313,10 +313,10 @@ export function HeroSection() {
                         transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
                         className="flex flex-row gap-4 mb-20"
                     >
-                        <Link href="#" className="hover:scale-105 transition-transform duration-300">
+                        <Link href="https://apps.apple.com/app/parchi-the-student-app/id6760251460" className="hover:scale-105 transition-transform duration-300">
                             <Image src="/app-store-badge.svg" alt="Download on the App Store" width={160} height={48} className="h-12 w-auto drop-shadow-sm" />
                         </Link>
-                        <Link href="#" className="hover:scale-105 transition-transform duration-300">
+                        <Link href="https://play.google.com/store/apps/details?id=com.parchi.student&hl=en" className="hover:scale-105 transition-transform duration-300">
                             <Image src="/google-play-badge.svg" alt="Get it on Google Play" width={160} height={48} className="h-12 w-auto drop-shadow-sm" />
                         </Link>
                     </motion.div>

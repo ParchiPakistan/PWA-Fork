@@ -38,7 +38,7 @@ export function Footer() {
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg">Download App</h3>
                         <div className="flex flex-col gap-3">
-                            <Link href="#" className="transition-transform hover:scale-105 w-fit">
+                            <Link href="https://apps.apple.com/app/parchi-the-student-app/id6760251460" className="transition-transform hover:scale-105 w-fit">
                                 <Image
                                     src="/app-store-badge.svg"
                                     alt="Download on the App Store"
@@ -47,7 +47,7 @@ export function Footer() {
                                     className="h-10 w-auto"
                                 />
                             </Link>
-                            <Link href="#" className="transition-transform hover:scale-105 w-fit">
+                            <Link href="https://play.google.com/store/apps/details?id=com.parchi.student&hl=en" className="transition-transform hover:scale-105 w-fit">
                                 <Image
                                     src="/google-play-badge.svg"
                                     alt="Get it on Google Play"
