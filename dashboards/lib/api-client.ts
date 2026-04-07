@@ -652,14 +652,14 @@ export const approveRejectOffer = async (id: string, action: 'approve' | 'reject
 /**
  * Delete an offer
  */
-export const deleteOffer = async (id: string): Promise<void> => {
-  await apiRequest(`/admin/offers/${id}`, {
-    method: 'DELETE',
-  });
+export const deleteAdminOffer = async (id: string): Promise<void> => {
   await apiRequest(`/admin/offers/${id}`, {
     method: 'DELETE',
   });
 };
+
+// Backward-compatible alias
+export const deleteOffer = deleteAdminOffer;
 
 export interface FeaturedOffersResponse {
   data: Offer[];

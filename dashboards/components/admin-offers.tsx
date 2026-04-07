@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  getOffers, createOffer, updateOffer, deleteOffer,
+  getOffers, createOffer, updateOffer, deleteAdminOffer,
   Offer, CreateOfferRequest,
   getCorporateMerchants, CorporateMerchant,
   getBranches, AdminBranch,
@@ -196,6 +196,19 @@ export function AdminOffers() {
       setSelectedOfferForReview(null)
     } catch (error) {
       toast.error("Failed to update offer status")
+    }
+  }
+
+  const handleDeleteOffer = async (id: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this offer?");
+    if (!confirmed) return;
+
+    try {
+      await deleteAdminOffer(id)
+      toast.success("Offer deleted successfully")
+      fetchOversightOffers(oversightPagination.page)
+    } catch (error) {
+      toast.error("Failed to delete offer")
     }
   }
 
@@ -887,6 +900,12 @@ export function AdminOffers() {
                                     <X className="mr-2 h-4 w-4" /> Reject
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteOffer(offer.id)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
