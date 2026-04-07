@@ -8,15 +8,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react"
+import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
-import { usePendingStudents, useAllStudents, useStudentDetail, useApproveRejectStudent, useUpdateStudentStatus } from "@/hooks/use-kyc"
-import type { Student } from "@/lib/api-client"
+import { usePendingStudents, useAllStudents, useStudentDetail, useApproveRejectStudent, useUpdateStudentStatus, useDeleteStudent, useUpdateStudentAdmin } from "@/hooks/use-kyc"
+import type { Student, UpdateStudentAdminRequest } from "@/lib/api-client"
 
 import { AdminInstitutesDialog } from "./admin-institutes-dialog"
 
@@ -38,6 +40,8 @@ export function AdminKYC() {
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false)
   const [deactivationReason, setDeactivationReason] = useState("")
   const [studentToDeactivate, setStudentToDeactivate] = useState<Student | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null)
   const { toast } = useToast()
 
   const { students: pendingStudents, loading: pendingLoading, error: pendingError, pagination: pendingPagination, refetch: refetchPending } = usePendingStudents(pendingPage, 12)
@@ -68,6 +72,51 @@ export function AdminKYC() {
   const { student: studentDetail, loading: detailLoading, error: detailError, refetch: refetchDetail } = useStudentDetail(selectedStudentId)
   const { approveReject, loading: approveRejectLoading, error: approveRejectError } = useApproveRejectStudent()
   const { updateStatus, loading: updateStatusLoading, error: updateStatusError } = useUpdateStudentStatus()
+  const { removeStudent, loading: deleteStudentLoading, error: deleteStudentError } = useDeleteStudent()
+  const { save: saveStudentProfile, loading: saveProfileLoading, error: saveProfileError } = useUpdateStudentAdmin()
+
+  const [profileDraft, setProfileDraft] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    university: "",
+    graduationYear: "",
+    isFoundersClub: false,
+    totalSavings: "0",
+    totalRedemptions: "0",
+    verificationStatus: "pending" as Student["verificationStatus"],
+    verificationExpiresAt: "",
+    cnic: "",
+    dateOfBirth: "",
+    profilePicture: "",
+    verificationSelfiePath: "",
+    isActive: true,
+  })
+
+  useEffect(() => {
+    if (!studentDetail) return
+    setProfileDraft({
+      firstName: studentDetail.firstName,
+      lastName: studentDetail.lastName,
+      email: studentDetail.email,
+      phone: studentDetail.phone ?? "",
+      university: studentDetail.university,
+      graduationYear: studentDetail.graduationYear != null ? String(studentDetail.graduationYear) : "",
+      isFoundersClub: studentDetail.isFoundersClub,
+      totalSavings: String(studentDetail.totalSavings ?? 0),
+      totalRedemptions: String(studentDetail.totalRedemptions ?? 0),
+      verificationStatus: studentDetail.verificationStatus,
+      verificationExpiresAt: studentDetail.verificationExpiresAt
+        ? new Date(studentDetail.verificationExpiresAt).toISOString().slice(0, 16)
+        : "",
+      cnic: studentDetail.cnic ?? "",
+      dateOfBirth: studentDetail.dateOfBirth ? studentDetail.dateOfBirth.slice(0, 10) : "",
+      profilePicture: studentDetail.profilePicture ?? "",
+      verificationSelfiePath: studentDetail.verificationSelfiePath ?? "",
+      isActive: studentDetail.isActive,
+    })
+  }, [studentDetail?.id, studentDetail?.updatedAt])
 
   // Reset page when status filter changes
   useEffect(() => {
@@ -179,6 +228,84 @@ export function AdminKYC() {
       toast({
         title: "Error",
         description: updateStatusError || "Failed to deactivate student",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteClick = (student: Student) => {
+    setStudentToDelete(student)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!studentToDelete) return
+    const ok = await removeStudent(studentToDelete.id)
+    if (ok) {
+      toast({
+        title: "Student Deleted",
+        description: `${studentToDelete.firstName} ${studentToDelete.lastName} was deleted successfully.`,
+      })
+      setIsDeleteDialogOpen(false)
+      setStudentToDelete(null)
+      refetchAll()
+      refetchPending()
+    } else {
+      toast({
+        title: "Error",
+        description: deleteStudentError || "Failed to delete student",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!selectedStudentId || !studentDetail) return
+    const gy = profileDraft.graduationYear.trim()
+    let graduationYear: number | null = null
+    if (gy !== "") {
+      const n = parseInt(gy, 10)
+      if (Number.isNaN(n)) {
+        toast({
+          title: "Error",
+          description: "Graduation year must be a valid number.",
+          variant: "destructive",
+        })
+        return
+      }
+      graduationYear = n
+    }
+    const payload: UpdateStudentAdminRequest = {
+      firstName: profileDraft.firstName.trim(),
+      lastName: profileDraft.lastName.trim(),
+      email: profileDraft.email.trim(),
+      phone: profileDraft.phone.trim() || null,
+      university: profileDraft.university.trim(),
+      graduationYear,
+      isFoundersClub: profileDraft.isFoundersClub,
+      totalSavings: Number(profileDraft.totalSavings) || 0,
+      totalRedemptions: parseInt(profileDraft.totalRedemptions, 10) || 0,
+      verificationStatus: profileDraft.verificationStatus,
+      verificationExpiresAt: profileDraft.verificationExpiresAt.trim() || null,
+      cnic: profileDraft.cnic.trim() || null,
+      dateOfBirth: profileDraft.dateOfBirth.trim() || null,
+      profilePicture: profileDraft.profilePicture.trim() || null,
+      verificationSelfiePath: profileDraft.verificationSelfiePath.trim() || null,
+      isActive: profileDraft.isActive,
+    }
+    const result = await saveStudentProfile(selectedStudentId, payload)
+    if (result) {
+      toast({
+        title: "Saved",
+        description: "Student profile updated successfully.",
+      })
+      refetchDetail()
+      refetchAll()
+      refetchPending()
+    } else {
+      toast({
+        title: "Error",
+        description: saveProfileError || "Failed to save profile",
         variant: "destructive",
       })
     }
@@ -523,6 +650,9 @@ export function AdminKYC() {
                                       <Check className="mr-2 h-4 w-4" /> Activate Account
                                     </DropdownMenuItem>
                                   )}
+                                  <DropdownMenuItem onClick={() => handleDeleteClick(student)} className="text-red-600">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Student
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -583,11 +713,13 @@ export function AdminKYC() {
           setSelectedStudentId(null)
         }
       }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Review KYC Application</DialogTitle>
+            <DialogTitle>Student details & KYC</DialogTitle>
             <DialogDescription>
-              {studentDetail ? `Verify the student ID and selfie match for ${studentDetail.firstName} ${studentDetail.lastName}.` : 'Loading student details...'}
+              {studentDetail
+                ? `Edit profile (Parchi ID is read-only) and review KYC for ${studentDetail.firstName} ${studentDetail.lastName}.`
+                : "Loading student details..."}
             </DialogDescription>
           </DialogHeader>
 
@@ -602,19 +734,175 @@ export function AdminKYC() {
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{detailError}</AlertDescription>
             </Alert>
-          ) : studentDetail && studentDetail.kyc ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+          ) : studentDetail ? (
+            <div className="space-y-8 py-4">
+              <div className="space-y-4 border-b pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h3 className="text-sm font-semibold">Account & profile</h3>
+                  <Button type="button" onClick={handleSaveProfile} disabled={saveProfileLoading}>
+                    {saveProfileLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Save profile changes
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Parchi ID</Label>
+                    <Input value={studentDetail.parchiId} readOnly className="bg-muted font-mono" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-fn">First name</Label>
+                    <Input id="draft-fn" value={profileDraft.firstName} onChange={(e) => setProfileDraft((d) => ({ ...d, firstName: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-ln">Last name</Label>
+                    <Input id="draft-ln" value={profileDraft.lastName} onChange={(e) => setProfileDraft((d) => ({ ...d, lastName: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="draft-email">Email</Label>
+                    <Input id="draft-email" type="email" value={profileDraft.email} onChange={(e) => setProfileDraft((d) => ({ ...d, email: e.target.value }))} />
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs text-muted-foreground">Confirmation (read-only):</span>
+                      <Badge variant={studentDetail.emailConfirmed ? "default" : "destructive"} className="text-xs">
+                        {studentDetail.emailConfirmed ? "Verified" : "Unverified"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-phone">Phone</Label>
+                    <Input id="draft-phone" value={profileDraft.phone} onChange={(e) => setProfileDraft((d) => ({ ...d, phone: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="draft-uni">University / institute</Label>
+                    <Input id="draft-uni" value={profileDraft.university} onChange={(e) => setProfileDraft((d) => ({ ...d, university: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-gy">Graduation year</Label>
+                    <Input id="draft-gy" type="number" value={profileDraft.graduationYear} onChange={(e) => setProfileDraft((d) => ({ ...d, graduationYear: e.target.value }))} placeholder="Optional" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-dob">Date of birth</Label>
+                    <Input id="draft-dob" type="date" value={profileDraft.dateOfBirth} onChange={(e) => setProfileDraft((d) => ({ ...d, dateOfBirth: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-cnic">CNIC</Label>
+                    <Input id="draft-cnic" value={profileDraft.cnic} onChange={(e) => setProfileDraft((d) => ({ ...d, cnic: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-vs">Verification status</Label>
+                    <Select
+                      value={profileDraft.verificationStatus}
+                      onValueChange={(v) => setProfileDraft((d) => ({ ...d, verificationStatus: v as Student["verificationStatus"] }))}
+                    >
+                      <SelectTrigger id="draft-vs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-exp">Verification expires at</Label>
+                    <Input
+                      id="draft-exp"
+                      type="datetime-local"
+                      value={profileDraft.verificationExpiresAt}
+                      onChange={(e) => setProfileDraft((d) => ({ ...d, verificationExpiresAt: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-savings">Total savings (PKR)</Label>
+                    <Input
+                      id="draft-savings"
+                      type="number"
+                      step="0.01"
+                      value={profileDraft.totalSavings}
+                      onChange={(e) => setProfileDraft((d) => ({ ...d, totalSavings: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="draft-red">Total redemptions</Label>
+                    <Input
+                      id="draft-red"
+                      type="number"
+                      min={0}
+                      value={profileDraft.totalRedemptions}
+                      onChange={(e) => setProfileDraft((d) => ({ ...d, totalRedemptions: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="draft-pfp">Profile picture URL</Label>
+                    <Input id="draft-pfp" value={profileDraft.profilePicture} onChange={(e) => setProfileDraft((d) => ({ ...d, profilePicture: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="draft-selfie-path">Verification selfie URL</Label>
+                    <Input
+                      id="draft-selfie-path"
+                      value={profileDraft.verificationSelfiePath}
+                      onChange={(e) => setProfileDraft((d) => ({ ...d, verificationSelfiePath: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
+                    <Label htmlFor="draft-fc">Founders Club member</Label>
+                    <Switch
+                      id="draft-fc"
+                      checked={profileDraft.isFoundersClub}
+                      onCheckedChange={(v) => setProfileDraft((d) => ({ ...d, isFoundersClub: v }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
+                    <Label htmlFor="draft-active">Account active</Label>
+                    <Switch
+                      id="draft-active"
+                      checked={profileDraft.isActive}
+                      onCheckedChange={(v) => setProfileDraft((d) => ({ ...d, isActive: v }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground pt-2">
+                  <div>
+                    <span className="font-medium text-foreground">Verified at: </span>
+                    {studentDetail.verifiedAt ? new Date(studentDetail.verifiedAt).toLocaleString() : "—"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Verified by: </span>
+                    {studentDetail.verifiedBy?.email ?? "—"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Created: </span>
+                    {studentDetail.createdAt ? new Date(studentDetail.createdAt).toLocaleString() : "—"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Updated: </span>
+                    {studentDetail.updatedAt ? new Date(studentDetail.updatedAt).toLocaleString() : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold">KYC documents</h3>
+                {studentDetail.kyc ? (() => {
+                  const kyc = studentDetail.kyc as NonNullable<typeof studentDetail.kyc>
+                  return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Student ID Card (Front)</Label>
                 <div
                   className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
                   onClick={() => setExpandedImage({
-                    url: studentDetail.kyc.studentIdCardFrontPath,
+                    url: kyc.studentIdCardFrontPath,
                     alt: "Student ID Front"
                   })}
                 >
                   <img
-                    src={studentDetail.kyc.studentIdCardFrontPath}
+                    src={kyc.studentIdCardFrontPath}
                     alt="Student ID Front"
                     className="w-full h-auto rounded-md object-contain max-h-[300px]"
                     onError={(e) => {
@@ -632,12 +920,12 @@ export function AdminKYC() {
                 <div
                   className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
                   onClick={() => setExpandedImage({
-                    url: studentDetail.kyc.studentIdCardBackPath,
+                    url: kyc.studentIdCardBackPath,
                     alt: "Student ID Back"
                   })}
                 >
                   <img
-                    src={studentDetail.kyc.studentIdCardBackPath}
+                    src={kyc.studentIdCardBackPath}
                     alt="Student ID Back"
                     className="w-full h-auto rounded-md object-contain max-h-[300px]"
                     onError={(e) => {
@@ -654,15 +942,15 @@ export function AdminKYC() {
                 <Label>CNIC (Front)</Label>
                 <div
                   className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => studentDetail.kyc.cnicFrontImagePath && setExpandedImage({
-                    url: studentDetail.kyc.cnicFrontImagePath,
+                  onClick={() => kyc.cnicFrontImagePath && setExpandedImage({
+                    url: kyc.cnicFrontImagePath,
                     alt: "CNIC Front"
                   })}
                 >
-                  {studentDetail.kyc.cnicFrontImagePath ? (
+                  {kyc.cnicFrontImagePath ? (
                     <>
                       <img
-                        src={studentDetail.kyc.cnicFrontImagePath}
+                        src={kyc.cnicFrontImagePath}
                         alt="CNIC Front"
                         className="w-full h-auto rounded-md object-contain max-h-[300px]"
                         onError={(e) => {
@@ -685,15 +973,15 @@ export function AdminKYC() {
                 <Label>CNIC (Back)</Label>
                 <div
                   className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => studentDetail.kyc.cnicBackImagePath && setExpandedImage({
-                    url: studentDetail.kyc.cnicBackImagePath,
+                  onClick={() => kyc.cnicBackImagePath && setExpandedImage({
+                    url: kyc.cnicBackImagePath,
                     alt: "CNIC Back"
                   })}
                 >
-                  {studentDetail.kyc.cnicBackImagePath ? (
+                  {kyc.cnicBackImagePath ? (
                     <>
                       <img
-                        src={studentDetail.kyc.cnicBackImagePath}
+                        src={kyc.cnicBackImagePath}
                         alt="CNIC Back"
                         className="w-full h-auto rounded-md object-contain max-h-[300px]"
                         onError={(e) => {
@@ -717,12 +1005,12 @@ export function AdminKYC() {
                 <div
                   className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
                   onClick={() => setExpandedImage({
-                    url: studentDetail.kyc.selfieImagePath,
+                    url: kyc.selfieImagePath,
                     alt: "Selfie"
                   })}
                 >
                   <img
-                    src={studentDetail.kyc.selfieImagePath}
+                    src={kyc.selfieImagePath}
                     alt="Selfie"
                     className="w-full h-auto rounded-md object-contain max-h-[300px]"
                     onError={(e) => {
@@ -735,69 +1023,27 @@ export function AdminKYC() {
                 </div>
               </div>
 
-              <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">University</Label>
-                  <p className="font-medium">{studentDetail.university}</p>
+                <div className="col-span-1 md:col-span-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground border-t pt-4">
+                  {kyc.submittedAt && (
+                    <span>
+                      <span className="font-medium text-foreground">KYC submitted: </span>
+                      {new Date(kyc.submittedAt).toLocaleString()}
+                    </span>
+                  )}
+                  {kyc.isAnnualRenewal && (
+                    <Badge variant="outline">Annual renewal</Badge>
+                  )}
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Full Name</Label>
-                  <p className="font-medium">{studentDetail.firstName} {studentDetail.lastName}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Parchi ID</Label>
-                  <p className="font-medium">{studentDetail.parchiId}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">CNIC</Label>
-                  <p className="font-medium">{studentDetail.cnic || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Date of Birth</Label>
-                  <p className="font-medium">
-                    {studentDetail.dateOfBirth
-                      ? new Date(studentDetail.dateOfBirth).toLocaleDateString()
-                      : 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Email</Label>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{studentDetail.email}</p>
-                    <Badge variant={studentDetail.emailConfirmed ? "default" : "destructive"} className="text-xs">
-                      {studentDetail.emailConfirmed ? "Verified" : "Unverified"}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Phone</Label>
-                  <p className="font-medium">{studentDetail.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Submitted At</Label>
-                  <p className="font-medium">
-                    {studentDetail.kyc.submittedAt
-                      ? new Date(studentDetail.kyc.submittedAt).toLocaleString()
-                      : 'N/A'}
-                  </p>
-                </div>
-                {studentDetail.graduationYear && (
-                  <div>
-                    <Label className="text-muted-foreground">Graduation Year</Label>
-                    <p className="font-medium">{studentDetail.graduationYear}</p>
-                  </div>
-                )}
-                {studentDetail.kyc.isAnnualRenewal && (
-                  <div>
-                    <Label className="text-muted-foreground">Type</Label>
-                    <p className="font-medium">Annual Renewal</p>
-                  </div>
+            </div>
+                  )
+                })() : (
+                  <p className="text-sm text-muted-foreground">No KYC submission on file.</p>
                 )}
               </div>
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              No KYC data available for this student.
+              Could not load this student.
             </div>
           )}
 
@@ -976,6 +1222,44 @@ export function AdminKYC() {
                 <>
                   <X className="mr-2 h-4 w-4" />
                   Confirm Deactivation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Student Deletion Dialog */}
+      <Dialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open)
+          if (!open) {
+            setStudentToDelete(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Student Account</DialogTitle>
+            <DialogDescription>
+              This will permanently delete {studentToDelete?.firstName} {studentToDelete?.lastName} and all linked records.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={deleteStudentLoading}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteStudentLoading}>
+              {deleteStudentLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Confirm Delete
                 </>
               )}
             </Button>

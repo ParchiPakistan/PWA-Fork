@@ -10,13 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Plus, Search, Building2, MoreHorizontal, Pencil, CheckCircle, XCircle, AlertCircle, Eye, EyeOff, Loader2, RefreshCw, Edit, Upload, X, Image as ImageIcon, GripVertical, Key } from "lucide-react"
+import { Plus, Search, Building2, MoreHorizontal, AlertCircle, Loader2, RefreshCw, Edit, X, Image as ImageIcon, GripVertical, Key } from "lucide-react"
 import { TestMerchantAlert } from "./test-merchant-alert"
-import { toast } from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useMerchants } from "@/hooks/use-merchants"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { updateCorporateMerchant, toggleCorporateMerchant, adminResetPassword, CorporateMerchant, getBrands, setFeaturedBrands, Brand, FeaturedBrand } from "@/lib/api-client"
+import { updateCorporateMerchant, toggleCorporateMerchant, deleteCorporateMerchant, adminResetPassword, CorporateMerchant, getBrands, setFeaturedBrands, Brand, FeaturedBrand } from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 
@@ -62,6 +61,9 @@ export function AdminMerchants() {
     confirmPassword: "",
   })
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [merchantToDelete, setMerchantToDelete] = useState<CorporateMerchant | null>(null)
+  const [isDeletingMerchant, setIsDeletingMerchant] = useState(false)
 
   // Merchants are already filtered server-side based on searchQuery
   const filteredMerchants = merchants
@@ -204,6 +206,34 @@ export function AdminMerchants() {
       confirmPassword: "",
     })
     setIsPasswordResetOpen(true)
+  }
+
+  const openDeleteModal = (merchant: CorporateMerchant) => {
+    setMerchantToDelete(merchant)
+    setIsDeleteOpen(true)
+  }
+
+  const handleDeleteMerchant = async () => {
+    if (!merchantToDelete) return
+    try {
+      setIsDeletingMerchant(true)
+      await deleteCorporateMerchant(merchantToDelete.id)
+      toast({
+        title: "Merchant Deleted",
+        description: `${merchantToDelete.businessName} was deleted successfully.`,
+      })
+      setIsDeleteOpen(false)
+      setMerchantToDelete(null)
+      refetch()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete merchant",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeletingMerchant(false)
+    }
   }
 
   const handlePasswordReset = async () => {
@@ -565,6 +595,12 @@ export function AdminMerchants() {
                               >
                                 {merchant.isActive ? 'Deactivate' : 'Activate'}
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => openDeleteModal(merchant)}
+                              >
+                                Delete Merchant
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -611,6 +647,12 @@ export function AdminMerchants() {
                             onClick={() => handleToggleStatus(merchant)}
                           >
                             {merchant.isActive ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => openDeleteModal(merchant)}
+                          >
+                            Delete Merchant
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1158,6 +1200,35 @@ export function AdminMerchants() {
           </DialogFooter>
         </DialogContent>
       </Dialog >
+
+      {/* Delete Merchant Modal */}
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open)
+          if (!open) {
+            setMerchantToDelete(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Merchant</DialogTitle>
+            <DialogDescription>
+              This will permanently delete {merchantToDelete?.businessName}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeletingMerchant}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteMerchant} disabled={isDeletingMerchant}>
+              {isDeletingMerchant && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div >
   )
 }

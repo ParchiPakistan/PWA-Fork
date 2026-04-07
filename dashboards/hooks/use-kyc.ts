@@ -7,10 +7,13 @@ import {
   getStudentDetailsForReview,
   approveRejectStudent,
   updateStudentStatus,
+  deleteStudent,
+  updateStudentAdmin,
   type Student,
   type StudentDetail,
   type StudentsFilter,
   type ApproveRejectStudentRequest,
+  type UpdateStudentAdminRequest,
   type ApiError,
 } from '@/lib/api-client'
 
@@ -311,6 +314,95 @@ export function useUpdateStudentStatus() {
 
   return {
     updateStatus,
+    loading,
+    error,
+  }
+}
+
+export function useUpdateStudentAdmin() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = useCallback(
+    async (id: string, body: UpdateStudentAdminRequest): Promise<StudentDetail | null> => {
+      try {
+        setLoading(true)
+        setError(null)
+        const result = await updateStudentAdmin(id, body)
+        return result
+      } catch (err) {
+        console.error('Error updating student:', err)
+
+        if (err && typeof err === 'object' && 'statusCode' in err) {
+          const apiError = err as ApiError
+
+          if (apiError.statusCode === 401) {
+            setError('Unauthorized - Please login again')
+          } else if (apiError.statusCode === 403) {
+            setError('Access forbidden - Admin access required')
+          } else {
+            const errorMessage = Array.isArray(apiError.message)
+              ? apiError.message.join(', ')
+              : apiError.message || 'Failed to update student'
+            setError(errorMessage)
+          }
+        } else {
+          setError(err instanceof Error ? err.message : 'An error occurred while updating student')
+        }
+
+        return null
+      } finally {
+        setLoading(false)
+      }
+    },
+    [],
+  )
+
+  return {
+    save,
+    loading,
+    error,
+  }
+}
+
+export function useDeleteStudent() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const removeStudent = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true)
+      setError(null)
+      await deleteStudent(id)
+      return true
+    } catch (err) {
+      console.error('Error deleting student:', err)
+
+      if (err && typeof err === 'object' && 'statusCode' in err) {
+        const apiError = err as ApiError
+
+        if (apiError.statusCode === 401) {
+          setError('Unauthorized - Please login again')
+        } else if (apiError.statusCode === 403) {
+          setError('Access forbidden - Admin access required')
+        } else {
+          const errorMessage = Array.isArray(apiError.message)
+            ? apiError.message.join(', ')
+            : apiError.message || 'Failed to delete student'
+          setError(errorMessage)
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred while deleting student')
+      }
+
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return {
+    removeStudent,
     loading,
     error,
   }

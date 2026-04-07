@@ -743,6 +743,15 @@ export const updateStudentStatus = async (id: string, isActive: boolean, reason?
   return response.data;
 };
 
+/**
+ * Permanently delete a student account (Admin only)
+ */
+export const deleteStudent = async (id: string): Promise<void> => {
+  await apiRequest(`/admin/students/${id}`, {
+    method: 'DELETE',
+  });
+};
+
 // Corporate Offers API Functions
 
 /**
@@ -878,17 +887,43 @@ export interface Student {
   totalRedemptions: number;
   verificationStatus: 'pending' | 'approved' | 'rejected' | 'expired';
   verifiedAt: string | null;
+  verifiedBy?: {
+    id: string;
+    email: string;
+    role: string;
+  } | null;
   verificationExpiresAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   cnic?: string;
   dateOfBirth?: string | null;
   isActive: boolean;
+  profilePicture?: string | null;
+  verificationSelfiePath?: string | null;
   kyc?: StudentKYC | null;
 }
 
 export interface StudentDetail extends Student {
-  kyc: StudentKYC;
+  kyc: StudentKYC | null;
+}
+
+export interface UpdateStudentAdminRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string | null;
+  university?: string;
+  graduationYear?: number | null;
+  isFoundersClub?: boolean;
+  totalSavings?: number;
+  totalRedemptions?: number;
+  verificationStatus?: 'pending' | 'approved' | 'rejected' | 'expired';
+  verificationExpiresAt?: string | null;
+  cnic?: string | null;
+  dateOfBirth?: string | null;
+  profilePicture?: string | null;
+  verificationSelfiePath?: string | null;
+  isActive?: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -1078,6 +1113,20 @@ export const rejectRedemptionAttempt = async (data: RejectRedemptionAttemptReque
 export const getStudentDetailsForReview = async (id: string): Promise<StudentDetail> => {
   const response = await apiRequest(`/admin/students/${id}`, {
     method: 'GET',
+  });
+  return response.data;
+};
+
+/**
+ * Admin: update student profile and account fields (Parchi ID cannot be changed)
+ */
+export const updateStudentAdmin = async (
+  id: string,
+  body: UpdateStudentAdminRequest,
+): Promise<StudentDetail> => {
+  const response = await apiRequest(`/admin/students/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
   });
   return response.data;
 };

@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Plus, Search, Building2, MoreHorizontal, Pencil, Store, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key } from "lucide-react"
+import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal } from "lucide-react"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { toast } from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { getBranches, approveRejectBranch, updateBranch, adminResetPassword, AdminBranch } from "@/lib/api-client"
+import { getBranches, approveRejectBranch, updateBranch, deleteBranch, adminResetPassword, AdminBranch } from "@/lib/api-client"
 
 export function AdminBranches() {
   const [branches, setBranches] = useState<AdminBranch[]>([])
@@ -46,6 +46,7 @@ export function AdminBranches() {
   // Reject Modal State
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [branchToReject, setBranchToReject] = useState<AdminBranch | null>(null)
+  const [isDeletingBranch, setIsDeletingBranch] = useState(false)
 
   const fetchBranches = useCallback(async (search?: string) => {
     try {
@@ -102,14 +103,16 @@ export function AdminBranches() {
   const confirmReject = async () => {
     if (!branchToReject) return
     try {
-      setLoading(true) // Reuse main loading or add specific one
-      await approveRejectBranch(branchToReject.id, 'rejected')
-      toast({ title: "Success", description: "Branch rejected successfully" })
+      setIsDeletingBranch(true)
+      await deleteBranch(branchToReject.id)
+      toast({ title: "Success", description: "Branch deleted successfully" })
       setIsRejectOpen(false)
+      setBranchToReject(null)
       fetchBranches() // This will also handle loading state
     } catch (error) {
-      toast({ title: "Error", description: "Failed to reject branch", variant: "destructive" })
-      setLoading(false)
+      toast({ title: "Error", description: "Failed to delete branch", variant: "destructive" })
+    } finally {
+      setIsDeletingBranch(false)
     }
   }
 
@@ -495,16 +498,16 @@ export function AdminBranches() {
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Rejection</DialogTitle>
+            <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to reject and delete this branch? This action cannot be undone.
+              Are you sure you want to permanently delete this branch? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center gap-4 py-4 rounded-md bg-destructive/10 p-4 border border-destructive/20">
             <AlertTriangle className="h-6 w-6 text-destructive shrink-0" />
             <div className="text-sm text-destructive font-medium">
-              Warning: This will permanently remove the branch "{branchToReject?.branch_name}" and strictly prohibit any access.
+              Warning: This will permanently remove the branch "{branchToReject?.branch_name}".
             </div>
           </div>
 
@@ -513,10 +516,10 @@ export function AdminBranches() {
             <Button
               variant="destructive"
               onClick={confirmReject}
-              disabled={loading} // Reuse loading state or add specific one if needed, mostly redundant since fetchBranches sets loading
+              disabled={isDeletingBranch}
             >
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Confirm Reject
+              {isDeletingBranch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Confirm Delete
             </Button>
           </DialogFooter>
         </DialogContent>
