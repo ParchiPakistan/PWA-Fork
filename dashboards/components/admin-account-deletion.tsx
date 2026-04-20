@@ -497,53 +497,55 @@ export function AdminAccountDeletion() {
               {confirmDialog.type === "reject" && "Reject Deletion Request"}
               {confirmDialog.type === "delete" && "Remove Request Record"}
             </DialogTitle>
-            <DialogDescription className="space-y-3 pt-2">
-              {confirmDialog.type === "approve" && (
-                <p>
-                  Are you sure you want to <strong>approve</strong> the deletion request for{" "}
-                  <span className="font-mono bg-muted px-1 rounded text-foreground">
-                    {confirmDialog.request?.identifier}
-                  </span>
-                  ? This will mark the request as approved and can trigger downstream account removal.
-                </p>
-              )}
-              {confirmDialog.type === "reject" && (
-                <p>
-                  Are you sure you want to <strong>reject</strong> the deletion request for{" "}
-                  <span className="font-mono bg-muted px-1 rounded text-foreground">
-                    {confirmDialog.request?.identifier}
-                  </span>
-                  ? The user's account will not be deleted.
-                </p>
-              )}
-              {confirmDialog.type === "delete" && (
-                <p>
-                  This will permanently <strong>remove</strong> the request record for{" "}
-                  <span className="font-mono bg-muted px-1 rounded text-foreground">
-                    {confirmDialog.request?.identifier}
-                  </span>{" "}
-                  from the system. This action cannot be undone.
-                </p>
-              )}
-              {confirmDialog.request && (
-                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                  <p className="text-muted-foreground font-medium text-xs uppercase tracking-wide mb-2">
-                    Request Details
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Identifier: </span>
-                    <span className="font-medium">{confirmDialog.request.identifier}</span>
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Reason: </span>
-                    <span>{confirmDialog.request.reason}</span>
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Submitted: </span>
-                    <span>{timeAgo(confirmDialog.request.created_at)}</span>
-                  </p>
-                </div>
-              )}
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                {confirmDialog.type === "approve" && (
+                  <div>
+                    Are you sure you want to <strong>approve</strong> the deletion request for{" "}
+                    <span className="font-mono bg-muted px-1 rounded text-foreground">
+                      {confirmDialog.request?.identifier}
+                    </span>
+                    ? This will mark the request as approved and can trigger downstream account removal.
+                  </div>
+                )}
+                {confirmDialog.type === "reject" && (
+                  <div>
+                    Are you sure you want to <strong>reject</strong> the deletion request for{" "}
+                    <span className="font-mono bg-muted px-1 rounded text-foreground">
+                      {confirmDialog.request?.identifier}
+                    </span>
+                    ? The user's account will not be deleted.
+                  </div>
+                )}
+                {confirmDialog.type === "delete" && (
+                  <div>
+                    This will permanently <strong>remove</strong> the request record for{" "}
+                    <span className="font-mono bg-muted px-1 rounded text-foreground">
+                      {confirmDialog.request?.identifier}
+                    </span>{" "}
+                    from the system. This action cannot be undone.
+                  </div>
+                )}
+                {confirmDialog.request && (
+                  <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                    <div className="text-muted-foreground font-medium text-xs uppercase tracking-wide mb-2">
+                      Request Details
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Identifier: </span>
+                      <span className="font-medium">{confirmDialog.request.identifier}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Reason: </span>
+                      <span>{confirmDialog.request.reason}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Submitted: </span>
+                      <span>{timeAgo(confirmDialog.request.created_at)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
