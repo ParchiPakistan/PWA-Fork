@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Building2, MoreHorizontal, AlertCircle, Loader2, RefreshCw, Edit, X, Image as ImageIcon, GripVertical, Key } from "lucide-react"
+import { Plus, Search, Building2, MoreHorizontal, AlertCircle, Loader2, RefreshCw, Edit, X, Image as ImageIcon, GripVertical, Key, Copy } from "lucide-react"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useMerchants } from "@/hooks/use-merchants"
@@ -701,6 +701,29 @@ export function AdminMerchants() {
                 </AlertDescription>
               </Alert>
             )}
+            <div className="space-y-2">
+              <Label>Merchant UUID (Read Only)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={editingMerchant?.id || ""}
+                  readOnly
+                  className="bg-muted font-mono text-xs cursor-default"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  type="button"
+                  onClick={() => {
+                    if (editingMerchant?.id) {
+                      navigator.clipboard.writeText(editingMerchant.id)
+                      toast({ title: "Copied!", description: "Merchant UUID copied to clipboard" })
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Business Name</Label>
               <Input
