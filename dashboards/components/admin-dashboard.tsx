@@ -306,13 +306,22 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Admin Dashboard</h1>
               <p className="text-muted-foreground mt-1">Platform management and oversight</p>
             </div>
-            <div className="flex items-center gap-2">
-              {activeTab !== "kyc" && (
-                <Button variant="outline" size="icon" onClick={() => fetchStats()} disabled={isLoading || isRefreshing}>
-                  <RefreshCw className={`h-4 w-4 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
+            <div className="fixed top-6 right-6 z-[9999]">
+                <Button 
+                  variant="default" 
+                  size="icon" 
+                  onClick={() => {
+                    console.log('REFRESH_CLICKED_LOG');
+                    toast.info('Refreshing dashboard...')
+                    fetchStats()
+                  }} 
+                  className="rounded-full shadow-2xl h-14 w-14 bg-white text-primary hover:bg-slate-50 border-2 border-primary"
+                >
+                  <RefreshCw className={`h-6 w-6 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
-              )}
             </div>
+
+
           </div>
 
           {activeTab === "overview" && (
