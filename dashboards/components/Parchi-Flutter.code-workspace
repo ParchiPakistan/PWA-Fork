@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../Parchi-Flutter"
+		},
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../parchi-backend"
+		}
+	],
+	"settings": {}
+}

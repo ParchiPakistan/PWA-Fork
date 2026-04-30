@@ -1546,7 +1546,20 @@ export interface AdminDashboardStats {
   }[];
   leaderboardTopPerformers: number;
   foundersClubMembers: number;
+  funnelStats?: {
+    step: string;
+    count: number;
+  }[];
+  onboardingDropoff?: {
+    step: string;
+    count: number;
+  }[];
+  platformDistribution?: {
+    platform: string;
+    count: number;
+  }[];
 }
+
 
 /**
  * Get admin dashboard statistics

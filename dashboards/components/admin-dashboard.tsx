@@ -41,7 +41,9 @@ import { AdminNotifications } from "./admin-notifications"
 import { AdminFinancials } from "./admin-financials"
 import { AdminAccountDeletion } from "./admin-account-deletion"
 import { AdminSystemConfig } from "./admin-system-config"
+import { AdminAnalytics } from "./admin-analytics"
 import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats } from "@/lib/api-client"
+
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
@@ -248,6 +250,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const data = await getAdminDashboardStats(start, end)
       setStats(data)
       setLastUpdated(new Date())
+
+
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)
       toast.error('Failed to load dashboard statistics')
@@ -499,9 +503,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </>
           )}
 
+          {activeTab === "analytics" && (
+            <AdminAnalytics stats={stats} />
+          )}
+
           {activeTab === "kyc" && <AdminKYC />}
 
-          {activeTab === "financials" && <AdminFinancials />}
 
           {activeTab === "merchants" && <AdminMerchants />}
 
