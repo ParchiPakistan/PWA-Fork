@@ -333,14 +333,14 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                     <h4 className="text-sm font-bold text-emerald-400">Conversion Health</h4>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full uppercase">Benchmark</span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full uppercase">Success Rate</span>
                 </div>
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300 leading-relaxed min-h-[40px]">
-                        Your conversion is <strong className="text-white">{overallConversion}%</strong>. 
-                        Target: <span className="text-emerald-400 font-bold">15-20%</span>.
+                        Percentage of students who successfully transition from opening the app to completing their first redemption.
                     </p>
                     <div className="h-32 w-full flex items-center justify-center">
+
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
