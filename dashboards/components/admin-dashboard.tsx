@@ -42,6 +42,7 @@ import { AdminFinancials } from "./admin-financials"
 import { AdminAccountDeletion } from "./admin-account-deletion"
 import { AdminSystemConfig } from "./admin-system-config"
 import { AdminAnalytics } from "./admin-analytics"
+import { AdminRedemptionEngine } from "./admin-redemption-engine"
 import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats } from "@/lib/api-client"
 
 import { toast } from "sonner"
@@ -517,6 +518,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {activeTab === "analytics" && (
             <AdminAnalytics stats={stats} />
           )}
+
+          {activeTab === "redemption-engine" && <AdminRedemptionEngine />}
 
           {activeTab === "kyc" && <AdminKYC />}
 

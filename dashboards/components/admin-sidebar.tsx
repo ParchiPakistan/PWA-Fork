@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell, UserX, Settings, TrendingUp } from "lucide-react"
+import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell, UserX, Settings, TrendingUp, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
@@ -34,6 +34,11 @@ export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminS
       id: "analytics",
       label: "Analytics",
       icon: TrendingUp,
+    },
+    {
+      id: "redemption-engine",
+      label: "Redemption Engine",
+      icon: Activity,
     },
     {
       id: "kyc",

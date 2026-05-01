@@ -1607,6 +1607,49 @@ export const getTopPerformingMerchants = async (
   return response.data;
 };
 
+// ========== Redemption & Behavioral Engine ==========
+
+export interface RedemptionVolumeDataPoint {
+  date: string;
+  count: number;
+}
+
+export interface RedemptionAnalytics {
+  uniqueRedeemers: number;
+  volumeTrends: {
+    daily: RedemptionVolumeDataPoint[];
+    weekly: RedemptionVolumeDataPoint[];
+    monthly: RedemptionVolumeDataPoint[];
+  };
+  behaviorHistogram: {
+    bucket: string;
+    userCount: number;
+  }[];
+  repeatRates: {
+    windowDays: number;
+    repeatCount: number;
+    totalRedeemers: number;
+    repeatRate: number;
+  }[];
+  fifthBonusStats: {
+    totalBonusTriggers: number;
+    uniqueStudentsTriggered: number;
+    usersReturnedAfterBonus: number;
+    conversionRate: number;
+  };
+}
+
+/**
+ * Get redemption & behavioral engine analytics
+ * Requires admin authentication
+ */
+export const getRedemptionAnalytics = async (): Promise<RedemptionAnalytics> => {
+  const response = await apiRequest('/admin/dashboard/redemption-analytics', {
+    method: 'GET',
+  });
+  return response.data;
+};
+
 // ========== Featured Brands API ==========
 
 export interface Brand {
