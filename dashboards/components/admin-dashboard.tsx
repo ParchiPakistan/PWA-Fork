@@ -306,13 +306,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Admin Dashboard</h1>
               <p className="text-muted-foreground mt-1">Platform management and oversight</p>
             </div>
+          {(activeTab === "overview" || activeTab === "analytics") && (
             <div className="fixed top-6 right-6 z-[9999]">
                 <Button 
                   variant="default" 
                   size="icon" 
                   onClick={() => {
-                    console.log('REFRESH_CLICKED_LOG');
-                    toast.info('Refreshing dashboard...')
+                    toast.info('Refreshing data...')
                     fetchStats()
                   }} 
                   className="rounded-full shadow-2xl h-14 w-14 bg-white text-primary hover:bg-slate-50 border-2 border-primary"
@@ -320,6 +320,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <RefreshCw className={`h-6 w-6 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
             </div>
+          )}
+
 
 
           </div>
