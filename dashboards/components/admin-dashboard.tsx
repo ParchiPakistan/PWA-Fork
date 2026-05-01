@@ -21,7 +21,30 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
-import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw, School, Search, Utensils, ShoppingBag, Sparkles, Ticket, Heart } from "lucide-react"
+import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw, School, Search, Utensils, ShoppingBag, Sparkles, Ticket, Heart, ShieldCheck, UserPlus, Clock, Ban } from "lucide-react"
+
+// Premium Metric Card Component
+const MetricCard = ({ title, value, subtitle, icon: Icon, color }: { title: string, value: any, subtitle: string, icon: any, color: string }) => (
+  <div className="relative group p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden">
+     <div className="absolute -top-6 -right-6 p-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-700">
+        <Icon className="w-24 h-24" style={{ color }} />
+     </div>
+     <div className="flex justify-between items-start mb-6">
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+           <Icon className="w-6 h-6" style={{ color }} />
+        </div>
+     </div>
+     <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1.5">{title}</h3>
+     <div className="flex items-baseline gap-2">
+        <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{value.toLocaleString()}</p>
+     </div>
+     <div className="flex items-center gap-1.5 mt-3">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{subtitle}</p>
+     </div>
+  </div>
+);
+
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import {
   DropdownMenu,
@@ -546,88 +569,59 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               ) : (
                 <>
                   {/* Platform Overview */}
-                  <div className="mb-8">
-                    <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>Platform Overview</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {/* Platform Overview - Real-time Data */}
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Total Active Students</span>
-                            <Users className="w-4 h-4" style={{ color: colors.primary }} />
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                            {stats?.platformOverview.totalActiveStudents.toLocaleString()}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">+{stats?.platformOverview.totalActiveStudentsGrowth}% MoM</p>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Total Verified Merchants</span>
-                            <ShoppingCart className="w-4 h-4" style={{ color: colors.primary }} />
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                            {stats?.platformOverview.totalVerifiedMerchants}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">+{stats?.platformOverview.totalVerifiedMerchantsGrowth}% this month</p>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                            <span>Total Redemptions</span>
-                            <CheckCircle2 className="w-4 h-4" style={{ color: colors.primary }} />
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                            {stats?.platformOverview.totalRedemptions.toLocaleString()}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">{dateRange?.from ? 'Selected Period' : 'All Time'}</p>
-                        </CardContent>
-                      </Card>
+                  <div className="mb-12">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Platform Overview</h2>
+                      <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800 mx-6 opacity-50" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                       <MetricCard 
+                         title="Total Active Students" 
+                         value={stats?.platformOverview.totalActiveStudents || 0} 
+                         subtitle={`+${stats?.platformOverview.totalActiveStudentsGrowth}% MoM Growth`} 
+                         icon={UserPlus} 
+                         color="#6366f1" 
+                       />
+                       <MetricCard 
+                         title="Verified Merchants" 
+                         value={stats?.platformOverview.totalVerifiedMerchants || 0} 
+                         subtitle={`+${stats?.platformOverview.totalVerifiedMerchantsGrowth}% this month`} 
+                         icon={ShieldCheck} 
+                         color="#10b981" 
+                       />
+                       <MetricCard 
+                         title="Total Redemptions" 
+                         value={stats?.platformOverview.totalRedemptions || 0} 
+                         subtitle={dateRange?.from ? 'Selected Period' : 'All Time Tracking'} 
+                         icon={CheckCircle2} 
+                         color="#f59e0b" 
+                       />
                     </div>
                   </div>
 
-                  {/* User Management & Financial Oversight */}
-                  <div className="mb-8">
-                    {/* User Management */}
-                    <div>
-                      <h2 className="text-xl font-semibold mb-4" style={{ color: colors.primary }}>User Management</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* User Management - Real-time Data */}
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                              <span>Verification Queue</span>
-                              <Users className="w-4 h-4" style={{ color: colors.primary }} />
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stats?.userManagement.verificationQueue}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Pending Requests</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                              <span>Suspended/Rejected</span>
-                              <X className="w-4 h-4" style={{ color: colors.primary }} />
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold" style={{ color: colors.primary }}>{stats?.userManagement.suspendedRejected}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Accounts</p>
-                          </CardContent>
-                        </Card>
-                      </div>
+                  {/* User Management */}
+                  <div className="mb-12">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">User Management</h2>
+                      <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800 mx-6 opacity-50" />
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                       <MetricCard 
+                         title="Verification Queue" 
+                         value={stats?.userManagement.verificationQueue || 0} 
+                         subtitle="Pending KYC Approval" 
+                         icon={Clock} 
+                         color="#6366f1" 
+                       />
+                       <MetricCard 
+                         title="Suspended / Rejected" 
+                         value={stats?.userManagement.suspendedRejected || 0} 
+                         subtitle="Account Restrictions" 
+                         icon={Ban} 
+                         color="#ef4444" 
+                       />
+                    </div>
+                  </div>
 
 
                     {/* Merchant Performance & Student Analytics */}
