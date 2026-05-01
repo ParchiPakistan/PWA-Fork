@@ -1562,6 +1562,11 @@ export interface AdminDashboardStats {
     platform: string;
     count: number;
   }[];
+  dailyPlatformDistribution?: {
+    date: string;
+    ios: number;
+    android: number;
+  }[];
 }
 
 

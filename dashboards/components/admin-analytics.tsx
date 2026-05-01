@@ -186,11 +186,9 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
             </ResponsiveContainer>
           </div>
         </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      </Card>      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Onboarding Detail */}
-        <Card className="lg:col-span-2 border-none shadow-sm">
+        <Card className="border-none shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">Detailed Signup Drop-off</CardTitle>
             <CardDescription>Granular view of the registration form completion</CardDescription>
@@ -234,47 +232,161 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
           </CardContent>
         </Card>
 
-        {/* Platform Breakdown */}
+        {/* Daily Platform Activity */}
         <Card className="border-none shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Platform Split</CardTitle>
-            <CardDescription>Device engagement</CardDescription>
+            <CardTitle className="text-lg">Daily Download activity</CardTitle>
+            <CardDescription>iOS vs Android growth trends</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <div className="h-[250px] w-full">
+          <CardContent>
+            <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={platformData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={90}
-                    paddingAngle={8}
-                    dataKey="count"
-                    nameKey="platform"
-                  >
-                    {platformData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                </PieChart>
+                <AreaChart data={stats.dailyPlatformDistribution || []}>
+                   <defs>
+                    <linearGradient id="colorIos" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={colors.primary} stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorAndroid" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip />
+                  <Legend verticalAlign="top" height={36}/>
+                  <Area type="monotone" dataKey="ios" name="iOS" stroke={colors.primary} fillOpacity={1} fill="url(#colorIos)" />
+                  <Area type="monotone" dataKey="android" name="Android" stroke="#10B981" fillOpacity={1} fill="url(#colorAndroid)" />
+                </AreaChart>
               </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-4 w-full">
-                {platformData.map((item, idx) => (
-                    <div key={item.platform} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                        <span className="text-xs font-semibold">{item.platform}</span>
-                        <span className="text-xs text-muted-foreground">{item.count}</span>
-                    </div>
-                ))}
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* --- Platform Split Pie --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-none shadow-sm">
+            <CardHeader>
+                <CardTitle className="text-lg">Platform Split</CardTitle>
+                <CardDescription>Total device distribution</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+                <div className="h-[200px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                    <Pie
+                        data={platformData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={8}
+                        dataKey="count"
+                        nameKey="platform"
+                    >
+                        {platformData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
+                        ))}
+                    </Pie>
+                    <Tooltip />
+                    </PieChart>
+                </ResponsiveContainer>
+                </div>
+                <div className="grid grid-cols-1 gap-2 mt-2 w-full">
+                    {platformData.map((item, idx) => (
+                        <div key={item.platform} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                                <span className="text-xs font-medium">{item.platform}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-bold">{item.count}</span>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+          </Card>
+
+          {/* Conversion Rates Card */}
+          <Card className="md:col-span-2 border-none shadow-sm bg-gradient-to-br from-indigo-50 to-white dark:from-slate-900 dark:to-slate-800">
+            <CardHeader>
+                <CardTitle className="text-lg">Funnel Conversion Metrics</CardTitle>
+                <CardDescription>Step-by-step conversion efficiency</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-indigo-100 dark:border-indigo-900/30">
+                            <div className="text-[10px] uppercase font-bold text-indigo-500 mb-1">Install → Signup Started</div>
+                            <div className="flex items-end justify-between">
+                                <div className="text-2xl font-bold">
+                                    {appOpens > 0 ? ((funnelData.find(s => s.step === 'Student Info Started')?.count || 0) / appOpens * 100).toFixed(1) : "0"}%
+                                </div>
+                                <div className="text-[10px] text-muted-foreground pb-1">
+                                    Target: 45-50%
+                                </div>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
+                                <div 
+                                    className="h-full bg-indigo-500 rounded-full" 
+                                    style={{ width: `${appOpens > 0 ? (funnelData.find(s => s.step === 'Student Info Started')?.count || 0) / appOpens * 100 : 0}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/30">
+                            <div className="text-[10px] uppercase font-bold text-emerald-500 mb-1">Signup Started → KYC Submitted</div>
+                            <div className="flex items-end justify-between">
+                                <div className="text-2xl font-bold">
+                                    {funnelData.find(s => s.step === 'Student Info Started')?.count || 0 > 0 ? 
+                                        ((funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0) / (funnelData.find(s => s.step === 'Student Info Started')?.count || 1) * 100).toFixed(1) : "0"}%
+                                </div>
+                                <div className="text-[10px] text-muted-foreground pb-1">
+                                    Target: 60-70%
+                                </div>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
+                                <div 
+                                    className="h-full bg-emerald-500 rounded-full" 
+                                    style={{ width: `${(funnelData.find(s => s.step === 'Student Info Started')?.count || 0) > 0 ? 
+                                        (funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0) / (funnelData.find(s => s.step === 'Student Info Started')?.count || 1) * 100 : 0}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-amber-100 dark:border-amber-900/30">
+                            <div className="text-[10px] uppercase font-bold text-amber-500 mb-1">KYC Approved → First Redemption</div>
+                            <div className="flex items-end justify-between">
+                                <div className="text-2xl font-bold">
+                                    {funnelData.find(s => s.step === 'Account Verified')?.count || 0 > 0 ? 
+                                        ((funnelData.find(s => s.step === 'First Redemption')?.count || 0) / (funnelData.find(s => s.step === 'Account Verified')?.count || 1) * 100).toFixed(1) : "0"}%
+                                </div>
+                                <div className="text-[10px] text-muted-foreground pb-1">
+                                    Target: 25-30%
+                                </div>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
+                                <div 
+                                    className="h-full bg-amber-500 rounded-full" 
+                                    style={{ width: `${(funnelData.find(s => s.step === 'Account Verified')?.count || 0) > 0 ? 
+                                        (funnelData.find(s => s.step === 'First Redemption')?.count || 0) / (funnelData.find(s => s.step === 'Account Verified')?.count || 1) * 100 : 0}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-blue-100 dark:border-blue-900/30">
+                            <div className="text-[10px] uppercase font-bold text-blue-500 mb-1">End-to-End Retention</div>
+                            <div className="text-2xl font-bold text-blue-600">{overallConversion}%</div>
+                            <p className="text-[10px] text-muted-foreground mt-1">From initial app open to final utility</p>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
       </div>
 
       {/* --- Admin Insights Card --- */}
@@ -337,7 +449,7 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                 </div>
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300 leading-relaxed min-h-[40px]">
-                        Percentage of students who successfully transition from opening the app to completing their first redemption.
+                        Your end-to-end conversion is <strong className="text-white">{overallConversion}%</strong>. Successful platforms typically target 15-20%.
                     </p>
                     <div className="h-32 w-full flex items-center justify-center">
 
@@ -414,9 +526,6 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
             </div>
           </div>
         </CardContent>
-
-
-
       </Card>
     </div>
   )
