@@ -322,16 +322,13 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                             <div className="text-[10px] uppercase font-bold text-indigo-500 mb-1">Install → Signup Started</div>
                             <div className="flex items-end justify-between">
                                 <div className="text-2xl font-bold">
-                                    {appOpens > 0 ? ((funnelData.find(s => s.step === 'Student Info Started')?.count || 0) / appOpens * 100).toFixed(1) : "0"}%
-                                </div>
-                                <div className="text-[10px] text-muted-foreground pb-1">
-                                    Target: 45-50%
+                                    {appOpens > 0 ? Math.min(100, ((funnelData.find(s => s.step === 'Student Info Started')?.count || 0) / appOpens * 100)).toFixed(1) : "0"}%
                                 </div>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div 
                                     className="h-full bg-indigo-500 rounded-full" 
-                                    style={{ width: `${appOpens > 0 ? (funnelData.find(s => s.step === 'Student Info Started')?.count || 0) / appOpens * 100 : 0}%` }}
+                                    style={{ width: `${appOpens > 0 ? Math.min(100, (funnelData.find(s => s.step === 'Student Info Started')?.count || 0) / appOpens * 100) : 0}%` }}
                                 />
                             </div>
                         </div>
@@ -341,17 +338,14 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                             <div className="flex items-end justify-between">
                                 <div className="text-2xl font-bold">
                                     {funnelData.find(s => s.step === 'Student Info Started')?.count || 0 > 0 ? 
-                                        ((funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0) / (funnelData.find(s => s.step === 'Student Info Started')?.count || 1) * 100).toFixed(1) : "0"}%
-                                </div>
-                                <div className="text-[10px] text-muted-foreground pb-1">
-                                    Target: 60-70%
+                                        Math.min(100, ((funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0) / (funnelData.find(s => s.step === 'Student Info Started')?.count || 1) * 100)).toFixed(1) : "0"}%
                                 </div>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div 
                                     className="h-full bg-emerald-500 rounded-full" 
                                     style={{ width: `${(funnelData.find(s => s.step === 'Student Info Started')?.count || 0) > 0 ? 
-                                        (funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0) / (funnelData.find(s => s.step === 'Student Info Started')?.count || 1) * 100 : 0}%` }}
+                                        Math.min(100, (funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0) / (funnelData.find(s => s.step === 'Student Info Started')?.count || 1) * 100) : 0}%` }}
                                 />
                             </div>
                         </div>
@@ -363,17 +357,14 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                             <div className="flex items-end justify-between">
                                 <div className="text-2xl font-bold">
                                     {funnelData.find(s => s.step === 'Account Verified')?.count || 0 > 0 ? 
-                                        ((funnelData.find(s => s.step === 'First Redemption')?.count || 0) / (funnelData.find(s => s.step === 'Account Verified')?.count || 1) * 100).toFixed(1) : "0"}%
-                                </div>
-                                <div className="text-[10px] text-muted-foreground pb-1">
-                                    Target: 25-30%
+                                        Math.min(100, ((funnelData.find(s => s.step === 'First Redemption')?.count || 0) / (funnelData.find(s => s.step === 'Account Verified')?.count || 1) * 100)).toFixed(1) : "0"}%
                                 </div>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div 
                                     className="h-full bg-amber-500 rounded-full" 
                                     style={{ width: `${(funnelData.find(s => s.step === 'Account Verified')?.count || 0) > 0 ? 
-                                        (funnelData.find(s => s.step === 'First Redemption')?.count || 0) / (funnelData.find(s => s.step === 'Account Verified')?.count || 1) * 100 : 0}%` }}
+                                        Math.min(100, (funnelData.find(s => s.step === 'First Redemption')?.count || 0) / (funnelData.find(s => s.step === 'Account Verified')?.count || 1) * 100) : 0}%` }}
                                 />
                             </div>
                         </div>
