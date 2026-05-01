@@ -1650,6 +1650,120 @@ export const getRedemptionAnalytics = async (): Promise<RedemptionAnalytics> => 
   return response.data;
 };
 
+// ========== Brand Partner & Portfolio Health ==========
+
+export interface BrandWeeklyTrend {
+  weekStart: string;
+  redemptionCount: number;
+}
+
+export interface BrandTrendStat {
+  merchantId: string;
+  businessName: string;
+  logoPath: string | null;
+  category: string | null;
+  weeklyTrend: BrandWeeklyTrend[];
+  totalLast4Weeks: number;
+  trendDirection: 'up' | 'down' | 'flat';
+}
+
+export interface BrandReachStat {
+  merchantId: string;
+  businessName: string;
+  logoPath: string | null;
+  category: string | null;
+  uniqueRedeemers: number;
+  totalRedemptions: number;
+}
+
+export interface BrandConcentration {
+  totalRedemptions: number;
+  top3SharePct: number;
+  top5SharePct: number;
+  hhi: number;
+  brands: {
+    merchantId: string;
+    businessName: string;
+    redemptionCount: number;
+    sharePct: number;
+  }[];
+}
+
+export interface DryPartnerFlag {
+  merchantId: string;
+  businessName: string;
+  logoPath: string | null;
+  category: string | null;
+  redemptionsLast7Days: number;
+  redemptionsLast30Days: number;
+  lastRedemptionAt: string | null;
+  severity: 'zero' | 'low';
+}
+
+export interface BrandPortfolioHealth {
+  brandTrends: BrandTrendStat[];
+  brandReach: BrandReachStat[];
+  concentration: BrandConcentration;
+  dryPartners: DryPartnerFlag[];
+}
+
+export const getBrandPortfolioHealth = async (): Promise<BrandPortfolioHealth> => {
+  const response = await apiRequest('/admin/dashboard/brand-portfolio', { method: 'GET' });
+  return response.data;
+};
+
+// ========== Competitor Benchmarking ==========
+
+export interface CompetitorBenchmarkEntry {
+  id: string;
+  competitorName: string;
+  metricName: string;
+  metricValue: number;
+  recordedAt: string;
+  notes: string | null;
+  sourceUrl: string | null;
+}
+
+export interface CompetitorComparisonMetric {
+  metricName: string;
+  parchiValue: number;
+  competitors: {
+    name: string;
+    value: number;
+    delta: number;
+    deltaDirection: 'ahead' | 'behind' | 'tied';
+  }[];
+}
+
+export interface CompetitorBenchmarks {
+  entries: CompetitorBenchmarkEntry[];
+  comparison: CompetitorComparisonMetric[];
+}
+
+export const getCompetitorBenchmarks = async (): Promise<CompetitorBenchmarks> => {
+  const response = await apiRequest('/admin/dashboard/competitor-benchmarks', { method: 'GET' });
+  return response.data;
+};
+
+export const addCompetitorBenchmark = async (data: {
+  competitorName: string;
+  metricName: string;
+  metricValue: number;
+  recordedAt?: string;
+  notes?: string;
+  sourceUrl?: string;
+}): Promise<{ id: string }> => {
+  const response = await apiRequest('/admin/dashboard/competitor-benchmarks', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response.data;
+};
+
+export const deleteCompetitorBenchmark = async (id: string): Promise<void> => {
+  await apiRequest(`/admin/dashboard/competitor-benchmarks/${id}`, { method: 'DELETE' });
+};
+
 // ========== Featured Brands API ==========
 
 export interface Brand {
