@@ -59,19 +59,32 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
 
   const PIE_COLORS = [colors.primary, "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"]
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  // High-fidelity tooltip component for all charts
+  const ChartTooltip = ({ active, payload, label, suffix = "Users" }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background border rounded-lg p-3 shadow-xl backdrop-blur-md bg-opacity-80">
-          <p className="font-bold text-sm mb-1">{label}</p>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: payload[0].fill }} />
-            <span className="text-sm font-medium">{payload[0].value} Users</span>
+        <div className="bg-slate-900/95 border border-slate-800 p-4 shadow-2xl rounded-2xl backdrop-blur-md ring-1 ring-white/10">
+          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">{label}</p>
+          <div className="space-y-1.5">
+            {payload.map((entry: any, index: number) => (
+                <div key={index} className="flex items-center justify-between gap-8">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill || colors.primary }} />
+                        <span className="text-xs font-bold text-slate-300">{entry.name || 'Value'}:</span>
+                    </div>
+                    <span className="text-sm font-black text-white">{entry.value.toLocaleString()} {suffix}</span>
+                </div>
+            ))}
           </div>
-          {appOpens > 0 && (
-             <p className="text-[10px] text-muted-foreground mt-1">
-               {((payload[0].value / appOpens) * 100).toFixed(1)}% of total traffic
-             </p>
+          {appOpens > 0 && payload[0].dataKey === 'visualCount' && (
+             <div className="mt-3 pt-3 border-t border-slate-800">
+                <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Retention</span>
+                    <span className="text-xs font-black text-emerald-400">
+                        {((payload[0].payload.count / appOpens) * 100).toFixed(1)}%
+                    </span>
+                </div>
+             </div>
           )}
         </div>
       )
@@ -224,34 +237,14 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                   }}
                 />
                 <Tooltip 
-                    cursor={{ fill: '#f1f5f9', opacity: 0.5 }} 
-                    content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                                <div className="bg-white dark:bg-slate-900 p-5 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-2xl ring-1 ring-slate-200/50">
-                                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-2">{data.step}</p>
-                                    <div className="flex items-baseline gap-3">
-                                        <p className="text-3xl font-black tracking-tighter">{data.count}</p>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase">Events Logged</p>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-                                        <div className="flex justify-between items-center">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Session Retention</p>
-                                            <span className="text-xs font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-lg">{data.percentage}%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        }
-                        return null;
-                    }}
+                    cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 12 }} 
+                    content={<ChartTooltip suffix="Events" />} 
                 />
                 <Bar 
                     dataKey="visualCount" 
-                    radius={[0, 12, 12, 0]} 
-                    barSize={48}
-                    background={{ fill: '#f8fafc', radius: 12 }}
+                    radius={[0, 8, 8, 0]} 
+                    barSize={32}
+                    background={{ fill: '#f8fafc', radius: 8 }}
                 >
                   {funnelData.map((entry, index) => {
                     const retention = appOpens > 0 ? (entry.count / appOpens) * 100 : 0
@@ -301,10 +294,11 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                     padding={{ left: 20, right: 20 }}
                   />
                   <YAxis fontSize={12} tickLine={false} axisLine={false} hide />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<ChartTooltip suffix="Exits" />} />
                   <Area 
                     type="monotone" 
                     dataKey="count" 
+                    name="Drop-offs"
                     stroke={colors.primary} 
                     strokeWidth={3}
                     fillOpacity={1} 
@@ -339,7 +333,7 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
                   <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip />
+                  <Tooltip content={<ChartTooltip suffix="Devices" />} />
                   <Legend 
                     verticalAlign="top" 
                     height={36}
@@ -399,7 +393,7 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
                         ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip content={<ChartTooltip suffix="Devices" />} />
                     </PieChart>
                 </ResponsiveContainer>
                 </div>
@@ -408,7 +402,8 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                         <div key={item.platform} className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                                <span className="text-xs font-medium">{item.platform}</span>
+                                {item.platform?.toLowerCase() === 'ios' ? <Apple className="h-3 w-3 text-slate-500" /> : <Smartphone className="h-3 w-3 text-green-500" />}
+                                <span className="text-xs font-medium uppercase tracking-tight">{item.platform}</span>
                             </div>
                             <span className="text-xs text-muted-foreground font-bold">{item.count}</span>
                         </div>
@@ -603,9 +598,7 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                                         <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', fontSize: '10px' }}
-                                />
+                                <Tooltip content={<ChartTooltip suffix="Exits" />} />
                                 <Area 
                                     type="monotone" 
                                     dataKey="count" 

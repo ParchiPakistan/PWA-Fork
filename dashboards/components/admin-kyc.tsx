@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail } from "lucide-react"
+import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
@@ -663,6 +663,7 @@ export function AdminKYC() {
                           <TableHead>Parchi ID</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Email Status</TableHead>
+                          <TableHead>Platform</TableHead>
                           <TableHead>KYC Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -680,6 +681,21 @@ export function AdminKYC() {
                               <Badge variant={student.emailConfirmed ? "default" : "destructive"} className="text-xs">
                                 {student.emailConfirmed ? "Verified" : "Unverified"}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {student.platform === 'ios' ? (
+                                <div className="flex items-center gap-1.5 text-slate-600">
+                                  <Apple className="h-3.5 w-3.5" />
+                                  <span className="text-[10px] font-bold uppercase tracking-tighter">iOS</span>
+                                </div>
+                              ) : student.platform === 'android' ? (
+                                <div className="flex items-center gap-1.5 text-green-600">
+                                  <Smartphone className="h-3.5 w-3.5" />
+                                  <span className="text-[10px] font-bold uppercase tracking-tighter">Android</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge variant={getStatusVariant(student.verificationStatus)}>

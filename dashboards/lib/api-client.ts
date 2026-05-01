@@ -940,6 +940,7 @@ export interface Student {
   isActive: boolean;
   profilePicture?: string | null;
   verificationSelfiePath?: string | null;
+  platform?: string | null;
   kyc?: StudentKYC | null;
 }
 
