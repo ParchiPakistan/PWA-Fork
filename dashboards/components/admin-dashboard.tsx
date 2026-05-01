@@ -456,48 +456,74 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             <CardDescription>Student base by university</CardDescription>
                           </CardHeader>
                           <CardContent>
-                            {stats?.universityDistribution && stats.universityDistribution.length > 0 ? (
-                              <ResponsiveContainer width="100%" height={400}>
-                                <BarChart
-                                  data={stats.universityDistribution.map(u => ({
-                                    name: u.university,
-                                    students: u.studentCount
-                                  }))}
-                                  margin={{ left: 0, right: 0, top: 20, bottom: 80 }}
-                                >
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                  <XAxis
-                                    dataKey="name"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    interval={0}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={100}
-                                  />
-                                  <YAxis
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    allowDecimals={false}
-                                  />
-                                  <Tooltip
-                                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                  />
-                                  <Bar
-                                    dataKey="students"
-                                    fill={colors.primary}
-                                    radius={[4, 4, 0, 0]}
-                                    barSize={30}
-                                  >
-                                    {stats.universityDistribution.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={[colors.primary, "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--muted))"][index % 5]} />
-                                    ))}
-                                  </Bar>
-                                </BarChart>
-                              </ResponsiveContainer>
+                             {stats?.universityDistribution && stats.universityDistribution.length > 0 ? (
+                               <ResponsiveContainer width="100%" height={600}>
+                                 <BarChart
+                                   layout="vertical"
+                                   data={stats.universityDistribution
+                                     .sort((a, b) => b.studentCount - a.studentCount)
+                                     .slice(0, 15)
+                                     .map(u => ({
+                                       name: u.university.length > 30 ? u.university.substring(0, 27) + '...' : u.university,
+                                       students: u.studentCount
+                                     }))}
+                                   margin={{ left: 40, right: 40, top: 20, bottom: 20 }}
+                                 >
+                                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                   <XAxis
+                                     type="number"
+                                     fontSize={12}
+                                     tickLine={false}
+                                     axisLine={false}
+                                     hide={true}
+                                   />
+                                   <YAxis
+                                     dataKey="name"
+                                     type="category"
+                                     fontSize={11}
+                                     fontWeight={600}
+                                     tickLine={false}
+                                     axisLine={false}
+                                     width={180}
+                                     tick={{ fill: '#64748b' }}
+                                   />
+                                   <Tooltip
+                                     cursor={{ fill: 'rgba(99, 102, 241, 0.05)', radius: 8 }}
+                                     content={({ active, payload }) => {
+                                       if (active && payload && payload.length) {
+                                         return (
+                                           <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
+                                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{payload[0].payload.name}</p>
+                                             <div className="flex items-center gap-2">
+                                               <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                                               <p className="text-lg font-black text-slate-900 dark:text-white">
+                                                 {payload[0].value} <span className="text-xs font-normal text-slate-400">Students</span>
+                                               </p>
+                                             </div>
+                                           </div>
+                                         );
+                                       }
+                                       return null;
+                                     }}
+                                   />
+                                   <Bar
+                                     dataKey="students"
+                                     radius={[0, 8, 8, 0]}
+                                     barSize={24}
+                                   >
+                                     {stats.universityDistribution.slice(0, 15).map((entry, index) => {
+                                       const opacity = Math.max(0.4, 1 - (index * 0.04));
+                                       return (
+                                         <Cell 
+                                           key={`cell-${index}`} 
+                                           fill={colors.primary} 
+                                           fillOpacity={opacity}
+                                         />
+                                       );
+                                     })}
+                                   </Bar>
+                                 </BarChart>
+                               </ResponsiveContainer>
                             ) : (
                               <div className="flex items-center justify-center h-[250px] text-muted-foreground">
                                 No university data available
