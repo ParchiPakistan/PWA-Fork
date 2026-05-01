@@ -289,31 +289,94 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-                <h4 className="text-sm font-bold text-blue-400">Bottleneck Analysis</h4>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                    The highest drop-off rate of <strong>{maxDropoffPct.toFixed(0)}%</strong> occurs at <strong>{maxDropoffStep}</strong>. 
-                    Consider simplifying this step or adding helper tooltips to improve completion rates.
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Bottleneck Analysis */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-blue-400">Bottleneck Analysis</h4>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full uppercase">Critical</span>
+                </div>
+                <div className="space-y-2">
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                        The highest drop-off rate of <strong className="text-white">{maxDropoffPct.toFixed(0)}%</strong> occurs at <strong className="text-white">{maxDropoffStep}</strong>.
+                    </p>
+                    <div className="h-16 w-full mt-2">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={dropoffData.slice(0, 5)}>
+                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                    {dropoffData.slice(0, 5).map((entry, index) => (
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={entry.step.includes(maxDropoffStep.toLowerCase().replace(/ /g, '_')) ? "#EF4444" : "#3B82F6"} 
+                                            fillOpacity={0.6}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
-            <div className="space-y-2">
-                <h4 className="text-sm font-bold text-emerald-400">Conversion Health</h4>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                    Your current end-to-end conversion is <strong>{overallConversion}%</strong>. 
-                    Successful platforms in this category typically target 15-20%. Current trends suggest {appOpens > 50 ? "stable" : "early stage"} traffic volume.
-                </p>
+
+            {/* Conversion Health */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-emerald-400">Conversion Health</h4>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full uppercase">Benchmark</span>
+                </div>
+                <div className="space-y-2">
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                        Your conversion is <strong className="text-white">{overallConversion}%</strong>. 
+                        Target: <span className="text-emerald-400 font-bold">15-20%</span>.
+                    </p>
+                    <div className="mt-4 space-y-1">
+                        <div className="flex justify-between text-[10px] text-slate-400">
+                            <span>Actual</span>
+                            <span>Target (20%)</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
+                            <div 
+                                className="h-full bg-emerald-500" 
+                                style={{ width: `${Math.min(100, (parseFloat(overallConversion) / 20) * 100)}%` }} 
+                            />
+                        </div>
+                        <div className="h-1 w-full flex justify-between px-[75%] mt-[-12px]">
+                            <div className="h-3 w-0.5 bg-white/50" />
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div className="space-y-2">
-                <h4 className="text-sm font-bold text-indigo-400">KYC Momentum</h4>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                    Students take a median of <strong>{stats.kycPerformance?.medianDaysToFirstRedemption ?? "N/A"} days</strong> from KYC approval to their first redemption. 
-                    { (stats.kycPerformance?.medianDaysToFirstRedemption ?? 10) < 3 ? " Your onboarding is highly efficient." : " Consider offering a 'First Redemption Bonus' to speed this up."}
-                </p>
+
+            {/* KYC Momentum */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-indigo-400">KYC Momentum</h4>
+                    <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full uppercase">Efficiency</span>
+                </div>
+                <div className="space-y-2">
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                        Median: <strong className="text-white">{stats.kycPerformance?.medianDaysToFirstRedemption ?? "N/A"} days</strong> to first redemption.
+                    </p>
+                    <div className="flex items-end gap-1 h-12 pt-2">
+                        {[4, 7, 5, 8, 6, 9, 7].map((h, i) => (
+                            <div 
+                                key={i} 
+                                className="flex-1 bg-indigo-500/30 rounded-t-sm transition-all hover:bg-indigo-400"
+                                style={{ 
+                                    height: `${h * 10}%`,
+                                    opacity: i === 6 ? 1 : 0.4
+                                }}
+                            />
+                        ))}
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic">
+                        { (stats.kycPerformance?.medianDaysToFirstRedemption ?? 10) < 3 ? "Onboarding is highly efficient." : "Consider offering a 'First Redemption Bonus'."}
+                    </p>
+                </div>
             </div>
           </div>
-
         </CardContent>
+
       </Card>
     </div>
   )
