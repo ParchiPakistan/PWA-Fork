@@ -668,11 +668,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+                  </>
+                )}
+              </>
+            )}
 
           {activeTab === "analytics" && (
             <AdminAnalytics stats={stats} isFiltered={!!dateRange?.from} key={lastUpdated.getTime()} />
