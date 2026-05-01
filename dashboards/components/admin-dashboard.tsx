@@ -339,6 +339,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           )}
 
+          </div>
+
           {activeTab === "overview" && (
             <>
               {isLoading ? (
