@@ -229,7 +229,7 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                       const { x, y, payload } = props;
                       return (
                         <g transform={`translate(${x},${y})`}>
-                          <text x={-20} y={0} dy={4} textAnchor="end" fill="#94a3b8" className="uppercase tracking-widest" fontSize={9}>
+                          <text x={-20} y={0} dy={4} textAnchor="end" fill="#334155" className="uppercase font-black tracking-wider" fontSize={10}>
                             {payload.value}
                           </text>
                         </g>
