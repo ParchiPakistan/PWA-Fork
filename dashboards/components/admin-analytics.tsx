@@ -18,7 +18,7 @@ import {
 } from "recharts"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { AdminDashboardStats } from "@/lib/api-client"
-import { TrendingUp, Users, Smartphone, Target, ArrowDownRight, Info } from "lucide-react"
+import { TrendingUp, Users, Smartphone, Target, ArrowDownRight, Info, Apple } from "lucide-react"
 
 interface AdminAnalyticsProps {
   stats: AdminDashboardStats | null
@@ -256,7 +256,31 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
                   <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
                   <YAxis fontSize={12} tickLine={false} axisLine={false} />
                   <Tooltip />
-                  <Legend verticalAlign="top" height={36}/>
+                  <Legend 
+                    verticalAlign="top" 
+                    height={36}
+                    content={(props) => {
+                        const { payload } = props;
+                        return (
+                          <div className="flex items-center justify-center gap-6 text-[10px] uppercase font-bold tracking-wider mb-4">
+                            {payload?.map((entry: any, index: number) => (
+                              <div key={`item-${index}`} className="flex items-center gap-2">
+                                {entry.value === 'iOS' ? (
+                                    <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                                        <Apple className="w-3.5 h-3.5" style={{ color: entry.color }} />
+                                    </div>
+                                ) : (
+                                    <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+                                        <Smartphone className="w-3.5 h-3.5" style={{ color: entry.color }} />
+                                    </div>
+                                )}
+                                <span style={{ color: entry.color }}>{entry.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                    }}
+                  />
                   <Area type="monotone" dataKey="ios" name="iOS" stroke={colors.primary} fillOpacity={1} fill="url(#colorIos)" />
                   <Area type="monotone" dataKey="android" name="Android" stroke="#10B981" fillOpacity={1} fill="url(#colorAndroid)" />
                 </AreaChart>
