@@ -21,7 +21,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
-import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw, School, Search } from "lucide-react"
+import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw, School, Search, Utensils, ShoppingBag, Sparkles, Ticket, Heart } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import {
   DropdownMenu,
@@ -126,6 +126,16 @@ const TopPerformingMerchants = ({
 
   const top3 = [...(merchants || [])].sort((a, b) => b.redemptionCount - a.redemptionCount).slice(0, 3);
 
+  const getCategoryIcon = (category: string) => {
+    const cat = category?.toLowerCase() || "";
+    if (cat.includes("food") || cat.includes("beverage")) return <Utensils className="w-24 h-24 text-indigo-600" />;
+    if (cat.includes("lifestyle") || cat.includes("shopping")) return <ShoppingBag className="w-24 h-24 text-indigo-600" />;
+    if (cat.includes("beauty") || cat.includes("spa")) return <Sparkles className="w-24 h-24 text-indigo-600" />;
+    if (cat.includes("entertainment") || cat.includes("movie")) return <Ticket className="w-24 h-24 text-indigo-600" />;
+    if (cat.includes("health") || cat.includes("wellness")) return <Heart className="w-24 h-24 text-indigo-600" />;
+    return <ShoppingCart className="w-24 h-24 text-indigo-600" />;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top 3 Podium Cards */}
@@ -133,7 +143,7 @@ const TopPerformingMerchants = ({
         {top3.map((merchant, idx) => (
           <div key={merchant.id} className="relative group p-6 rounded-[2rem] bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border border-slate-200/60 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
              <div className="absolute -top-4 -right-4 p-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-700">
-                <ShoppingCart className="w-24 h-24 text-indigo-600" />
+                {getCategoryIcon(merchant.category)}
              </div>
              <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-black text-indigo-600 border border-indigo-100 dark:border-indigo-800">
                 #{idx + 1}
