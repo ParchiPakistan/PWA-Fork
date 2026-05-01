@@ -309,28 +309,33 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <h1 className="text-3xl font-bold" style={{ color: colors.primary }}>Admin Dashboard</h1>
               <p className="text-muted-foreground mt-1">Platform management and oversight</p>
             </div>
+          {/* Date Filter - Restricted to Analytics */}
           {activeTab === "analytics" && (
-            <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-500 hover:shadow-md hover:border-indigo-200/50 dark:hover:border-indigo-900/50">
+            <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-500 hover:shadow-md hover:border-indigo-200/50 dark:hover:border-indigo-900/50 mr-20">
               <DatePickerWithRange 
                 date={dateRange}
                 setDate={setDateRange}
                 className="w-[280px]"
               />
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+            </div>
+          )}
+
+          {/* Global Floating Refresh Button */}
+          <div className="fixed top-6 right-6 z-[9999]">
               <Button 
-                variant="ghost" 
+                variant="default" 
                 size="icon" 
                 disabled={isLoading || isRefreshing}
                 onClick={() => {
-                  toast.info('Refreshing platform data...')
+                  console.log('Manual refresh triggered');
+                  toast.info('Refreshing data...')
                   fetchStats(dateRange?.from, dateRange?.to)
                 }} 
-                className="h-10 w-10 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 group transition-all duration-300"
+                className="rounded-full shadow-2xl h-14 w-14 bg-white text-primary hover:bg-slate-50 border-2 border-primary group"
               >
-                <RefreshCw className={`h-5 w-5 text-slate-500 group-hover:text-indigo-600 transition-colors ${isLoading || isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
+                <RefreshCw className={`h-6 w-6 text-primary group-hover:rotate-180 transition-all duration-500 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
-            </div>
-          )}
+          </div>
 
 
 
