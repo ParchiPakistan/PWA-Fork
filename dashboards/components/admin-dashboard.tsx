@@ -320,8 +320,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           )}
 
-          {/* Global Floating Refresh Button */}
-          <div className="fixed top-6 right-6 z-[9999]">
+          {/* Global Floating Refresh Button - Restricted to Overview & Analytics */}
+          {(activeTab === "overview" || activeTab === "analytics") && (
+            <div className="fixed top-6 right-6 z-[9999]">
               <Button 
                 variant="default" 
                 size="icon" 
@@ -335,11 +336,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               >
                 <RefreshCw className={`h-6 w-6 text-primary group-hover:rotate-180 transition-all duration-500 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
-          </div>
-
-
-
-          </div>
+            </div>
+          )}
 
           {activeTab === "overview" && (
             <>
