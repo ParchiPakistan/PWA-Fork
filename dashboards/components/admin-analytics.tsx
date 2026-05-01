@@ -82,114 +82,195 @@ export function AdminAnalytics({ stats }: AdminAnalyticsProps) {
   return (
     <div className="space-y-6 pb-10">
       {/* --- Key Performance Indicators --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-50 to-white dark:from-slate-900 dark:to-slate-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Target className="w-5 h-5 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Overall Conversion */}
+        <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-blue-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10">
+          <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
+            <Target className="w-24 h-24 text-blue-600" />
+          </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-500/20 rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                <Target className="w-6 h-6" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Overall Success</span>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-800">Success Rate</span>
+              </div>
             </div>
-            <div className="text-3xl font-bold tracking-tight">{overallConversion}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Conversion: Open → Redeem</p>
+            <div className="space-y-1">
+                <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{overallConversion}%</div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                    <TrendingUp className="w-3 h-3 text-emerald-500" />
+                    Overall Efficiency
+                </p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-emerald-50 to-white dark:from-slate-900 dark:to-slate-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                <Users className="w-5 h-5 text-emerald-600" />
+        {/* Total Reach */}
+        <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-emerald-50/50 dark:from-slate-900 dark:to-emerald-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10">
+          <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
+            <Users className="w-24 h-24 text-emerald-600" />
+          </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                <Users className="w-6 h-6" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Total Reach</span>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">Total Reach</span>
+              </div>
             </div>
-            <div className="text-3xl font-bold tracking-tight">{appOpens}</div>
-            <p className="text-xs text-muted-foreground mt-1">Unique App Sessions</p>
+            <div className="space-y-1">
+                <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{appOpens}</div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Unique App Sessions</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-amber-50 to-white dark:from-slate-900 dark:to-slate-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <ArrowDownRight className="w-5 h-5 text-amber-600" />
+        {/* Critical Bottleneck */}
+        <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-amber-50/50 dark:from-slate-900 dark:to-amber-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10">
+          <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
+            <ArrowDownRight className="w-24 h-24 text-amber-600" />
+          </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-amber-600 flex items-center justify-center text-white shadow-xl shadow-amber-500/20 rotate-12 group-hover:rotate-0 transition-transform duration-500">
+                <ArrowDownRight className="w-6 h-6" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Critical Drop-off</span>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] bg-amber-50 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-100 dark:border-amber-800 text-amber-600">Max Drop-off</span>
+              </div>
             </div>
-            <div className="text-lg font-bold truncate">{maxDropoffStep}</div>
-            <p className="text-xs text-muted-foreground mt-1">{maxDropoffPct.toFixed(0)}% users lost here</p>
+            <div className="space-y-1">
+                <div className="text-xl font-black text-slate-900 dark:text-white tracking-tight truncate leading-tight">{maxDropoffStep}</div>
+                <p className="text-xs text-amber-600 font-bold uppercase tracking-wider">{maxDropoffPct.toFixed(0)}% Drop Rate</p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-indigo-50 to-white dark:from-slate-900 dark:to-slate-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                <Smartphone className="w-5 h-5 text-indigo-600" />
+        {/* Lead Device */}
+        <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-indigo-50/50 dark:from-slate-900 dark:to-indigo-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10">
+          <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
+            <Smartphone className="w-24 h-24 text-indigo-600" />
+          </div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
+                <Smartphone className="w-6 h-6" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Lead Device</span>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-800">Primary OS</span>
+              </div>
             </div>
-            <div className="text-3xl font-bold tracking-tight">
-                {platformData.length > 0 ? platformData.sort((a,b) => b.count - a.count)[0].platform : "N/A"}
+            <div className="space-y-1">
+                <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
+                    {platformData.length > 0 ? platformData.sort((a,b) => b.count - a.count)[0].platform : "N/A"}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Device Engagement</p>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Primary user platform</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* --- Main Funnel Analysis --- */}
-      <Card className="border-none shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-          <div>
-            <CardTitle className="text-xl font-bold">Acquisition Funnel</CardTitle>
-            <CardDescription>Visualizing the user journey from discovery to loyalty</CardDescription>
-          </div>
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-muted rounded-full text-xs font-medium">
-             <Info className="w-3.5 h-3.5" />
-             <span>Percentages show retention from initial app open</span>
+      {/* --- Main Acquisition Funnel --- */}
+      <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800/50 p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <CardTitle className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">Acquisition Funnel</CardTitle>
+              <CardDescription className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Journey Architecture & Retention Flow</CardDescription>
+            </div>
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Live Traffic Intelligence</span>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="h-[450px] w-full">
+        <CardContent className="pt-12 px-8 pb-10">
+          <div className="h-[500px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
-                data={funnelData} 
+                data={funnelData.map(item => ({
+                    ...item,
+                    // Fix visual logic: step cannot exceed initial traffic (App Opened)
+                    // We use appOpens as the base for the visual width
+                    visualCount: Math.min(appOpens, item.count),
+                    percentage: appOpens > 0 ? ((item.count / appOpens) * 100).toFixed(1) : 0
+                }))} 
                 layout="vertical" 
-                margin={{ left: 50, right: 80, top: 20, bottom: 20 }}
-                barGap={20}
+                margin={{ left: 60, right: 100, top: 0, bottom: 0 }}
+                barGap={24}
               >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#e2e8f0" opacity={0.4} />
                 <XAxis type="number" hide />
                 <YAxis 
                   dataKey="step" 
                   type="category" 
-                  width={150} 
-                  fontSize={12}
-                  fontWeight={600}
+                  width={160} 
+                  fontSize={11}
+                  fontWeight={800}
                   tickLine={false}
                   axisLine={false}
+                  tick={(props) => {
+                      const { x, y, payload } = props;
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <text x={-20} y={0} dy={4} textAnchor="end" fill="#94a3b8" className="uppercase tracking-widest" fontSize={9}>
+                            {payload.value}
+                          </text>
+                        </g>
+                      );
+                  }}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                <Bar dataKey="count" radius={[0, 10, 10, 0]} barSize={40}>
+                <Tooltip 
+                    cursor={{ fill: '#f1f5f9', opacity: 0.5 }} 
+                    content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                                <div className="bg-white dark:bg-slate-900 p-5 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-2xl ring-1 ring-slate-200/50">
+                                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-2">{data.step}</p>
+                                    <div className="flex items-baseline gap-3">
+                                        <p className="text-3xl font-black tracking-tighter">{data.count}</p>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase">Events Logged</p>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+                                        <div className="flex justify-between items-center">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Session Retention</p>
+                                            <span className="text-xs font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-lg">{data.percentage}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    }}
+                />
+                <Bar 
+                    dataKey="visualCount" 
+                    radius={[0, 12, 12, 0]} 
+                    barSize={48}
+                    background={{ fill: '#f8fafc', radius: 12 }}
+                >
                   {funnelData.map((entry, index) => {
                     const retention = appOpens > 0 ? (entry.count / appOpens) * 100 : 0
+                    const opacity = Math.max(0.3, 1 - (index * 0.08));
                     return (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={colors.primary} 
-                        fillOpacity={Math.max(0.2, retention / 100)} 
+                        fillOpacity={opacity} 
                       />
                     )
                   })}
                 </Bar>
-                {/* Labels on top of bars */}
-                <Tooltip />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
-      </Card>      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Onboarding Detail */}
         <Card className="border-none shadow-sm">
           <CardHeader>
