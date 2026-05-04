@@ -896,8 +896,6 @@ export interface StudentKYC {
   id: string;
   studentIdCardFrontPath: string;
   studentIdCardBackPath: string;
-  cnicFrontImagePath: string | null;
-  cnicBackImagePath: string | null;
   selfieImagePath: string;
   submittedAt: string | null;
   reviewedBy: string | null;
@@ -942,6 +940,9 @@ export interface Student {
   profilePicture?: string | null;
   verificationSelfiePath?: string | null;
   platform?: string | null;
+  instituteId?: string | null;
+  instituteName?: string | null;
+  studentIdNumber?: string | null;
   kyc?: StudentKYC | null;
 }
 
@@ -961,7 +962,8 @@ export interface UpdateStudentAdminRequest {
   totalRedemptions?: number;
   verificationStatus?: 'pending' | 'approved' | 'rejected' | 'expired';
   verificationExpiresAt?: string | null;
-  cnic?: string | null;
+  instituteId?: string | null;
+  studentIdNumber?: string | null;
   dateOfBirth?: string | null;
   profilePicture?: string | null;
   verificationSelfiePath?: string | null;
@@ -993,6 +995,8 @@ export interface PaginatedResponse<T> {
 export interface ApproveRejectStudentRequest {
   action: 'approve' | 'reject';
   reviewNotes?: string;
+  instituteId?: string;
+  studentIdNumber?: string;
 }
 
 export interface StudentsFilter {
@@ -2010,6 +2014,22 @@ export interface Institute {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Get active institutes (public — for admin approval dropdown)
+ */
+export const getActiveInstitutes = async (): Promise<Institute[]> => {
+  const response = await apiRequest('/institutes', {
+    method: 'GET',
+  });
+  return (response as any[]).map((inst: any) => ({
+    id: inst.id,
+    name: inst.name,
+    isActive: inst.is_active ?? true,
+    createdAt: inst.created_at,
+    updatedAt: inst.updated_at,
+  }));
+};
 
 /**
  * Get all institutes (Admin)
