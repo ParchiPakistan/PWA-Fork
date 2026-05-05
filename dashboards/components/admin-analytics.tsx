@@ -794,14 +794,13 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                     <p className="text-sm text-slate-300 leading-relaxed min-h-[40px]">
                         Measures the percentage of users who successfully complete the journey from initial app download to their <strong className="text-white">first redemption</strong>.
                     </p>
-                    <div className="h-32 w-full flex items-center justify-center">
-
+                    <div className="h-32 w-full flex items-center justify-center relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={[
                                         { value: parseFloat(overallConversion), name: 'Converted' },
-                                        { value: 100 - parseFloat(overallConversion), name: 'Remaining' }
+                                        { value: Math.max(0, 100 - parseFloat(overallConversion)), name: 'Remaining' }
                                     ]}
                                     cx="50%"
                                     cy="50%"
@@ -815,17 +814,11 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                                     <Cell fill="#10B981" />
                                     <Cell fill="#1e293b" />
                                 </Pie>
-                                <text 
-                                    x="50%" 
-                                    y="50%" 
-                                    textAnchor="middle" 
-                                    dominantBaseline="middle" 
-                                    className="fill-white font-bold text-xs"
-                                >
-                                    {overallConversion}%
-                                </text>
                             </PieChart>
                         </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="text-xs font-black text-white">{overallConversion}%</span>
+                        </div>
                     </div>
                 </div>
             </div>
