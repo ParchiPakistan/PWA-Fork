@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,8 +25,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { SupabaseStorageService } from "@/lib/storage"
-import { sendBroadcastNotification, sendQueueItem, NotificationQueueItem } from "@/lib/api-client"
+import { sendBroadcastNotification, sendQueueItem, getNotificationTargets, NotificationQueueItem } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 import { useNotificationQueue, useNotificationHistory } from "@/hooks/use-notifications"
 import { Loader2, Image as ImageIcon, X, Send, RefreshCw, Eye } from "lucide-react"
@@ -63,10 +70,31 @@ function NotificationCompose() {
     content: "",
     linkUrl: "",
     imageUrl: "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png",
+    targetType: "all" as "all" | "university" | "founders_club",
+    targetValue: "",
   })
   
+  const [targets, setTargets] = useState<{ universities: string[], groups: string[] }>({
+    universities: [],
+    groups: []
+  })
   const [isUploading, setIsUploading] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [isLoadingTargets, setIsLoadingTargets] = useState(true)
+
+  useEffect(() => {
+    const fetchTargets = async () => {
+      try {
+        const response = await getNotificationTargets()
+        setTargets(response.data)
+      } catch (error) {
+        console.error("Failed to fetch targets:", error)
+      } finally {
+        setIsLoadingTargets(false)
+      }
+    }
+    fetchTargets()
+  }, [])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -108,6 +136,15 @@ function NotificationCompose() {
       return
     }
 
+    if (formData.targetType === "university" && !formData.targetValue) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please select a university.",
+      })
+      return
+    }
+
     setIsSending(true)
     try {
       const defaultImageUrl = "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png"
@@ -116,11 +153,13 @@ function NotificationCompose() {
         content: formData.content,
         imageUrl: formData.imageUrl || defaultImageUrl,
         linkUrl: formData.linkUrl || undefined,
+        targetType: formData.targetType,
+        targetValue: formData.targetType === "university" ? formData.targetValue : undefined,
       })
 
       toast({
         title: "Notification Sent",
-        description: "Broadcast notification sent successfully to all users.",
+        description: `Notification sent successfully to ${formData.targetType === 'all' ? 'all users' : formData.targetValue || formData.targetType}.`,
       })
 
       // Reset form
@@ -129,6 +168,8 @@ function NotificationCompose() {
         content: "",
         linkUrl: "",
         imageUrl: "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png",
+        targetType: "all",
+        targetValue: "",
       })
     } catch (error) {
       console.error("Failed to send notification:", error)
@@ -152,6 +193,45 @@ function NotificationCompose() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="targetType">Target Group</Label>
+              <Select 
+                value={formData.targetType} 
+                onValueChange={(value: any) => setFormData(prev => ({ ...prev, targetType: value, targetValue: "" }))}
+              >
+                <SelectTrigger id="targetType">
+                  <SelectValue placeholder="Select target group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  <SelectItem value="university">Specific University</SelectItem>
+                  <SelectItem value="founders_club">Founders Club</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.targetType === "university" && (
+              <div className="space-y-2">
+                <Label htmlFor="targetValue">University</Label>
+                <Select 
+                  value={formData.targetValue} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, targetValue: value }))}
+                  disabled={isLoadingTargets}
+                >
+                  <SelectTrigger id="targetValue">
+                    <SelectValue placeholder={isLoadingTargets ? "Loading..." : "Select University"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {targets.universities.map((uni) => (
+                      <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
             <Input 

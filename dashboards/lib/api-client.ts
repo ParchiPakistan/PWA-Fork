@@ -713,6 +713,15 @@ export const setFeaturedOffers = async (offers: { offerId: string; order: number
 
 // Corporate Offers API Types
 
+export interface CreateBroadcastRequest {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  targetType?: 'all' | 'university' | 'founders_club';
+  targetValue?: string;
+}
+
 export interface CreateOfferRequest {
   title: string;
   description?: string;
@@ -1900,6 +1909,8 @@ export interface BroadcastNotificationRequest {
   content: string;
   imageUrl?: string;
   linkUrl?: string;
+  targetType?: 'all' | 'university' | 'founders_club';
+  targetValue?: string;
 }
 
 /**
@@ -1912,6 +1923,10 @@ export const sendBroadcastNotification = async (data: BroadcastNotificationReque
     body: JSON.stringify(data),
   });
   return response.data;
+};
+
+export const getNotificationTargets = async (): Promise<{ data: { universities: string[], groups: string[] } }> => {
+  return apiRequest('/admin/notifications/targets');
 };
 
 export type QueueStatus = 'pending' | 'approved' | 'rejected' | 'sent';
