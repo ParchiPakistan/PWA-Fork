@@ -398,6 +398,32 @@ export function AdminKYC() {
     student.university.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Client-side grouping logic for segmentation
+  const groupedData = useMemo(() => {
+    if (!groupByFilter) return []
+
+    // If the backend already provided grouped data, use it directly
+    if (allStudents.length > 0 && ('group' in (allStudents[0] as any))) {
+      return allStudents as any[]
+    }
+
+    // Fallback: Client-side grouping logic for current page
+    const groups: Record<string, { group: string, total: number, approved: number, pending: number, rejected: number }> = {}
+
+    allStudents.forEach(student => {
+      const key = groupByFilter === 'university' ? (student.university || 'Unknown') : (student.platform || 'Other')
+      if (!groups[key]) {
+        groups[key] = { group: key, total: 0, approved: 0, pending: 0, rejected: 0 }
+      }
+      groups[key].total++
+      if (student.verificationStatus === 'approved') groups[key].approved++
+      else if (student.verificationStatus === 'pending') groups[key].pending++
+      else if (student.verificationStatus === 'rejected') groups[key].rejected++
+    })
+
+    return Object.values(groups).sort((a, b) => b.total - a.total)
+  }, [allStudents, groupByFilter])
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'approved':
@@ -464,22 +490,28 @@ export function AdminKYC() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8 p-1 sm:p-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Student KYC</h2>
-          <p className="text-muted-foreground">Manage student verifications and records</p>
+          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Student KYC</h2>
+          <p className="text-muted-foreground mt-1">Manage student verifications and records</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsInstitutesDialogOpen(true)}>
-            Manage Institutes
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsInstitutesDialogOpen(true)}
+            className="flex-1 sm:flex-none h-10 font-bold"
+          >
+            <School className="mr-2 h-4 w-4" />
+            <span className="hidden xs:inline">Manage </span>Institutes
           </Button>
-          <Button
-            variant="outline"
+          <Button 
+            variant="outline" 
             onClick={handleRefresh}
+            className="flex-1 sm:flex-none h-10 font-bold"
             disabled={pendingLoading || allLoading}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${pendingLoading || allLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={cn("mr-2 h-4 w-4", (pendingLoading || allLoading) && "animate-spin")} />
             Refresh
           </Button>
         </div>
@@ -488,14 +520,16 @@ export function AdminKYC() {
       <AdminInstitutesDialog open={isInstitutesDialogOpen} onOpenChange={setIsInstitutesDialogOpen} />
 
       <Tabs defaultValue="pending" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="pending">
-            Pending Approvals {pendingPagination ? `(${pendingPagination.total})` : ''}
-          </TabsTrigger>
-          <TabsTrigger value="all">
-            All Students {allPagination ? `(${allPagination.total})` : ''}
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
+          <TabsList className="w-full sm:w-auto inline-flex min-w-max">
+            <TabsTrigger value="pending" className="flex-1 sm:flex-none px-4 font-bold">
+              Pending Approvals {pendingPagination ? `(${pendingPagination.total})` : ''}
+            </TabsTrigger>
+            <TabsTrigger value="all" className="flex-1 sm:flex-none px-4 font-bold">
+              All Students {allPagination ? `(${allPagination.total})` : ''}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="pending" className="space-y-4">
           {pendingError && (
@@ -615,102 +649,127 @@ export function AdminKYC() {
                 </Alert>
               )}
 
-              <div className="flex items-center gap-4 py-4">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search students..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <div className="relative flex-1 max-w-sm">
-                  <Input
-                    placeholder="Filter by institute..."
-                    value={instituteQuery}
-                    onChange={(e) => setInstituteQuery(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={statusFilter === undefined && emailVerifiedFilter === undefined ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setStatusFilter(undefined)
-                      setEmailVerifiedFilter(undefined)
-                    }}
-                  >
-                    All
-                  </Button>
-                  <Button
-                    variant={statusFilter === 'pending' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setStatusFilter('pending')
-                      setEmailVerifiedFilter(undefined)
-                    }}
-                  >
-                    Pending
-                  </Button>
-                  <Button
-                    variant={statusFilter === 'approved' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setStatusFilter('approved')
-                      setEmailVerifiedFilter(undefined)
-                    }}
-                  >
-                    Approved
-                  </Button>
-                  <Button
-                    variant={statusFilter === 'rejected' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setStatusFilter('rejected')
-                      setEmailVerifiedFilter(undefined)
-                    }}
-                  >
-                    Rejected
-                  </Button>
-                  <Button
-                    variant={emailVerifiedFilter === false ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setEmailVerifiedFilter(emailVerifiedFilter === false ? undefined : false)
-                      setStatusFilter(undefined)
-                    }}
-                  >
-                    Unverified
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground whitespace-nowrap">Segmentation:</Label>
-                  <Select value={groupByFilter || 'none'} onValueChange={(v) => setGroupByFilter(v === 'none' ? undefined : v as any)}>
-                    <SelectTrigger className="h-9 w-[160px] text-xs font-bold">
-                      <SelectValue placeholder="Group by..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">List View</SelectItem>
-                      <SelectItem value="university">By Institution</SelectItem>
-                      <SelectItem value="city">By City</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="flex flex-col gap-4 py-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full lg:max-w-2xl">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search students..."
+                        className="pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <School className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Filter by institute..."
+                        className="pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                        value={instituteQuery}
+                        onChange={(e) => setInstituteQuery(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-1.5 bg-slate-100/50 dark:bg-slate-900/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <Button
+                        variant={statusFilter === undefined && emailVerifiedFilter === undefined ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 px-2.5 sm:px-3 text-[10px] font-black uppercase tracking-widest flex-1 sm:flex-none"
+                        onClick={() => {
+                          setStatusFilter(undefined)
+                          setEmailVerifiedFilter(undefined)
+                        }}
+                      >
+                        All
+                      </Button>
+                      <Button
+                        variant={statusFilter === 'pending' ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 px-2.5 sm:px-3 text-[10px] font-black uppercase tracking-widest flex-1 sm:flex-none"
+                        onClick={() => {
+                          setStatusFilter('pending')
+                          setEmailVerifiedFilter(undefined)
+                        }}
+                      >
+                        Pending
+                      </Button>
+                      <Button
+                        variant={statusFilter === 'approved' ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 px-2.5 sm:px-3 text-[10px] font-black uppercase tracking-widest flex-1 sm:flex-none"
+                        onClick={() => {
+                          setStatusFilter('approved')
+                          setEmailVerifiedFilter(undefined)
+                        }}
+                      >
+                        Approved
+                      </Button>
+                      <Button
+                        variant={statusFilter === 'rejected' ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 px-2.5 sm:px-3 text-[10px] font-black uppercase tracking-widest flex-1 sm:flex-none"
+                        onClick={() => {
+                          setStatusFilter('rejected')
+                          setEmailVerifiedFilter(undefined)
+                        }}
+                      >
+                        Rejected
+                      </Button>
+                      <Button
+                        variant={emailVerifiedFilter === false ? "destructive" : "ghost"}
+                        size="sm"
+                        className="h-8 px-2.5 sm:px-3 text-[10px] font-black uppercase tracking-widest flex-1 sm:flex-none"
+                        onClick={() => {
+                          setEmailVerifiedFilter(emailVerifiedFilter === false ? undefined : false)
+                          setStatusFilter(undefined)
+                        }}
+                      >
+                        Unverified
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-900/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 w-full sm:w-auto">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Segmentation:</span>
+                      <Select value={groupByFilter || 'none'} onValueChange={(v) => setGroupByFilter(v === 'none' ? undefined : v as any)}>
+                        <SelectTrigger className="h-8 flex-1 sm:w-[130px] text-[10px] font-black uppercase tracking-widest border-none bg-transparent shadow-none hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+                          <SelectValue placeholder="Group by..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none" className="text-[10px] font-black uppercase">List View</SelectItem>
+                          <SelectItem value="university" className="text-[10px] font-black uppercase">By Institution</SelectItem>
+                          <SelectItem value="city" className="text-[10px] font-black uppercase">By City</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {allLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-muted-foreground">Loading students...</span>
+                  <span className="ml-2 text-muted-foreground text-sm font-medium">Synchronizing student records...</span>
                 </div>
               ) : filteredAllStudents.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  {searchQuery ? 'No students found matching your search.' : 'No students found.'}
+                <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border-2 border-dashed">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-4">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">No results found</h3>
+                  <p className="text-xs text-muted-foreground mt-1 px-4">
+                    {searchQuery ? `We couldn't find any students matching "${searchQuery}".` : 'Your student database is currently empty.'}
+                  </p>
+                  <Button variant="link" className="mt-2 text-blue-600" onClick={() => { setSearchQuery(""); setInstituteQuery(""); setStatusFilter(undefined); }}>
+                    Clear all filters
+                  </Button>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-md border">
+                  <div className="rounded-xl border shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
+                    <div className="overflow-x-auto custom-scrollbar">
                     {groupByFilter ? (
                       <Table>
                         <TableHeader>
@@ -723,8 +782,8 @@ export function AdminKYC() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {allStudents.map((group: any) => (
-                            <TableRow key={group.group} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                          {groupedData.map((group) => (
+                            <TableRow key={`group-${group.group}`} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                               <TableCell className="font-black text-slate-900 dark:text-white">{group.group}</TableCell>
                               <TableCell className="font-bold">{group.total}</TableCell>
                               <TableCell>
@@ -855,8 +914,9 @@ export function AdminKYC() {
                       </Table>
                     )}
                   </div>
+                </div>
 
-                  {!groupByFilter && allPagination && allPagination.pages > 1 && (
+                {!groupByFilter && allPagination && allPagination.pages > 1 && (
                     <div className="mt-4">
                       <Pagination>
                         <PaginationContent>

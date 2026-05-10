@@ -125,13 +125,14 @@ export function useAllStudents(filters?: StudentsFilter): UseAllStudentsResult {
   const search = filters?.search
   const institute = filters?.institute
   const emailVerified = filters?.emailVerified
+  const groupBy = filters?.groupBy
 
   const fetchStudents = useCallback(async (newFilters?: StudentsFilter) => {
     try {
       setLoading(true)
       setError(null)
 
-      const filtersToUse = newFilters || { status, page, limit, search, institute, emailVerified }
+      const filtersToUse = newFilters || { status, page, limit, search, institute, emailVerified, groupBy }
       const response = await getAllStudents(filtersToUse)
       // Backend returns: { data: { items: [...], pagination: {...} }, status, message }
       const studentsArray = response?.data?.items || []
@@ -160,7 +161,7 @@ export function useAllStudents(filters?: StudentsFilter): UseAllStudentsResult {
     } finally {
       setLoading(false)
     }
-  }, [status, page, limit, search, institute, emailVerified])
+  }, [status, page, limit, search, institute, emailVerified, groupBy])
 
   useEffect(() => {
     fetchStudents()
