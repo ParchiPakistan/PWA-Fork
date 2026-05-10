@@ -628,21 +628,21 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                        <MetricCard 
                          title="Total Active Students" 
-                         value={stats?.platformOverview.totalActiveStudents || 0} 
-                         subtitle={`+${stats?.platformOverview.totalActiveStudentsGrowth}% MoM Growth`} 
+                         value={stats?.platformOverview?.totalActiveStudents || 0} 
+                         subtitle={`+${stats?.platformOverview?.totalActiveStudentsGrowth || 0}% MoM Growth`} 
                          icon={UserPlus} 
                          color="#007AFF" 
                        />
                        <MetricCard 
                          title="Verified Merchants" 
-                         value={stats?.platformOverview.totalVerifiedMerchants || 0} 
-                         subtitle={`+${stats?.platformOverview.totalVerifiedMerchantsGrowth}% this month`} 
+                         value={stats?.platformOverview?.totalVerifiedMerchants || 0} 
+                         subtitle={`+${stats?.platformOverview?.totalVerifiedMerchantsGrowth || 0}% this month`} 
                          icon={ShieldCheck} 
                          color="#10b981" 
                        />
                        <MetricCard 
                          title="Total Redemptions" 
-                         value={stats?.platformOverview.totalRedemptions || 0} 
+                         value={stats?.platformOverview?.totalRedemptions || 0} 
                          subtitle={dateRange?.from ? 'Selected Period' : 'All Time Tracking'} 
                          icon={CheckCircle2} 
                          color="#f59e0b" 
@@ -659,14 +659,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                        <MetricCard 
                          title="Verification Queue" 
-                         value={stats?.userManagement.verificationQueue || 0} 
+                         value={stats?.userManagement?.verificationQueue || 0} 
                          subtitle="Pending KYC Approval" 
                          icon={Clock} 
                          color="#007AFF" 
                        />
                        <MetricCard 
                          title="Suspended / Rejected" 
-                         value={stats?.userManagement.suspendedRejected || 0} 
+                         value={stats?.userManagement?.suspendedRejected || 0} 
                          subtitle="Account Restrictions" 
                          icon={Ban} 
                          color="#ef4444" 
@@ -694,7 +694,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                           <CardContent>
                              {stats?.universityDistribution && stats.universityDistribution.length > 0 ? (
                                 <UniversityInsights 
-                                  distribution={stats.universityDistribution} 
+                                  distribution={stats?.universityDistribution} 
                                   groupBy={groupBy}
                                   onGroupByChange={setGroupBy}
                                 />

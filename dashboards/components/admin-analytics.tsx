@@ -32,9 +32,9 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
   if (!stats) return null
 
   // Process data with safety checks
-  const funnelData = stats.funnelStats || []
-  const dropoffData = stats.onboardingDropoff || []
-  const platformData = stats.platformDistribution || []
+  const funnelData = stats?.funnelStats || []
+  const dropoffData = stats?.onboardingDropoff || []
+  const platformData = stats?.platformDistribution || []
 
   // Calculate key metrics
   const appOpens = funnelData.find(s => s.step === 'App Opened')?.count || 0
@@ -54,7 +54,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
       const dropPct = ((current - next) / current) * 100
       if (dropPct > maxDropoffPct) {
         maxDropoffPct = dropPct
-        maxDropoffStep = dropoffData[i].step.replace(/signup_/g, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        maxDropoffStep = (dropoffData[i].step || "N/A").replace(/signup_/g, '').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
       }
     }
   }
@@ -180,7 +180,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
             </div>
             <div className="space-y-1">
                 <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
-                    {platformData.length > 0 ? platformData.sort((a,b) => b.count - a.count)[0].platform : "N/A"}
+                    {[...platformData].sort((a, b) => b.count - a.count)[0]?.platform || "N/A"}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Device Engagement</p>
             </div>
@@ -321,7 +321,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
           <CardContent>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.dailyPlatformDistribution || []}>
+                <AreaChart data={stats?.dailyPlatformDistribution || []}>
                    <defs>
                     <linearGradient id="colorIos" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3}/>
@@ -831,13 +831,13 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                 </div>
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300 leading-relaxed min-h-[40px]">
-                        Median: <strong className="text-white">{stats.kycPerformance?.medianDaysToFirstRedemption ?? "N/A"} days</strong> to first redemption.
+                        Median: <strong className="text-white">{stats?.kycPerformance?.medianDaysToFirstRedemption ?? "N/A"} days</strong> to first redemption.
                     </p>
                     <div className="h-32 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={[
                                 { d: 10 }, { d: 8 }, { d: 7 }, { d: 6 }, 
-                                { d: stats.kycPerformance?.medianDaysToFirstRedemption ?? 6 }
+                                { d: stats?.kycPerformance?.medianDaysToFirstRedemption ?? 6 }
                             ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="momentumGradient" x1="0" y1="0" x2="0" y2="1">
