@@ -13,7 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone, School, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -904,7 +907,7 @@ export function AdminKYC() {
           setSelectedStudentId(null)
         }
       }}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>Student details & KYC</DialogTitle>
             <DialogDescription>
@@ -926,19 +929,25 @@ export function AdminKYC() {
               <AlertDescription>{detailError}</AlertDescription>
             </Alert>
           ) : studentDetail ? (
-            <div className="space-y-8 py-4">
-              <div className="space-y-4 border-b pb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-sm font-semibold">Account & profile</h3>
-                  <Button type="button" onClick={handleSaveProfile} disabled={saveProfileLoading}>
-                    {saveProfileLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    Save profile changes
-                  </Button>
-                </div>
+              <div className="space-y-8 py-4">
+                {/* Section 1: Identity */}
+                <div className="space-y-4 border-b border-slate-100 dark:border-slate-800 pb-8">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600">
+                        <Smartphone className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Identity & Account</h3>
+                    </div>
+                    <Button type="button" onClick={handleSaveProfile} disabled={saveProfileLoading} className="shadow-lg shadow-blue-500/20">
+                      {saveProfileLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      Save Changes
+                    </Button>
+                  </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Parchi ID</Label>
@@ -979,47 +988,106 @@ export function AdminKYC() {
                     <Label htmlFor="draft-phone">Phone</Label>
                     <Input id="draft-phone" value={profileDraft.phone} onChange={(e) => setProfileDraft((d) => ({ ...d, phone: e.target.value }))} />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="draft-uni">University / institute</Label>
-                    <Input id="draft-uni" value={profileDraft.university} onChange={(e) => setProfileDraft((d) => ({ ...d, university: e.target.value }))} />
+                </div>
+
+                {/* Section 2: Academic Info */}
+                <div className="space-y-6 border-b border-slate-100 dark:border-slate-800 pb-8">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600">
+                      <School className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Academic Records</h3>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-gy">Graduation year</Label>
-                    <Input id="draft-gy" type="number" value={profileDraft.graduationYear} onChange={(e) => setProfileDraft((d) => ({ ...d, graduationYear: e.target.value }))} placeholder="Optional" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="draft-uni">University / Institute (Student Declared)</Label>
+                      <Input id="draft-uni" value={profileDraft.university} onChange={(e) => setProfileDraft((d) => ({ ...d, university: e.target.value }))} className="bg-slate-50 dark:bg-slate-900/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="draft-gy">Graduation year</Label>
+                      <Input id="draft-gy" type="number" value={profileDraft.graduationYear} onChange={(e) => setProfileDraft((d) => ({ ...d, graduationYear: e.target.value }))} placeholder="Optional" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="draft-dob">Date of birth</Label>
+                      <Input id="draft-dob" type="date" value={profileDraft.dateOfBirth} onChange={(e) => setProfileDraft((d) => ({ ...d, dateOfBirth: e.target.value }))} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-dob">Date of birth</Label>
-                    <Input id="draft-dob" type="date" value={profileDraft.dateOfBirth} onChange={(e) => setProfileDraft((d) => ({ ...d, dateOfBirth: e.target.value }))} />
+                </div>
+
+                {/* Section 3: System Status & Engagement */}
+                <div className="space-y-6">
+                   <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                      <Check className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">System Verification</h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                   <div className="space-y-2">
                     <Label htmlFor="draft-institute">Institute</Label>
-                    <Select
-                      value={profileDraft.instituteId || "__none__"}
-                      onValueChange={(v) => setProfileDraft((d) => ({ ...d, instituteId: v === "__none__" ? "" : v }))}
-                    >
-                      <SelectTrigger id="draft-institute">
-                        <SelectValue placeholder="Select institute" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2 border-b sticky top-0 bg-popover z-10">
-                          <div className="relative">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                            <Input 
-                              placeholder="Search institutes..." 
-                              className="h-8 pl-8 text-xs"
-                              value={dropdownSearch}
-                              onChange={(e) => setDropdownSearch(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <SelectItem value="__none__">— None —</SelectItem>
-                        {availableInstitutes
-                          .filter(inst => inst.name.toLowerCase().includes(dropdownSearch.toLowerCase()))
-                          .map((inst) => (
-                          <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between font-normal",
+                            !profileDraft.instituteId && "text-muted-foreground"
+                          )}
+                        >
+                          {profileDraft.instituteId
+                            ? availableInstitutes.find(
+                                (inst) => inst.id === profileDraft.instituteId
+                              )?.name
+                            : "Select institute"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search institute..." />
+                          <CommandList>
+                            <CommandEmpty>No institute found.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="__none__"
+                                onSelect={() => {
+                                  setProfileDraft((d) => ({ ...d, instituteId: "" }))
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    profileDraft.instituteId === "" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                — None —
+                              </CommandItem>
+                              {availableInstitutes.map((inst) => (
+                                <CommandItem
+                                  key={inst.id}
+                                  value={inst.name}
+                                  onSelect={() => {
+                                    setProfileDraft((d) => ({ ...d, instituteId: inst.id }))
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      profileDraft.instituteId === inst.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex items-center gap-2">
+                                    <School className="h-4 w-4 text-muted-foreground" />
+                                    {inst.name}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="draft-student-id">Student ID Number</Label>
@@ -1127,94 +1195,95 @@ export function AdminKYC() {
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <h3 className="text-sm font-semibold">KYC documents</h3>
                 {studentDetail.kyc ? (() => {
                   const kyc = studentDetail.kyc as NonNullable<typeof studentDetail.kyc>
                   return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Student ID Card (Front)</Label>
-                <div
-                  className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => setExpandedImage({
-                    url: kyc.studentIdCardFrontPath,
-                    alt: "Student ID Front"
-                  })}
-                >
-                  <img
-                    src={kyc.studentIdCardFrontPath}
-                    alt="Student ID Front"
-                    className="w-full h-auto rounded-md object-contain max-h-[300px]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=500'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-md transition-colors">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50/50 dark:bg-slate-900/20 p-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-black uppercase tracking-widest text-blue-600">Verification Selfie</Label>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100">Live Capture</Badge>
+                  </div>
+                  <div
+                    className="border-2 border-white dark:border-slate-800 rounded-2xl p-1 bg-white dark:bg-slate-900 shadow-xl cursor-pointer hover:scale-[1.02] transition-all duration-300 relative group"
+                    onClick={() => setExpandedImage({
+                      url: kyc.selfieImagePath,
+                      alt: "Selfie"
+                    })}
+                  >
+                    <img
+                      src={kyc.selfieImagePath}
+                      alt="Selfie"
+                      className="w-full h-auto rounded-xl object-contain max-h-[400px]"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 rounded-xl transition-all duration-500 backdrop-blur-0 group-hover:backdrop-blur-[2px]">
+                      <ZoomIn className="h-10 w-10 text-white opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-500" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Student ID Card (Back)</Label>
-                <div
-                  className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => setExpandedImage({
-                    url: kyc.studentIdCardBackPath,
-                    alt: "Student ID Back"
-                  })}
-                >
-                  <img
-                    src={kyc.studentIdCardBackPath}
-                    alt="Student ID Back"
-                    className="w-full h-auto rounded-md object-contain max-h-[300px]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=500'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-md transition-colors">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-black uppercase tracking-widest text-indigo-600">Student ID (Front)</Label>
+                    <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-100">Official Document</Badge>
+                  </div>
+                  <div
+                    className="border-2 border-white dark:border-slate-800 rounded-2xl p-1 bg-white dark:bg-slate-900 shadow-xl cursor-pointer hover:scale-[1.02] transition-all duration-300 relative group"
+                    onClick={() => setExpandedImage({
+                      url: kyc.studentIdCardFrontPath,
+                      alt: "Student ID Front"
+                    })}
+                  >
+                    <img
+                      src={kyc.studentIdCardFrontPath}
+                      alt="Student ID Front"
+                      className="w-full h-auto rounded-xl object-contain max-h-[400px]"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 rounded-xl transition-all duration-500 backdrop-blur-0 group-hover:backdrop-blur-[2px]">
+                      <ZoomIn className="h-10 w-10 text-white opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-500" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Selfie</Label>
-                <div
-                  className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => setExpandedImage({
-                    url: kyc.selfieImagePath,
-                    alt: "Selfie"
-                  })}
-                >
-                  <img
-                    src={kyc.selfieImagePath}
-                    alt="Selfie"
-                    className="w-full h-auto rounded-md object-contain max-h-[300px]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=300'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-md transition-colors">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="space-y-4 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Student ID (Back)</Label>
+                  </div>
+                  <div
+                    className="border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-1 bg-slate-50 dark:bg-slate-900 shadow-sm cursor-pointer hover:scale-[1.01] transition-all duration-300 relative group"
+                    onClick={() => setExpandedImage({
+                      url: kyc.studentIdCardBackPath,
+                      alt: "Student ID Back"
+                    })}
+                  >
+                    <img
+                      src={kyc.studentIdCardBackPath}
+                      alt="Student ID Back"
+                      className="w-full h-auto rounded-xl object-contain max-h-[200px]"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-xl transition-all duration-500">
+                      <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-all duration-500" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-                <div className="col-span-1 md:col-span-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground border-t pt-4">
+                <div className="col-span-1 md:col-span-2 flex flex-wrap items-center gap-6 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800 pt-6">
                   {kyc.submittedAt && (
-                    <span>
-                      <span className="font-medium text-foreground">KYC submitted: </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="font-bold uppercase tracking-tighter">Submitted:</span>
                       {new Date(kyc.submittedAt).toLocaleString()}
-                    </span>
+                    </div>
                   )}
                   {kyc.isAnnualRenewal && (
-                    <Badge variant="outline">Annual renewal</Badge>
+                    <Badge variant="outline" className="rounded-full bg-amber-50 text-amber-600 border-amber-100 px-3">Annual Renewal</Badge>
                   )}
                 </div>
-            </div>
+              </div>
                   )
                 })() : (
                   <p className="text-sm text-muted-foreground">No KYC submission on file.</p>
@@ -1244,44 +1313,63 @@ export function AdminKYC() {
             )}
             
             {studentDetail?.verificationStatus !== 'approved' && (
-              <div className="flex flex-col gap-2 mr-auto w-full sm:w-auto sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-4 mr-auto w-full sm:w-auto sm:flex-row sm:items-end bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="institute-select" className="text-xs text-muted-foreground">Institute *</Label>
-                  <Select
-                    value={selectedInstituteId}
-                    onValueChange={setSelectedInstituteId}
-                  >
-                    <SelectTrigger id="institute-select" className="w-[200px]">
-                      <SelectValue placeholder="Select institute" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b sticky top-0 bg-popover z-10">
-                        <div className="relative">
-                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                          <Input 
-                            placeholder="Search institutes..." 
-                            className="h-8 pl-8 text-xs"
-                            value={dropdownSearch}
-                            onChange={(e) => setDropdownSearch(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      {availableInstitutes
-                        .filter(inst => inst.name.toLowerCase().includes(dropdownSearch.toLowerCase()))
-                        .map((inst) => (
-                        <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="institute-select" className="text-[10px] font-black uppercase tracking-widest text-blue-600">Verified Institute *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="institute-select"
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-[240px] justify-between font-medium bg-white dark:bg-slate-900",
+                          !selectedInstituteId && "text-muted-foreground"
+                        )}
+                      >
+                        {selectedInstituteId
+                          ? availableInstitutes.find(
+                              (inst) => inst.id === selectedInstituteId
+                            )?.name
+                          : "Select institute"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search institute..." />
+                        <CommandList>
+                          <CommandEmpty>No institute found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableInstitutes.map((inst) => (
+                              <CommandItem
+                                key={inst.id}
+                                value={inst.name}
+                                onSelect={() => setSelectedInstituteId(inst.id)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedInstituteId === inst.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {inst.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="student-id-input" className="text-xs text-muted-foreground">Student ID *</Label>
+                  <Label htmlFor="student-id-input" className="text-[10px] font-black uppercase tracking-widest text-blue-600">Assigned ID *</Label>
                   <Input
                     id="student-id-input"
-                    placeholder="Enter student ID"
+                    placeholder="Enter ID number"
                     value={studentIdNumberInput}
                     onChange={(e) => setStudentIdNumberInput(e.target.value)}
-                    className="w-[180px]"
+                    className="w-[180px] bg-white dark:bg-slate-900 font-mono"
                     autoComplete="off"
                   />
                 </div>
@@ -1380,7 +1468,13 @@ export function AdminKYC() {
           setExpandedImage(null)
         }
       }}>
-        <DialogContent className="max-w-5xl max-h-[95vh] p-0">
+        <DialogContent className="max-w-5xl max-h-[95vh] p-0 border-none bg-transparent shadow-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Document Preview</DialogTitle>
+            <DialogDescription>
+              View the full-size student verification document.
+            </DialogDescription>
+          </DialogHeader>
           {expandedImage && (
             <div className="relative">
               <img
