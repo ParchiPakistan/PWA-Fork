@@ -49,6 +49,7 @@ export function AdminKYC() {
   const [selectedInstituteId, setSelectedInstituteId] = useState("")
   const [studentIdNumberInput, setStudentIdNumberInput] = useState("")
   const [availableInstitutes, setAvailableInstitutes] = useState<Institute[]>([])
+  const [dropdownSearch, setDropdownSearch] = useState("")
   const { toast } = useToast()
 
 
@@ -386,6 +387,14 @@ export function AdminKYC() {
     student.university.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const filteredPendingStudents = pendingStudents.filter((student) =>
+    !searchQuery.trim() ||
+    `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.parchiId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.university.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'approved':
@@ -499,16 +508,22 @@ export function AdminKYC() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               <span className="ml-2 text-muted-foreground">Loading pending students...</span>
             </div>
-          ) : pendingStudents.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                No pending students found.
-              </CardContent>
-            </Card>
           ) : (
             <>
+              <div className="flex items-center gap-4 py-2">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search pending students..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {pendingStudents.map((student) => (
+                {filteredPendingStudents.map((student) => (
                   <Card key={student.id}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">
@@ -986,8 +1001,21 @@ export function AdminKYC() {
                         <SelectValue placeholder="Select institute" />
                       </SelectTrigger>
                       <SelectContent>
+                        <div className="p-2 border-b sticky top-0 bg-popover z-10">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input 
+                              placeholder="Search institutes..." 
+                              className="h-8 pl-8 text-xs"
+                              value={dropdownSearch}
+                              onChange={(e) => setDropdownSearch(e.target.value)}
+                            />
+                          </div>
+                        </div>
                         <SelectItem value="__none__">— None —</SelectItem>
-                        {availableInstitutes.map((inst) => (
+                        {availableInstitutes
+                          .filter(inst => inst.name.toLowerCase().includes(dropdownSearch.toLowerCase()))
+                          .map((inst) => (
                           <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1227,7 +1255,20 @@ export function AdminKYC() {
                       <SelectValue placeholder="Select institute" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableInstitutes.map((inst) => (
+                      <div className="p-2 border-b sticky top-0 bg-popover z-10">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input 
+                            placeholder="Search institutes..." 
+                            className="h-8 pl-8 text-xs"
+                            value={dropdownSearch}
+                            onChange={(e) => setDropdownSearch(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      {availableInstitutes
+                        .filter(inst => inst.name.toLowerCase().includes(dropdownSearch.toLowerCase()))
+                        .map((inst) => (
                         <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
                       ))}
                     </SelectContent>

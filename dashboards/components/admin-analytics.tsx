@@ -36,6 +36,9 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
   const dropoffData = stats?.onboardingDropoff || []
   const platformData = stats?.platformDistribution || []
 
+  const kycByReason = stats?.kycRejectionStats?.byReason || []
+  const kycByUniversity = stats?.kycRejectionStats?.byUniversity || []
+
   // Calculate key metrics
   const appOpens = funnelData.find(s => s.step === 'App Opened')?.count || 0
   const signupStarted = funnelData.find(s => s.step === 'Student Info Started')?.count || 0
@@ -95,8 +98,11 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* --- Key Performance Indicators --- */}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-6 pb-10">
+          {/* --- Key Performance Indicators --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Overall Conversion */}
         <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-blue-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10">
@@ -591,7 +597,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={stats.kycRejectionStats?.byReason || []}
+                        data={kycByReason}
                         cx="50%"
                         cy="50%"
                         innerRadius={50}
@@ -600,7 +606,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                         dataKey="count"
                         nameKey="reason"
                       >
-                        {(stats.kycRejectionStats?.byReason || []).map((entry, index) => (
+                        {kycByReason.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
                         ))}
                       </Pie>
@@ -609,7 +615,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-2">
-                  {(stats.kycRejectionStats?.byReason || []).slice(0, 3).map((item, idx) => (
+                  {kycByReason.slice(0, 3).map((item, idx) => (
                     <div key={item.reason} className="flex items-center justify-between">
                       <div className="flex items-center gap-2 max-w-[140px]">
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
@@ -627,7 +633,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                 <div className="h-[200px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={stats.kycRejectionStats?.byUniversity || []}
+                      data={kycByUniversity}
                       layout="vertical"
                       margin={{ left: -20, right: 30, top: 0, bottom: 0 }}
                     >
@@ -861,6 +867,8 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   )
 }
