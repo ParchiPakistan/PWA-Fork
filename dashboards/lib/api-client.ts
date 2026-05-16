@@ -2285,3 +2285,67 @@ export async function getSignupDropoff(): Promise<SignupDropoff> {
   });
   return response.data;
 }
+
+// ── QR Redemptions ───────────────────────────────────────────────────────────
+
+export interface QrSettings {
+  branchId: string;
+  branchName: string;
+  qrAutoApprove: boolean;
+  qrDeepLink: string;
+}
+
+export interface QrPendingRequest {
+  id: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  student: {
+    id: string;
+    parchiId: string;
+    firstName: string;
+    lastName: string;
+    university: string;
+    verificationStatus: string;
+    totalRedemptions: number;
+    profilePicture: string | null;
+  };
+  offer: {
+    id: string;
+    title: string;
+    discountType: string;
+    discountValue: number;
+    maxDiscountAmount: number | null;
+    imageUrl: string | null;
+    formattedDiscount: string;
+  };
+}
+
+export const getQrSettings = async (): Promise<QrSettings> => {
+  const response = await apiRequest('/qr-redemptions/settings', { method: 'GET' });
+  return response.data;
+};
+
+export const updateQrSettings = async (qrAutoApprove: boolean): Promise<QrSettings> => {
+  const response = await apiRequest('/qr-redemptions/settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ qrAutoApprove }),
+  });
+  return response.data;
+};
+
+export const getPendingQrRequests = async (): Promise<QrPendingRequest[]> => {
+  const response = await apiRequest('/qr-redemptions/pending', { method: 'GET' });
+  return response.data;
+};
+
+export const approveQrRequest = async (requestId: string): Promise<void> => {
+  await apiRequest(`/qr-redemptions/${requestId}/approve`, { method: 'PATCH' });
+};
+
+export const rejectQrRequest = async (requestId: string, rejectionReason?: string): Promise<void> => {
+  await apiRequest(`/qr-redemptions/${requestId}/reject`, {
+    method: 'PATCH',
+    body: JSON.stringify({ rejectionReason }),
+  });
+};
