@@ -24,9 +24,24 @@ import { getActiveInstitutes } from "@/lib/api-client"
 
 import { AdminInstitutesDialog } from "./admin-institutes-dialog"
 
-export function AdminKYC() {
+export function AdminKYC({ 
+  externalSelectedId, 
+  onExternalIdHandled 
+}: { 
+  externalSelectedId?: string | null;
+  onExternalIdHandled?: () => void;
+}) {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
+
+  // Handle external selection from other tabs
+  useEffect(() => {
+    if (externalSelectedId) {
+      setSelectedStudentId(externalSelectedId)
+      setIsReviewOpen(true)
+      if (onExternalIdHandled) onExternalIdHandled()
+    }
+  }, [externalSelectedId, onExternalIdHandled])
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [isInstitutesDialogOpen, setIsInstitutesDialogOpen] = useState(false)
   const [rejectionNotes, setRejectionNotes] = useState("")

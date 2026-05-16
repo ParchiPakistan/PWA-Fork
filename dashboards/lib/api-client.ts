@@ -1009,13 +1009,22 @@ export interface ApproveRejectStudentRequest {
 }
 
 export interface StudentsFilter {
-  status?: 'pending' | 'approved' | 'rejected' | 'expired';
+  status?: 'pending' | 'approved' | 'rejected' | 'expired' | 'suspended';
   page?: number;
   limit?: number;
   search?: string; // Server-side search query
   institute?: string;
   emailVerified?: boolean;
   groupBy?: 'university' | 'city';
+  university?: string;
+  gender?: string;
+  kycStatus?: string; // Comma separated for multi-select
+  minRedemptions?: number;
+  maxRedemptions?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  hasRedeemed?: boolean;
+  foundersClub?: boolean;
 }
 
 // ========== Student KYC API Functions ==========
@@ -1059,6 +1068,33 @@ export const getAllStudents = async (
   }
   if (filters?.groupBy) {
     queryParams.append('groupBy', filters.groupBy);
+  }
+  if (filters?.university && filters.university.trim()) {
+    queryParams.append('university', filters.university.trim());
+  }
+  if (filters?.gender) {
+    queryParams.append('gender', filters.gender);
+  }
+  if (filters?.kycStatus) {
+    queryParams.append('kycStatus', filters.kycStatus);
+  }
+  if (filters?.minRedemptions !== undefined) {
+    queryParams.append('minRedemptions', filters.minRedemptions.toString());
+  }
+  if (filters?.maxRedemptions !== undefined) {
+    queryParams.append('maxRedemptions', filters.maxRedemptions.toString());
+  }
+  if (filters?.dateFrom) {
+    queryParams.append('dateFrom', filters.dateFrom);
+  }
+  if (filters?.dateTo) {
+    queryParams.append('dateTo', filters.dateTo);
+  }
+  if (filters?.hasRedeemed !== undefined) {
+    queryParams.append('hasRedeemed', filters.hasRedeemed.toString());
+  }
+  if (filters?.foundersClub !== undefined) {
+    queryParams.append('foundersClub', filters.foundersClub.toString());
   }
 
   const endpoint = `/admin/students${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
@@ -1664,6 +1700,7 @@ export interface RedemptionVolumeDataPoint {
 
 export interface RedemptionAnalytics {
   uniqueRedeemers: number;
+  totalRegisteredStudents: number;
   volumeTrends: {
     daily: RedemptionVolumeDataPoint[];
     weekly: RedemptionVolumeDataPoint[];
@@ -1691,8 +1728,15 @@ export interface RedemptionAnalytics {
  * Get redemption & behavioral engine analytics
  * Requires admin authentication
  */
-export const getRedemptionAnalytics = async (): Promise<RedemptionAnalytics> => {
-  const response = await apiRequest('/admin/dashboard/redemption-analytics', {
+export const getRedemptionAnalytics = async (startDate?: Date, endDate?: Date, studentId?: string | null): Promise<RedemptionAnalytics> => {
+  const queryParams = new URLSearchParams();
+  if (startDate) queryParams.append('startDate', startDate.toISOString());
+  if (endDate) queryParams.append('endDate', endDate.toISOString());
+  if (studentId) queryParams.append('studentId', studentId);
+
+  const endpoint = `/admin/dashboard/redemption-analytics${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  
+  const response = await apiRequest(endpoint, {
     method: 'GET',
   });
   return response.data;
@@ -2183,3 +2227,21 @@ export const getAdminCorporateRedemptions = async (merchantId: string, startDate
   });
   return response.data;
 };
+export interface SignupDropoff {
+  stages: {
+    stage: string;
+    count: number;
+    percentOfTotal: number;
+    dropoffPct: number;
+  }[];
+}
+
+/**
+ * Fetch detailed signup dropoff/funnel statistics
+ */
+export async function getSignupDropoff(): Promise<SignupDropoff> {
+  const response = await apiRequest('/admin/dashboard/signup-funnel', {
+    method: 'GET',
+  });
+  return response.data;
+}
