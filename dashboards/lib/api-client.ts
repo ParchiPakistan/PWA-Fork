@@ -396,6 +396,7 @@ export interface AdminBranch {
   latitude: number | null
   longitude: number | null
   is_active: boolean
+  qr_auto_approve: boolean
   created_at: string
   merchant?: {
     business_name: string
@@ -410,6 +411,7 @@ export interface UpdateBranchRequest {
   latitude?: number
   longitude?: number
   isActive?: boolean
+  qrAutoApprove?: boolean
 }
 
 export interface UpdateMerchantRequest {
@@ -492,6 +494,7 @@ const transformBranchResponse = (branch: any): AdminBranch => {
     latitude: branch.latitude,
     longitude: branch.longitude,
     is_active: branch.isActive,
+    qr_auto_approve: branch.qrAutoApprove ?? false,
     created_at: branch.createdAt,
     merchant: branch.merchantName ? {
       business_name: branch.merchantName

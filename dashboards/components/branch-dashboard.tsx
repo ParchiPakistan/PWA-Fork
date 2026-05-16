@@ -89,11 +89,25 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     let cancelled = false
 
+    const showPendingRequest = (pending: QrPendingRequest[]) => {
+      if (pending.length === 0) return
+      setActiveQrRequest(pending[0])
+      setIsQrApprovalDialogOpen(true)
+    }
+
     const initQr = async () => {
       try {
-        const settings = await getQrSettings()
+        const [settings, existingPending] = await Promise.all([
+          getQrSettings(),
+          getPendingQrRequests().catch(() => [] as QrPendingRequest[]),
+        ])
         if (cancelled) return
         setQrSettings(settings)
+
+        // Show any request that was already pending before we subscribed
+        if (existingPending.length > 0) {
+          showPendingRequest(existingPending)
+        }
 
         // Subscribe to new pending QR requests for this branch
         const channel = supabase
@@ -107,12 +121,10 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               filter: `branch_id=eq.${settings.branchId}`,
             },
             async () => {
-              // Fetch the full request details via API (includes student/offer data)
               try {
                 const pending = await getPendingQrRequests()
-                if (pending.length > 0 && !isQrApprovalDialogOpen) {
-                  setActiveQrRequest(pending[0])
-                  setIsQrApprovalDialogOpen(true)
+                if (pending.length > 0) {
+                  showPendingRequest(pending)
                   toast.info("New QR redemption request", {
                     description: `${pending[0].student.firstName} ${pending[0].student.lastName} wants to redeem ${pending[0].offer.title}`,
                     action: { label: "Review", onClick: () => setIsQrApprovalDialogOpen(true) },
