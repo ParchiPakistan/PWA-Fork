@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { format } from "date-fns"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone } from "lucide-react"
+import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone, ShieldCheck, CheckCircle2, School, Calendar as CalendarIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -126,6 +127,10 @@ export function AdminKYC({
     profilePicture: "",
     verificationSelfiePath: "",
     isActive: true,
+    gender: "",
+    degree: "",
+    yearOfStudy: "",
+    notes: "",
   })
 
   useEffect(() => {
@@ -150,7 +155,13 @@ export function AdminKYC({
       profilePicture: studentDetail.profilePicture ?? "",
       verificationSelfiePath: studentDetail.verificationSelfiePath ?? "",
       isActive: studentDetail.isActive,
+      gender: studentDetail.gender ?? "",
+      degree: studentDetail.degree ?? "",
+      yearOfStudy: studentDetail.yearOfStudy ?? "",
+      notes: studentDetail.adminNotes ?? "",
     })
+    setSelectedInstituteId(studentDetail.instituteId ?? "")
+    setStudentIdNumberInput(studentDetail.studentIdNumber ?? "")
   }, [studentDetail?.id, studentDetail?.updatedAt])
 
   // Reset page when status filter changes
@@ -334,7 +345,7 @@ export function AdminKYC({
       }
       graduationYear = n
     }
-    const payload: UpdateStudentAdminRequest = {
+     const payload: UpdateStudentAdminRequest = {
       firstName: profileDraft.firstName.trim(),
       lastName: profileDraft.lastName.trim(),
       email: profileDraft.email.trim(),
@@ -352,6 +363,10 @@ export function AdminKYC({
       profilePicture: profileDraft.profilePicture.trim() || null,
       verificationSelfiePath: profileDraft.verificationSelfiePath.trim() || null,
       isActive: profileDraft.isActive,
+      gender: profileDraft.gender.trim() || null,
+      degree: profileDraft.degree.trim() || null,
+      yearOfStudy: profileDraft.yearOfStudy.trim() || null,
+      notes: profileDraft.notes.trim() || null,
     }
     const result = await saveStudentProfile(selectedStudentId, payload)
     if (result) {
@@ -524,28 +539,46 @@ export function AdminKYC({
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {pendingStudents.map((student) => (
-                  <Card key={student.id}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        {student.university}
-                      </CardTitle>
-                      <Badge variant="outline">Pending</Badge>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{student.firstName} {student.lastName}</div>
-                      <p className="text-xs text-muted-foreground">
-                        ID: {student.parchiId}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {student.email}
-                      </p>
-                      <div className="mt-4 flex gap-2">
-                        <Button className="w-full" onClick={() => handleReview(student.id)}>
-                          <Eye className="mr-2 h-4 w-4" /> Review
-                        </Button>
+                  <div key={student.id} className="group relative p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-1 transition-all duration-500 overflow-hidden">
+                    {/* Background Pattern */}
+                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
+                      <ShieldCheck className="w-24 h-24" />
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-[#007AFF] border border-blue-100 dark:border-blue-800">
+                          <School className="w-5 h-5" />
+                        </div>
+                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 rounded-full font-black uppercase text-[10px] tracking-widest px-3 h-6">
+                           Verification Pending
+                        </Badge>
                       </div>
-                    </CardContent>
-                  </Card>
+                      
+                      <div className="mb-6">
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{student.firstName} {student.lastName}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{student.university}</p>
+                           <div className="w-1 h-1 rounded-full bg-slate-300" />
+                           <p className="text-[10px] font-black uppercase text-[#007AFF] tracking-tighter">ID: {student.parchiId}</p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 mb-6">
+                         <div className="flex items-center gap-3">
+                            <Mail className="w-3.5 h-3.5 text-slate-400" />
+                            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">{student.email}</p>
+                         </div>
+                      </div>
+
+                      <Button 
+                        className="w-full h-12 rounded-2xl bg-[#007AFF] hover:bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-500/20 transition-all duration-300" 
+                        onClick={() => handleReview(student.id)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" /> Begin Review
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
 
@@ -904,385 +937,424 @@ export function AdminKYC({
           setSelectedStudentId(null)
         }
       }}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Student details & KYC</DialogTitle>
-            <DialogDescription>
-              {studentDetail
-                ? `Edit profile (Parchi ID is read-only) and review KYC for ${studentDetail.firstName} ${studentDetail.lastName}.`
-                : "Loading student details..."}
-            </DialogDescription>
-          </DialogHeader>
-
-          {detailLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading student details...</span>
-            </div>
-          ) : detailError ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{detailError}</AlertDescription>
-            </Alert>
-          ) : studentDetail ? (
-            <div className="space-y-8 py-4">
-              <div className="space-y-4 border-b pb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-sm font-semibold">Account & profile</h3>
-                  <Button type="button" onClick={handleSaveProfile} disabled={saveProfileLoading}>
-                    {saveProfileLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    Save profile changes
-                  </Button>
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0 bg-slate-50 dark:bg-slate-950 border-none shadow-2xl">
+          <div className="flex flex-col h-full max-h-[95vh]">
+            {/* Header */}
+            <div className="p-6 bg-white dark:bg-slate-900 border-b flex items-center justify-between shrink-0">
+              <div>
+                <div className="flex items-center gap-3">
+                  <DialogTitle className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">
+                    KYC Verification Portal
+                  </DialogTitle>
+                  {studentDetail && (
+                    <Badge variant={getStatusVariant(studentDetail.verificationStatus)} className="h-6 px-3 rounded-full font-black uppercase text-[10px] tracking-widest">
+                      {getStatusText(studentDetail.verificationStatus)}
+                    </Badge>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label>Parchi ID</Label>
-                    <Input value={studentDetail.parchiId} readOnly className="bg-muted font-mono" />
+                <DialogDescription className="text-sm font-medium text-slate-500 mt-1">
+                  {studentDetail
+                    ? `Reviewing credentials for ${studentDetail.firstName} ${studentDetail.lastName}`
+                    : "Loading student intelligence..."}
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                 <Button variant="outline" size="sm" onClick={() => refetchDetail()} disabled={detailLoading} className="rounded-xl border-slate-200 dark:border-slate-800">
+                    <RefreshCw className={`h-4 w-4 mr-2 ${detailLoading ? 'animate-spin' : ''}`} />
+                    Refresh Data
+                 </Button>
+                 <Button variant="ghost" size="icon" onClick={() => setIsReviewOpen(false)} className="rounded-full">
+                    <X className="h-5 w-5" />
+                 </Button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+              {/* Left Column: Document Review (Scrollable) */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/50">
+                {detailLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-[#007AFF]" />
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Accessing Student Documents...</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-fn">First name</Label>
-                    <Input id="draft-fn" value={profileDraft.firstName} onChange={(e) => setProfileDraft((d) => ({ ...d, firstName: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-ln">Last name</Label>
-                    <Input id="draft-ln" value={profileDraft.lastName} onChange={(e) => setProfileDraft((d) => ({ ...d, lastName: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="draft-email">Email</Label>
-                    <Input id="draft-email" type="email" value={profileDraft.email} onChange={(e) => setProfileDraft((d) => ({ ...d, email: e.target.value }))} />
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-xs text-muted-foreground">Confirmation (read-only):</span>
-                      <Badge variant={studentDetail.emailConfirmed ? "default" : "destructive"} className="text-xs">
-                        {studentDetail.emailConfirmed ? "Verified" : "Unverified"}
-                      </Badge>
-                      {!studentDetail.emailConfirmed && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => handleVerifyEmail(studentDetail.id)}
-                          disabled={verifyEmailLoading}
-                        >
-                          {verifyEmailLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Mail className="h-3 w-3 mr-1" />}
-                          Verify manually
-                        </Button>
+                ) : studentDetail ? (
+                  <>
+                    {/* Document Section */}
+                    <section className="space-y-6">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">KYC Documentation</h3>
+                         <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800 ml-6 opacity-50" />
+                      </div>
+                      
+                      {studentDetail.kyc ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* ID Front */}
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Student ID (Front View)</Label>
+                            <div 
+                              className="group relative rounded-3xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 cursor-zoom-in transition-all hover:scale-[1.02] duration-500"
+                              onClick={() => setExpandedImage({ url: studentDetail.kyc!.studentIdCardFrontPath, alt: "ID Front" })}
+                            >
+                              <img 
+                                src={studentDetail.kyc.studentIdCardFrontPath} 
+                                alt="ID Front" 
+                                className="w-full h-56 object-cover"
+                                onError={(e) => (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=500'}
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                <div className="p-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white">
+                                  <ZoomIn className="h-6 w-6" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ID Back */}
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Student ID (Back View)</Label>
+                            <div 
+                              className="group relative rounded-3xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 cursor-zoom-in transition-all hover:scale-[1.02] duration-500"
+                              onClick={() => setExpandedImage({ url: studentDetail.kyc!.studentIdCardBackPath, alt: "ID Back" })}
+                            >
+                              <img 
+                                src={studentDetail.kyc.studentIdCardBackPath} 
+                                alt="ID Back" 
+                                className="w-full h-56 object-cover"
+                                onError={(e) => (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=500'}
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                <div className="p-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white">
+                                  <ZoomIn className="h-6 w-6" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Verification Selfie */}
+                          <div className="lg:col-span-2 space-y-3">
+                            <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Live Verification Selfie</Label>
+                            <div className="flex flex-col md:flex-row gap-6 p-4 rounded-3xl bg-white dark:bg-slate-900 shadow-xl border border-white dark:border-slate-800">
+                              <div 
+                                className="group relative w-full md:w-64 h-64 shrink-0 rounded-2xl overflow-hidden cursor-zoom-in transition-all hover:scale-[1.02] duration-500"
+                                onClick={() => setExpandedImage({ url: studentDetail.kyc!.selfieImagePath, alt: "Selfie" })}
+                              >
+                                <img 
+                                  src={studentDetail.kyc.selfieImagePath} 
+                                  alt="Selfie" 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => (e.target as HTMLImageElement).src = '/placeholder.svg?height=400&width=400'}
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                  <div className="p-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white">
+                                    <ZoomIn className="h-6 w-6" />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex-1 space-y-4 py-2">
+                                <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 space-y-1">
+                                   <p className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Selfie Analysis</p>
+                                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                      Ensure the face in the selfie matches the ID card photo. The student should be clearly visible with adequate lighting.
+                                   </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                   <div className="space-y-1">
+                                      <p className="text-[10px] font-black uppercase text-slate-400">Submission Date</p>
+                                      <p className="text-sm font-bold">{studentDetail.kyc.submittedAt ? new Date(studentDetail.kyc.submittedAt).toLocaleString() : 'N/A'}</p>
+                                   </div>
+                                   <div className="space-y-1">
+                                      <p className="text-[10px] font-black uppercase text-slate-400">Renewal Status</p>
+                                      <Badge variant={studentDetail.kyc.isAnnualRenewal ? "outline" : "secondary"} className="h-5 px-2 rounded-lg text-[9px] font-black uppercase tracking-tighter">
+                                        {studentDetail.kyc.isAnnualRenewal ? "Annual Renewal" : "First Submission"}
+                                      </Badge>
+                                   </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-12 text-center rounded-[3rem] border-4 border-dashed border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50">
+                           <AlertCircle className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                           <h4 className="text-lg font-black text-slate-400 uppercase tracking-widest">No KYC Documents</h4>
+                           <p className="text-slate-400 text-sm mt-2">This student hasn't submitted their KYC documentation yet.</p>
+                        </div>
                       )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-phone">Phone</Label>
-                    <Input id="draft-phone" value={profileDraft.phone} onChange={(e) => setProfileDraft((d) => ({ ...d, phone: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="draft-uni">University / institute</Label>
-                    <Input id="draft-uni" value={profileDraft.university} onChange={(e) => setProfileDraft((d) => ({ ...d, university: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-gy">Graduation year</Label>
-                    <Input id="draft-gy" type="number" value={profileDraft.graduationYear} onChange={(e) => setProfileDraft((d) => ({ ...d, graduationYear: e.target.value }))} placeholder="Optional" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-dob">Date of birth</Label>
-                    <Input id="draft-dob" type="date" value={profileDraft.dateOfBirth} onChange={(e) => setProfileDraft((d) => ({ ...d, dateOfBirth: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-institute">Institute</Label>
-                    <Select
-                      value={profileDraft.instituteId || "__none__"}
-                      onValueChange={(v) => setProfileDraft((d) => ({ ...d, instituteId: v === "__none__" ? "" : v }))}
-                    >
-                      <SelectTrigger id="draft-institute">
-                        <SelectValue placeholder="Select institute" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">— None —</SelectItem>
-                        {availableInstitutes.map((inst) => (
-                          <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-student-id">Student ID Number</Label>
-                    <Input id="draft-student-id" value={profileDraft.studentIdNumber} onChange={(e) => setProfileDraft((d) => ({ ...d, studentIdNumber: e.target.value }))} placeholder="Assigned by admin" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-vs">Verification status</Label>
-                    <Select
-                      value={profileDraft.verificationStatus}
-                      onValueChange={(v) => setProfileDraft((d) => ({ ...d, verificationStatus: v as Student["verificationStatus"] }))}
-                    >
-                      <SelectTrigger id="draft-vs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-exp">Verification expires at</Label>
-                    <Input
-                      id="draft-exp"
-                      type="datetime-local"
-                      value={profileDraft.verificationExpiresAt}
-                      onChange={(e) => setProfileDraft((d) => ({ ...d, verificationExpiresAt: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-savings">Total savings (PKR)</Label>
-                    <Input
-                      id="draft-savings"
-                      type="number"
-                      step="0.01"
-                      value={profileDraft.totalSavings}
-                      onChange={(e) => setProfileDraft((d) => ({ ...d, totalSavings: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="draft-red">Total redemptions</Label>
-                    <Input
-                      id="draft-red"
-                      type="number"
-                      min={0}
-                      value={profileDraft.totalRedemptions}
-                      onChange={(e) => setProfileDraft((d) => ({ ...d, totalRedemptions: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="draft-pfp">Profile picture URL</Label>
-                    <Input id="draft-pfp" value={profileDraft.profilePicture} onChange={(e) => setProfileDraft((d) => ({ ...d, profilePicture: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="draft-selfie-path">Verification selfie URL</Label>
-                    <Input
-                      id="draft-selfie-path"
-                      value={profileDraft.verificationSelfiePath}
-                      onChange={(e) => setProfileDraft((d) => ({ ...d, verificationSelfiePath: e.target.value }))}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
-                    <Label htmlFor="draft-fc">Founders Club member</Label>
-                    <Switch
-                      id="draft-fc"
-                      checked={profileDraft.isFoundersClub}
-                      onCheckedChange={(v) => setProfileDraft((d) => ({ ...d, isFoundersClub: v }))}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
-                    <Label htmlFor="draft-active">Account active</Label>
-                    <Switch
-                      id="draft-active"
-                      checked={profileDraft.isActive}
-                      onCheckedChange={(v) => setProfileDraft((d) => ({ ...d, isActive: v }))}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground pt-2">
-                  <div>
-                    <span className="font-medium text-foreground">Verified at: </span>
-                    {studentDetail.verifiedAt ? new Date(studentDetail.verifiedAt).toLocaleString() : "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Verified by: </span>
-                    {studentDetail.verifiedBy?.email ?? "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Institute: </span>
-                    {studentDetail.instituteName ?? "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Student ID: </span>
-                    {studentDetail.studentIdNumber ?? "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Created: </span>
-                    {studentDetail.createdAt ? new Date(studentDetail.createdAt).toLocaleString() : "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Updated: </span>
-                    {studentDetail.updatedAt ? new Date(studentDetail.updatedAt).toLocaleString() : "—"}
-                  </div>
-                </div>
+                    </section>
+
+                    {/* Technical Profile Section */}
+                    <section className="space-y-6">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Account Intel</h3>
+                         <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800 ml-6 opacity-50" />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="p-5 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl border border-white dark:border-slate-800">
+                           <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-[#007AFF]">
+                                 <Mail className="h-4 w-4" />
+                              </div>
+                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Email Identity</p>
+                           </div>
+                           <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{studentDetail.email}</p>
+                           <Badge variant={studentDetail.emailConfirmed ? "default" : "destructive"} className="mt-2 h-5 px-2 rounded-lg text-[9px] font-black uppercase tracking-tighter">
+                              {studentDetail.emailConfirmed ? "Confirmed" : "Unverified"}
+                           </Badge>
+                        </div>
+
+                        <div className="p-5 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl border border-white dark:border-slate-800">
+                           <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600">
+                                 <Smartphone className="h-4 w-4" />
+                              </div>
+                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Origin Platform</p>
+                           </div>
+                           <p className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tighter">
+                              {studentDetail.platform || 'Web / Unknown'}
+                           </p>
+                           <p className="text-[10px] text-slate-400 mt-1 font-bold">DEVICE ID: {studentDetail.deviceId?.substring(0, 12).toUpperCase() || 'N/A'}</p>
+                        </div>
+
+                        <div className="p-5 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl border border-white dark:border-slate-800">
+                           <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">
+                                 <CalendarIcon className="h-4 w-4" />
+                              </div>
+                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Engagement</p>
+                           </div>
+                           <p className="text-sm font-bold text-slate-900 dark:text-white">
+                              {studentDetail.createdAt ? format(new Date(studentDetail.createdAt), "MMM d, yyyy") : 'N/A'}
+                           </p>
+                           <p className="text-[10px] text-slate-400 mt-1 font-bold tracking-tighter uppercase">Member Since</p>
+                        </div>
+                      </div>
+                    </section>
+                  </>
+                ) : null}
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold">KYC documents</h3>
-                {studentDetail.kyc ? (() => {
-                  const kyc = studentDetail.kyc as NonNullable<typeof studentDetail.kyc>
-                  return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Student ID Card (Front)</Label>
-                <div
-                  className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => setExpandedImage({
-                    url: kyc.studentIdCardFrontPath,
-                    alt: "Student ID Front"
-                  })}
-                >
-                  <img
-                    src={kyc.studentIdCardFrontPath}
-                    alt="Student ID Front"
-                    className="w-full h-auto rounded-md object-contain max-h-[300px]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=500'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-md transition-colors">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
-              </div>
+              {/* Right Column: Profile Edits & Decisions (Scrollable) */}
+              <div className="w-full md:w-[450px] bg-white dark:bg-slate-900 border-l overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                {studentDetail && (
+                  <>
+                    {/* Verification Panel */}
+                    <section className="space-y-6">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#007AFF]">Review Decisions</h3>
+                         <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/30 ml-6 opacity-50" />
+                      </div>
 
-              <div className="space-y-2">
-                <Label>Student ID Card (Back)</Label>
-                <div
-                  className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => setExpandedImage({
-                    url: kyc.studentIdCardBackPath,
-                    alt: "Student ID Back"
-                  })}
-                >
-                  <img
-                    src={kyc.studentIdCardBackPath}
-                    alt="Student ID Back"
-                    className="w-full h-auto rounded-md object-contain max-h-[300px]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=500'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-md transition-colors">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
-              </div>
+                      <Card className="rounded-[2.5rem] border-2 border-indigo-500/10 shadow-2xl shadow-indigo-500/5 bg-gradient-to-br from-indigo-500/[0.02] to-white dark:to-slate-900 overflow-hidden">
+                        <CardContent className="p-6 space-y-6">
+                          {studentDetail.verificationStatus === 'approved' ? (
+                            <div className="space-y-4 text-center py-4">
+                               <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto border-2 border-emerald-500/20">
+                                  <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                               </div>
+                               <div>
+                                  <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Verified Student</h4>
+                                  <p className="text-sm text-slate-500 font-medium">This account has been successfully verified.</p>
+                               </div>
+                               <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-left space-y-2">
+                                  <div className="flex justify-between text-xs font-bold">
+                                     <span className="text-slate-400 uppercase tracking-widest">Verified By</span>
+                                     <span className="text-[#007AFF]">{studentDetail.verifiedBy?.email || 'System'}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs font-bold">
+                                     <span className="text-slate-400 uppercase tracking-widest">Date</span>
+                                     <span className="text-slate-600 dark:text-slate-300">{studentDetail.verifiedAt ? format(new Date(studentDetail.verifiedAt), "MMM d, h:mm a") : 'N/A'}</span>
+                                  </div>
+                               </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Assign Institute *</Label>
+                                  <Select value={selectedInstituteId} onValueChange={setSelectedInstituteId}>
+                                    <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#007AFF] transition-all">
+                                      <SelectValue placeholder="Select verified institute" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availableInstitutes.map((inst) => (
+                                        <SelectItem key={inst.id} value={inst.id} className="rounded-xl my-1">{inst.name}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
 
-              <div className="space-y-2">
-                <Label>Selfie</Label>
-                <div
-                  className="border rounded-lg p-2 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors relative group"
-                  onClick={() => setExpandedImage({
-                    url: kyc.selfieImagePath,
-                    alt: "Selfie"
-                  })}
-                >
-                  <img
-                    src={kyc.selfieImagePath}
-                    alt="Selfie"
-                    className="w-full h-auto rounded-md object-contain max-h-[300px]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg?height=300&width=300'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-md transition-colors">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
-              </div>
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Official Student ID *</Label>
+                                  <div className="relative group">
+                                     <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#007AFF] transition-colors" />
+                                     <Input
+                                        placeholder="Enter manual ID number..."
+                                        value={studentIdNumberInput}
+                                        onChange={(e) => setStudentIdNumberInput(e.target.value)}
+                                        className="h-12 pl-11 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#007AFF] transition-all font-bold"
+                                        autoComplete="off"
+                                     />
+                                  </div>
+                                </div>
+                              </div>
 
-                <div className="col-span-1 md:col-span-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground border-t pt-4">
-                  {kyc.submittedAt && (
-                    <span>
-                      <span className="font-medium text-foreground">KYC submitted: </span>
-                      {new Date(kyc.submittedAt).toLocaleString()}
-                    </span>
-                  )}
-                  {kyc.isAnnualRenewal && (
-                    <Badge variant="outline">Annual renewal</Badge>
-                  )}
-                </div>
-            </div>
-                  )
-                })() : (
-                  <p className="text-sm text-muted-foreground">No KYC submission on file.</p>
+                              <div className="grid grid-cols-2 gap-3 pt-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={handleRejectClick}
+                                  disabled={approveRejectLoading}
+                                  className="h-12 rounded-2xl border-2 border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 font-black uppercase text-[10px] tracking-widest transition-all duration-300 shadow-lg shadow-red-500/5"
+                                >
+                                  <X className="mr-2 h-4 w-4" /> Reject
+                                </Button>
+                                <Button
+                                  onClick={handleApprove}
+                                  disabled={approveRejectLoading || !selectedInstituteId || !studentIdNumberInput.trim()}
+                                  className="h-12 rounded-2xl bg-[#007AFF] hover:bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest transition-all duration-300 shadow-xl shadow-blue-500/20"
+                                >
+                                  {approveRejectLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <><Check className="mr-2 h-4 w-4" /> Approve</>
+                                  )}
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </section>
+
+                    {/* Profile Information */}
+                    <section className="space-y-6 pb-6">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Profile Intelligence</h3>
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           onClick={handleSaveProfile} 
+                           disabled={saveProfileLoading}
+                           className="text-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full font-black uppercase text-[10px] tracking-widest"
+                         >
+                            {saveProfileLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Save className="h-3 w-3 mr-2" />}
+                            Sync Profile
+                         </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">First Name</Label>
+                               <Input 
+                                 value={profileDraft.firstName} 
+                                 onChange={(e) => setProfileDraft(d => ({...d, firstName: e.target.value}))}
+                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                               />
+                            </div>
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Last Name</Label>
+                               <Input 
+                                 value={profileDraft.lastName} 
+                                 onChange={(e) => setProfileDraft(d => ({...d, lastName: e.target.value}))}
+                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                               />
+                            </div>
+                         </div>
+
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Academic Institution</Label>
+                            <Input 
+                              value={profileDraft.university} 
+                              onChange={(e) => setProfileDraft(d => ({...d, university: e.target.value}))}
+                              className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                            />
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Graduation Year</Label>
+                               <Input 
+                                 type="number"
+                                 value={profileDraft.graduationYear} 
+                                 onChange={(e) => setProfileDraft(d => ({...d, graduationYear: e.target.value}))}
+                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                               />
+                            </div>
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Birth Date</Label>
+                               <Input 
+                                 type="date"
+                                 value={profileDraft.dateOfBirth} 
+                                 onChange={(e) => setProfileDraft(d => ({...d, dateOfBirth: e.target.value}))}
+                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                               />
+                            </div>
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Academic Degree</Label>
+                               <Input 
+                                 value={profileDraft.degree} 
+                                 onChange={(e) => setProfileDraft(d => ({...d, degree: e.target.value}))}
+                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                                 placeholder="e.g. BS Computer Science"
+                               />
+                            </div>
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Year of Study</Label>
+                               <Input 
+                                 value={profileDraft.yearOfStudy} 
+                                 onChange={(e) => setProfileDraft(d => ({...d, yearOfStudy: e.target.value}))}
+                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-sm font-bold"
+                                 placeholder="e.g. 3rd Year"
+                               />
+                            </div>
+                         </div>
+
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Internal Admin Notes</Label>
+                            <textarea
+                              value={profileDraft.notes}
+                              onChange={(e) => setProfileDraft(d => ({...d, notes: e.target.value}))}
+                              className="w-full min-h-[100px] p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 text-sm font-bold focus:ring-2 focus:ring-[#007AFF] transition-all outline-none resize-none"
+                              placeholder="Add private internal notes about this student..."
+                            />
+                         </div>
+
+                         <div className="p-4 rounded-3xl border-2 border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 space-y-4">
+                            <div className="flex items-center justify-between">
+                               <div className="space-y-0.5">
+                                  <p className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Founders Club</p>
+                                  <p className="text-[10px] text-slate-500 font-medium">Early Adopter Privilege</p>
+                               </div>
+                               <Switch 
+                                 checked={profileDraft.isFoundersClub} 
+                                 onCheckedChange={(v) => setProfileDraft(d => ({...d, isFoundersClub: v}))}
+                               />
+                            </div>
+                            <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                            <div className="flex items-center justify-between">
+                               <div className="space-y-0.5">
+                                  <p className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Account Status</p>
+                                  <p className="text-[10px] text-slate-500 font-medium">{profileDraft.isActive ? 'Actively participating' : 'Restricted Access'}</p>
+                               </div>
+                               <Switch 
+                                 checked={profileDraft.isActive} 
+                                 onCheckedChange={(v) => setProfileDraft(d => ({...d, isActive: v}))}
+                               />
+                            </div>
+                         </div>
+                      </div>
+                    </section>
+                  </>
                 )}
               </div>
             </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              Could not load this student.
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            {!studentDetail?.emailConfirmed && (
-              <Button
-                variant="secondary"
-                onClick={() => handleVerifyEmail(studentDetail!.id)}
-                disabled={verifyEmailLoading || !studentDetail}
-              >
-                {verifyEmailLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Mail className="mr-2 h-4 w-4" />
-                )}
-                Verify Email
-              </Button>
-            )}
-            
-            {studentDetail?.verificationStatus !== 'approved' && (
-              <div className="flex flex-col gap-2 mr-auto w-full sm:w-auto sm:flex-row sm:items-end">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="institute-select" className="text-xs text-muted-foreground">Institute *</Label>
-                  <Select
-                    value={selectedInstituteId}
-                    onValueChange={setSelectedInstituteId}
-                  >
-                    <SelectTrigger id="institute-select" className="w-[200px]">
-                      <SelectValue placeholder="Select institute" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableInstitutes.map((inst) => (
-                        <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="student-id-input" className="text-xs text-muted-foreground">Student ID *</Label>
-                  <Input
-                    id="student-id-input"
-                    placeholder="Enter student ID"
-                    value={studentIdNumberInput}
-                    onChange={(e) => setStudentIdNumberInput(e.target.value)}
-                    className="w-[180px]"
-                    autoComplete="off"
-                  />
-                </div>
-              </div>
-            )}
-
-            <Button
-              variant="destructive"
-              onClick={handleRejectClick}
-              disabled={approveRejectLoading || !studentDetail}
-            >
-              <X className="mr-2 h-4 w-4" />
-              Reject
-            </Button>
-            <Button
-              onClick={handleApprove}
-              disabled={approveRejectLoading || !studentDetail || studentDetail?.verificationStatus === 'approved'}
-            >
-              {approveRejectLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              {studentDetail?.verificationStatus === 'approved' ? 'Approved' : 'Approve'}
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
+
       </Dialog>
 
       {/* Rejection Notes Dialog */}

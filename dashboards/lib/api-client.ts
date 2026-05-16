@@ -231,7 +231,7 @@ export async function apiRequest(
       ...options,
       signal: controller.signal,
       headers: {
-        'Content-Type': 'application/json',
+        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
@@ -957,6 +957,27 @@ export interface Student {
 
 export interface StudentDetail extends Student {
   kyc: StudentKYC | null;
+  gender?: string | null;
+  degree?: string | null;
+  yearOfStudy?: string | null;
+  adminNotes?: string | null;
+  leaderboardRank?: number;
+  accountAgeDays?: number;
+  loyaltyProgress?: {
+    merchantName: string;
+    merchantLogo: string | null;
+    current: number;
+    goal: number;
+    percentage: number;
+  }[];
+  recentRedemptions?: {
+    id: string;
+    date: string;
+    merchantName: string;
+    branchName: string;
+    offerTitle: string;
+    isBonusApplied: boolean;
+  }[];
 }
 
 export interface UpdateStudentAdminRequest {
@@ -977,6 +998,10 @@ export interface UpdateStudentAdminRequest {
   profilePicture?: string | null;
   verificationSelfiePath?: string | null;
   isActive?: boolean;
+  gender?: string | null;
+  degree?: string | null;
+  yearOfStudy?: string | null;
+  notes?: string | null;
 }
 
 export interface ApiResponse<T> {
@@ -1101,6 +1126,21 @@ export const getAllStudents = async (
   return apiRequest(endpoint, {
     method: 'GET',
   });
+};
+
+/**
+ * Replace student KYC selfie (Admin)
+ */
+export const updateStudentSelfie = async (id: string, file: File): Promise<{ selfieImageUrl: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await apiRequest(`/admin/students/${id}/selfie`, {
+    method: 'POST',
+    body: formData,
+    // Note: apiRequest should handle multipart/form-data by NOT setting Content-Type to application/json
+  });
+  return response.data;
 };
 
 export interface StudentVerificationResponse {

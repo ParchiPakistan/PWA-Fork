@@ -21,7 +21,6 @@ import {
   Users,
   Trophy,
   Calendar as CalendarIcon,
-  User,
   GraduationCap,
   MoreHorizontal
 } from "lucide-react"
@@ -43,6 +42,11 @@ import { Calendar } from "@/components/ui/calendar"
 import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { StudentProfileModal } from "./student-profile-modal"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle, CheckCircle2, User } from "lucide-react"
+import { updateStudentAdmin } from "@/lib/api-client"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export function AdminStudents({ 
   onViewProfile, 
@@ -69,6 +73,18 @@ export function AdminStudents({
   const [availableInstitutes, setAvailableInstitutes] = useState<Institute[]>([])
   const [isFilterVisible, setIsFilterVisible] = useState(false)
 
+  // Profile Modal State
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  // Gender Prompt State
+  const [showGenderPrompt, setShowGenderPrompt] = useState(false)
+  const [isFillingGender, setIsFillingGender] = useState(false)
+  const [genderFillIndex, setGenderFillIndex] = useState(0)
+  const [isGenderFillingActive, setIsGenderFillingActive] = useState(false)
+
+
+
   // Fetch data
   const filters = useMemo(() => ({
     page,
@@ -88,6 +104,16 @@ export function AdminStudents({
   const { students, loading, error, pagination, refetch } = useAllStudents(filters)
   const { updateStatus } = useUpdateStudentStatus()
 
+  const studentsWithNullGender = useMemo(() => {
+    return (students || []).filter(s => s.gender === null || s.gender === undefined)
+  }, [students])
+
+  useEffect(() => {
+    if (!loading && studentsWithNullGender.length > 0) {
+      setShowGenderPrompt(true)
+    }
+  }, [loading, studentsWithNullGender.length])
+
   useEffect(() => {
     getActiveInstitutes()
       .then(setAvailableInstitutes)
@@ -105,6 +131,34 @@ export function AdminStudents({
     setHasRedeemed(undefined)
     setFoundersClub(undefined)
     setPage(1)
+  }
+
+  const handleFillGender = async (studentId: string, value: string) => {
+    try {
+      await updateStudentAdmin(studentId, { gender: value })
+      if (genderFillIndex < studentsWithNullGender.length - 1) {
+        setGenderFillIndex(prev => prev + 1)
+      } else {
+        setIsGenderFillingActive(false)
+        setShowGenderPrompt(false)
+        toast({
+          title: "Complete",
+          description: "All missing genders have been filled"
+        })
+      }
+      refetch()
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update gender",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleViewProfile = (id: string) => {
+    setSelectedProfileId(id)
+    setIsProfileOpen(true)
   }
 
   const toggleKycStatus = (status: string) => {
@@ -128,6 +182,70 @@ export function AdminStudents({
 
   return (
     <div className="space-y-6">
+      {/* Gender Prompt Banner */}
+      {showGenderPrompt && studentsWithNullGender.length > 0 && !isGenderFillingActive && (
+        <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="font-bold">Missing Data</AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>{studentsWithNullGender.length} students have no gender recorded. Fill them in to unlock gender-based analytics.</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="bg-white border-amber-300 text-amber-800 hover:bg-amber-100" onClick={() => setIsGenderFillingActive(true)}>
+                Fill Missing
+              </Button>
+              <Button size="sm" variant="ghost" className="text-amber-600 hover:text-amber-800" onClick={() => setShowGenderPrompt(false)}>
+                Skip
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Gender Filling Modal */}
+      <Dialog open={isGenderFillingActive} onOpenChange={setIsGenderFillingActive}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Fill Missing Gender</DialogTitle>
+            <DialogDescription>
+              Progress: {genderFillIndex + 1} / {studentsWithNullGender.length}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {studentsWithNullGender[genderFillIndex] && (
+            <div className="py-6 space-y-6 text-center">
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">
+                  {studentsWithNullGender[genderFillIndex].firstName} {studentsWithNullGender[genderFillIndex].lastName}
+                </div>
+                <div className="text-sm text-muted-foreground font-mono">
+                  {studentsWithNullGender[genderFillIndex].parchiId}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {["Male", "Female", "Other"].map((g) => (
+                  <Button 
+                    key={g} 
+                    variant="outline" 
+                    className="h-16 flex-col gap-1 border-2 hover:border-primary hover:bg-primary/5"
+                    onClick={() => handleFillGender(studentsWithNullGender[genderFillIndex].id, g)}
+                  >
+                    <User className="h-5 w-5" />
+                    {g}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-between">
+            <Button variant="ghost" onClick={() => setIsGenderFillingActive(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setGenderFillIndex(prev => Math.min(studentsWithNullGender.length - 1, prev + 1))}>
+              Skip Current
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Student Directory</h2>
@@ -382,7 +500,7 @@ export function AdminStudents({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => onViewProfile?.(student.id)}
+                          onClick={() => handleViewProfile(student.id)}
                           title="View Profile"
                         >
                           <Eye className="h-4 w-4" />
@@ -395,13 +513,17 @@ export function AdminStudents({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Student Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => onViewProfile?.(student.id)}>
+                            <DropdownMenuItem onClick={() => handleViewProfile(student.id)}>
                               <Eye className="mr-2 h-4 w-4" />
                               View Profile
                             </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onViewRedemptions?.(student.id)}>
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Redemption History
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onViewProfile?.(student.id)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Review KYC (Legacy)
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => {}}>
@@ -469,6 +591,14 @@ export function AdminStudents({
           </div>
         </div>
       )}
+
+      <StudentProfileModal 
+        studentId={selectedProfileId}
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onUpdate={refetch}
+        availableInstitutes={availableInstitutes}
+      />
     </div>
   )
 }
