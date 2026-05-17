@@ -66,6 +66,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
   const [isQrRejectDialogOpen, setIsQrRejectDialogOpen] = useState(false)
   const [qrRejectionReason, setQrRejectionReason] = useState("")
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const activeQrRequestRef = useRef<QrPendingRequest | null>(null)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -91,8 +93,35 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
 
     const showPendingRequest = (pending: QrPendingRequest[]) => {
       if (pending.length === 0) return
+      activeQrRequestRef.current = pending[0]
       setActiveQrRequest(pending[0])
       setIsQrApprovalDialogOpen(true)
+    }
+
+    // Open dialog immediately (skeleton state), then fetch full details
+    const handleIncomingRequest = async () => {
+      // Snap the dialog open before the API round-trip so branch sees it instantly
+      setIsQrApprovalDialogOpen(true)
+      toast.info("New QR redemption request", { description: "Fetching student details…" })
+      try {
+        const pending = await getPendingQrRequests()
+        if (cancelled || pending.length === 0) return
+        showPendingRequest(pending)
+        toast.dismiss()
+        toast.info("QR request from student", {
+          description: `${pending[0].student.firstName} ${pending[0].student.lastName} — ${pending[0].offer.title}`,
+          action: { label: "Review", onClick: () => setIsQrApprovalDialogOpen(true) },
+        })
+      } catch {/* non-critical */}
+    }
+
+    // Polls every 8 s as a safety net when Realtime misses events
+    const pollPendingRequests = async () => {
+      if (activeQrRequestRef.current) return // already handling one
+      try {
+        const pending = await getPendingQrRequests()
+        if (!cancelled && pending.length > 0) showPendingRequest(pending)
+      } catch {/* non-critical */}
     }
 
     const initQr = async () => {
@@ -104,50 +133,53 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
         if (cancelled) return
         setQrSettings(settings)
 
-        // Show any request that was already pending before we subscribed
         if (existingPending.length > 0) {
           showPendingRequest(existingPending)
         }
 
-        // Subscribe to new pending QR requests for this branch
+        // Subscribe — no server-side filter to avoid silent RLS drops; filter client-side
         const channel = supabase
-          .channel(`qr-requests-${settings.branchId}`)
+          .channel(`qr-branch-${settings.branchId}`)
           .on(
             'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'qr_redemption_requests',
-              filter: `branch_id=eq.${settings.branchId}`,
-            },
-            async () => {
-              try {
-                const pending = await getPendingQrRequests()
-                if (pending.length > 0) {
-                  showPendingRequest(pending)
-                  toast.info("New QR redemption request", {
-                    description: `${pending[0].student.firstName} ${pending[0].student.lastName} wants to redeem ${pending[0].offer.title}`,
-                    action: { label: "Review", onClick: () => setIsQrApprovalDialogOpen(true) },
-                  })
-                }
-              } catch {/* non-critical */}
+            { event: 'INSERT', schema: 'public', table: 'qr_redemption_requests' },
+            async (payload) => {
+              // Only act on inserts for this branch that arrive as pending
+              if (payload.new?.branch_id !== settings.branchId) return
+              if (payload.new?.status !== 'pending') return
+              await handleIncomingRequest()
             }
           )
-          .subscribe()
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('[QR Realtime] subscribed for branch', settings.branchId)
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn('[QR Realtime] subscription issue:', status)
+            }
+          })
 
         realtimeChannelRef.current = channel
+
+        // Polling fallback — guarantees pickup even if Realtime drops
+        pollIntervalRef.current = setInterval(pollPendingRequests, 8000)
       } catch {
         // Non-critical: branch may not have QR feature yet
       }
     }
 
+    // Re-check when user switches back to this tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') pollPendingRequests()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     initQr()
 
     return () => {
       cancelled = true
-      if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current)
-      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (realtimeChannelRef.current) supabase.removeChannel(realtimeChannelRef.current)
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -269,6 +301,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
     try {
       await approveQrRequest(activeQrRequest.id)
       setIsQrApprovalDialogOpen(false)
+      activeQrRequestRef.current = null
       setActiveQrRequest(null)
       const [stats, details, aggregated] = await Promise.all([
         getDailyRedemptionStats(),
@@ -295,6 +328,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
       await rejectQrRequest(activeQrRequest.id, qrRejectionReason || undefined)
       setIsQrRejectDialogOpen(false)
       setIsQrApprovalDialogOpen(false)
+      activeQrRequestRef.current = null
       setActiveQrRequest(null)
       setQrRejectionReason("")
       toast.info("QR request rejected")
@@ -1056,6 +1090,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
       <Dialog open={isQrApprovalDialogOpen} onOpenChange={(open) => {
         if (!open && !isApprovingQr && !isRejectingQr) {
           setIsQrApprovalDialogOpen(false)
+          activeQrRequestRef.current = null
           setActiveQrRequest(null)
         }
       }}>
@@ -1068,7 +1103,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
             <DialogDescription>A student has scanned your QR code and wants to redeem an offer.</DialogDescription>
           </DialogHeader>
 
-          {activeQrRequest && (
+          {activeQrRequest ? (
             <div className="py-4 space-y-5">
               {/* Student info */}
               <div className="flex flex-col items-center text-center space-y-3">
@@ -1115,6 +1150,16 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
                 </div>
               )}
             </div>
+          ) : (
+            // Skeleton shown while details are loading (dialog opened immediately from payload)
+            <div className="py-4 space-y-4">
+              <div className="flex flex-col items-center space-y-3">
+                <Skeleton className="w-24 h-24 rounded-full" />
+                <Skeleton className="h-5 w-44" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-24 w-full rounded-lg" />
+            </div>
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -1122,7 +1167,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               variant="outline"
               onClick={handleRejectQrRequest}
               className="flex-1"
-              disabled={isApprovingQr || isRejectingQr}
+              disabled={isApprovingQr || isRejectingQr || !activeQrRequest}
             >
               <XCircle className="w-4 h-4 mr-2" />
               Reject
@@ -1131,7 +1176,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               onClick={handleApproveQrRequest}
               className="flex-1"
               style={{ backgroundColor: colors.primary }}
-              disabled={isApprovingQr || isRejectingQr}
+              disabled={isApprovingQr || isRejectingQr || !activeQrRequest}
             >
               {isApprovingQr ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
