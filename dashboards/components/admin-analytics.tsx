@@ -684,7 +684,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
               </div>
               <div className="flex gap-2">
                 <Badge variant="outline" className="rounded-full bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-wider">
-                  {stats.activeUserTracking?.last7Days.uniqueStudents || 0} Act. Students (7d)
+                  {stats.activeUserTracking?.last7Days?.uniqueStudents || 0} Act. Students (7d)
                 </Badge>
               </div>
             </div>
@@ -693,11 +693,11 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-3xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                   <p className="text-2xl font-black text-[#007AFF] tracking-tighter">{stats.activeUserTracking?.last30Days.totalRedemptions || 0}</p>
+                   <p className="text-2xl font-black text-[#007AFF] tracking-tighter">{stats.activeUserTracking?.last30Days?.totalRedemptions || 0}</p>
                    <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">30d Redemptions</p>
                 </div>
                 <div className="p-4 rounded-3xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
-                   <p className="text-2xl font-black text-emerald-600 tracking-tighter">{stats.activeUserTracking?.last30Days.uniqueStudents || 0}</p>
+                   <p className="text-2xl font-black text-emerald-600 tracking-tighter">{stats.activeUserTracking?.last30Days?.uniqueStudents || 0}</p>
                    <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">30d Unique Users</p>
                 </div>
               </div>
@@ -706,7 +706,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                 <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Transaction Trends (Last 30 Days)</h4>
                 <div className="h-[200px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={stats.activeUserTracking?.last30Days.dailyBreakdown || []}>
+                    <AreaChart data={stats.activeUserTracking?.last30Days?.dailyBreakdown || []}>
                       <defs>
                         <linearGradient id="activeUserGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3}/>

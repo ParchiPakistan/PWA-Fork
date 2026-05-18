@@ -1534,6 +1534,26 @@ export const getAuditLogById = async (id: string): Promise<AuditLog> => {
 
 // ========== Admin Dashboard Statistics ==========
 
+export interface KycRejectionStats {
+  byReason: { reason: string; count: number }[];
+  byUniversity: { university: string; rejectedCount: number }[];
+  mostFoundIssue: string | null;
+  totalRejected: number;
+}
+
+export interface ActiveUserTracking {
+  last7Days: {
+    uniqueStudents: number;
+    totalRedemptions: number;
+    dailyBreakdown: { date: string; count: number }[];
+  };
+  last30Days: {
+    uniqueStudents: number;
+    totalRedemptions: number;
+    dailyBreakdown: { date: string; count: number }[];
+  };
+}
+
 export interface AdminDashboardStats {
   platformOverview: {
     totalActiveStudents: number;
@@ -1562,6 +1582,8 @@ export interface AdminDashboardStats {
     university: string;
     studentCount: number;
     percentage: number;
+    redemptionCount?: number;
+    engagementScore?: number;
   }[];
   leaderboardTopPerformers: number;
   foundersClubMembers: number;

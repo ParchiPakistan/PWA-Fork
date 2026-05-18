@@ -184,7 +184,7 @@ const TopPerformingMerchants = ({
         {top3.map((merchant, idx) => (
           <div key={merchant.id} className="relative group p-6 rounded-[2rem] bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border border-slate-200/60 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
              <div className="absolute -top-4 -right-4 p-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-700">
-                {getCategoryIcon(merchant.category)}
+                {getCategoryIcon(merchant.category || "")}
              </div>
              <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xs font-black text-[#007AFF] border border-blue-100 dark:border-blue-800">
                 #{idx + 1}
