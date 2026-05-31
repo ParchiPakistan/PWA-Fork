@@ -36,7 +36,7 @@ const hagrid = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Parchi Pakistan! Student Discounts App",
+  title: "Parchi - Pakistan's Student Discount App!",
   description: "Exclusive student discounts and offers across Pakistan.",
   generator: "v0.app",
   icons: {
