@@ -7,13 +7,23 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal, Zap } from "lucide-react"
+import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal, Zap, Tag } from "lucide-react"
+import { AssignBranchOfferDialog } from "./assign-branch-offer-dialog"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { toast } from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { getBranches, approveRejectBranch, updateBranch, deleteBranch, adminResetPassword, AdminBranch } from "@/lib/api-client"
+import {
+  getBranches,
+  approveRejectBranch,
+  updateBranch,
+  deleteBranch,
+  adminResetPassword,
+  getBranchAssignments,
+  getOffers,
+  AdminBranch,
+} from "@/lib/api-client"
 
 export function AdminBranches() {
   const [branches, setBranches] = useState<AdminBranch[]>([])
@@ -48,11 +58,47 @@ export function AdminBranches() {
   const [branchToReject, setBranchToReject] = useState<AdminBranch | null>(null)
   const [isDeletingBranch, setIsDeletingBranch] = useState(false)
 
+  // Offer assignment
+  const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string | null>>({})
+  const [offerTitleById, setOfferTitleById] = useState<Record<string, string>>({})
+  const [assignOfferBranch, setAssignOfferBranch] = useState<AdminBranch | null>(null)
+  const [isAssignOfferOpen, setIsAssignOfferOpen] = useState(false)
+
+  const loadAssignmentsAndOfferTitles = useCallback(async (branchList: AdminBranch[]) => {
+    try {
+      const assignments = await getBranchAssignments()
+      const byBranch: Record<string, string | null> = {}
+      assignments.forEach((a) => {
+        byBranch[a.id] = a.standardOfferId
+      })
+      setAssignmentByBranchId(byBranch)
+
+      const merchantIds = [...new Set(branchList.map((b) => b.merchant_id))]
+      const titles: Record<string, string> = {}
+      await Promise.all(
+        merchantIds.map(async (merchantId) => {
+          try {
+            const res = await getOffers({ merchantId, limit: 100 })
+            for (const offer of res.data?.items ?? []) {
+              titles[offer.id] = offer.title
+            }
+          } catch {
+            /* skip merchant */
+          }
+        }),
+      )
+      setOfferTitleById(titles)
+    } catch (error) {
+      console.error("Failed to load branch offer assignments:", error)
+    }
+  }, [])
+
   const fetchBranches = useCallback(async (search?: string) => {
     try {
       setLoading(true)
       const data = await getBranches({ search })
       setBranches(data)
+      await loadAssignmentsAndOfferTitles(data)
     } catch (error) {
       console.error('Failed to fetch branches:', error)
       toast({
@@ -63,7 +109,16 @@ export function AdminBranches() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, loadAssignmentsAndOfferTitles])
+
+  const openAssignOfferModal = (branch: AdminBranch) => {
+    setAssignOfferBranch(branch)
+    setIsAssignOfferOpen(true)
+  }
+
+  const handleOfferAssigned = () => {
+    fetchBranches(searchQuery)
+  }
 
   useEffect(() => {
     let mounted = true
@@ -260,19 +315,20 @@ export function AdminBranches() {
                     <TableHead>Contact</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>QR Mode</TableHead>
+                    <TableHead>Assigned offer</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : filteredBranches.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         No branches found
                       </TableCell>
                     </TableRow>
@@ -301,6 +357,24 @@ export function AdminBranches() {
                             {branch.qr_auto_approve ? "⚡ Auto" : "👁 Manual"}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          {assignmentByBranchId[branch.id] ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-green-50 text-green-700 border-green-300 max-w-[180px] truncate"
+                              title={offerTitleById[assignmentByBranchId[branch.id]!] ?? undefined}
+                            >
+                              {offerTitleById[assignmentByBranchId[branch.id]!] ?? "Offer linked"}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-amber-50 text-amber-700 border-amber-300"
+                            >
+                              No offer
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -311,6 +385,10 @@ export function AdminBranches() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openAssignOfferModal(branch)}>
+                                <Tag className="mr-2 h-4 w-4 text-violet-600" />
+                                {assignmentByBranchId[branch.id] ? "Change offer" : "Assign offer"}
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEditModal(branch)}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
                               </DropdownMenuItem>
@@ -421,8 +499,27 @@ export function AdminBranches() {
                       >
                         {branch.qr_auto_approve ? "⚡ Auto" : "👁 Manual"}
                       </Badge>
+                      {assignmentByBranchId[branch.id] ? (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                          {offerTitleById[assignmentByBranchId[branch.id]!] ?? "Offer linked"}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                          No offer
+                        </Badge>
+                      )}
                       <span className="text-muted-foreground">{branch.city}</span>
                     </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => openAssignOfferModal(branch)}
+                    >
+                      <Tag className="mr-2 h-4 w-4" />
+                      {assignmentByBranchId[branch.id] ? "Change offer" : "Assign offer"}
+                    </Button>
 
                     <div className="text-sm bg-muted/50 p-3 rounded-md">
                       <div className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact</div>
@@ -558,6 +655,14 @@ export function AdminBranches() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AssignBranchOfferDialog
+        branch={assignOfferBranch}
+        open={isAssignOfferOpen}
+        onOpenChange={setIsAssignOfferOpen}
+        currentOfferId={assignOfferBranch ? assignmentByBranchId[assignOfferBranch.id] ?? null : null}
+        onAssigned={handleOfferAssigned}
+      />
 
       {/* Reject/Delete Confirmation Modal */}
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>

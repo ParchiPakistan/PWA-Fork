@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Download, QrCode, RefreshCw } from "lucide-react"
-import { getBranches, AdminBranch } from "@/lib/api-client"
+import { Search, Download, QrCode, RefreshCw, Tag } from "lucide-react"
+import { getBranches, getBranchAssignments, AdminBranch } from "@/lib/api-client"
+import { AssignBranchOfferDialog } from "./assign-branch-offer-dialog"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { toast } from "sonner"
 
@@ -70,7 +71,17 @@ function downloadQr(branch: AdminBranch) {
   img.src = qrImageUrl(branch.id, 400)
 }
 
-function BranchQrCard({ branch, colors }: { branch: AdminBranch; colors: ReturnType<typeof DASHBOARD_COLORS> }) {
+function BranchQrCard({
+  branch,
+  colors,
+  assignedOfferId,
+  onAssignOffer,
+}: {
+  branch: AdminBranch
+  colors: ReturnType<typeof DASHBOARD_COLORS>
+  assignedOfferId: string | null
+  onAssignOffer: (branch: AdminBranch) => void
+}) {
   return (
     <Card className="flex flex-col border-2 hover:shadow-md transition-shadow" style={{ borderColor: `${colors.primary}20` }}>
       <CardHeader className="pb-3">
@@ -88,6 +99,11 @@ function BranchQrCard({ branch, colors }: { branch: AdminBranch; colors: ReturnT
           </Badge>
           {!branch.is_active && (
             <Badge variant="destructive" className="text-[10px]">Inactive</Badge>
+          )}
+          {!assignedOfferId && branch.is_active && (
+            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300">
+              No offer — QR won&apos;t redeem
+            </Badge>
           )}
         </div>
       </CardHeader>
@@ -107,6 +123,15 @@ function BranchQrCard({ branch, colors }: { branch: AdminBranch; colors: ReturnT
         </p>
 
         <Button
+          onClick={() => onAssignOffer(branch)}
+          variant="outline"
+          className="w-full gap-2 border-2"
+          style={{ borderColor: `${colors.primary}40`, color: colors.primary }}
+        >
+          <Tag className="w-4 h-4" />
+          {assignedOfferId ? "Change offer" : "Assign offer"}
+        </Button>
+        <Button
           onClick={() => downloadQr(branch)}
           variant="outline"
           className="w-full gap-2 border-2 mt-auto"
@@ -125,12 +150,23 @@ export function AdminQrCodes() {
   const [branches, setBranches] = useState<AdminBranch[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string | null>>({})
+  const [assignOfferBranch, setAssignOfferBranch] = useState<AdminBranch | null>(null)
+  const [isAssignOfferOpen, setIsAssignOfferOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getBranches({})
+      const [data, assignments] = await Promise.all([
+        getBranches({}),
+        getBranchAssignments().catch(() => []),
+      ])
       setBranches(data)
+      const byBranch: Record<string, string | null> = {}
+      assignments.forEach((a) => {
+        byBranch[a.id] = a.standardOfferId
+      })
+      setAssignmentByBranchId(byBranch)
     } catch {
       toast.error("Failed to load branches")
     } finally {
@@ -209,7 +245,16 @@ export function AdminQrCodes() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {activeBranches.map((b) => (
-                  <BranchQrCard key={b.id} branch={b} colors={colors} />
+                  <BranchQrCard
+                    key={b.id}
+                    branch={b}
+                    colors={colors}
+                    assignedOfferId={assignmentByBranchId[b.id] ?? null}
+                    onAssignOffer={(branch) => {
+                      setAssignOfferBranch(branch)
+                      setIsAssignOfferOpen(true)
+                    }}
+                  />
                 ))}
               </div>
             </section>
@@ -222,13 +267,30 @@ export function AdminQrCodes() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {inactiveBranches.map((b) => (
-                  <BranchQrCard key={b.id} branch={b} colors={colors} />
+                  <BranchQrCard
+                    key={b.id}
+                    branch={b}
+                    colors={colors}
+                    assignedOfferId={assignmentByBranchId[b.id] ?? null}
+                    onAssignOffer={(branch) => {
+                      setAssignOfferBranch(branch)
+                      setIsAssignOfferOpen(true)
+                    }}
+                  />
                 ))}
               </div>
             </section>
           )}
         </>
       )}
+
+      <AssignBranchOfferDialog
+        branch={assignOfferBranch}
+        open={isAssignOfferOpen}
+        onOpenChange={setIsAssignOfferOpen}
+        currentOfferId={assignOfferBranch ? assignmentByBranchId[assignOfferBranch.id] ?? null : null}
+        onAssigned={load}
+      />
     </div>
   )
 }
