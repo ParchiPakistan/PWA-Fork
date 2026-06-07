@@ -33,7 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SupabaseStorageService } from "@/lib/storage"
-import { sendBroadcastNotification, sendQueueItem, getNotificationTargets, NotificationQueueItem } from "@/lib/api-client"
+import { sendBroadcastNotification, sendQueueItem, getNotificationTargets, getNotificationEstimate, NotificationQueueItem } from "@/lib/api-client"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useNotificationQueue, useNotificationHistory } from "@/hooks/use-notifications"
 import { Loader2, Image as ImageIcon, X, Send, RefreshCw, Eye } from "lucide-react"
@@ -81,6 +82,9 @@ function NotificationCompose() {
   const [isUploading, setIsUploading] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isLoadingTargets, setIsLoadingTargets] = useState(true)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [estimatedRecipients, setEstimatedRecipients] = useState<number | null>(null)
+  const [isLoadingEstimate, setIsLoadingEstimate] = useState(false)
 
   useEffect(() => {
     const fetchTargets = async () => {
@@ -124,9 +128,15 @@ function NotificationCompose() {
     setFormData(prev => ({ ...prev, imageUrl: "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png" }))
   }
 
+  const getTargetLabel = () => {
+    if (formData.targetType === "university") return formData.targetValue || "Selected university"
+    if (formData.targetType === "founders_club") return "Founders Club members"
+    return "All students"
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.title.trim() || !formData.content.trim()) {
       toast({
         variant: "destructive",
@@ -145,6 +155,22 @@ function NotificationCompose() {
       return
     }
 
+    setIsLoadingEstimate(true)
+    try {
+      const estimate = await getNotificationEstimate(
+        formData.targetType,
+        formData.targetType === "university" ? formData.targetValue : undefined,
+      )
+      setEstimatedRecipients(estimate.data?.count ?? null)
+    } catch {
+      setEstimatedRecipients(null)
+    } finally {
+      setIsLoadingEstimate(false)
+      setIsConfirmOpen(true)
+    }
+  }
+
+  const handleConfirmSend = async () => {
     setIsSending(true)
     try {
       const defaultImageUrl = "https://zjghfwnrzazmukykgyhh.supabase.co/storage/v1/object/public/logo/parchi-app-icon.png"
@@ -159,10 +185,9 @@ function NotificationCompose() {
 
       toast({
         title: "Notification Sent",
-        description: `Notification sent successfully to ${formData.targetType === 'all' ? 'all users' : formData.targetValue || formData.targetType}.`,
+        description: `Notification sent successfully to ${getTargetLabel()}.`,
       })
 
-      // Reset form
       setFormData({
         title: "",
         content: "",
@@ -171,6 +196,7 @@ function NotificationCompose() {
         targetType: "all",
         targetValue: "",
       })
+      setIsConfirmOpen(false)
     } catch (error) {
       console.error("Failed to send notification:", error)
       toast({
@@ -324,11 +350,11 @@ function NotificationCompose() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSending || isUploading}>
-            {isSending ? (
+          <Button type="submit" className="w-full" disabled={isSending || isUploading || isLoadingEstimate}>
+            {isLoadingEstimate ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending Broadcast...
+                Preparing Preview...
               </>
             ) : (
               <>
@@ -338,6 +364,48 @@ function NotificationCompose() {
             )}
           </Button>
         </form>
+
+        <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+          <AlertDialogContent className="max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Broadcast</AlertDialogTitle>
+              <AlertDialogDescription>
+                Review your notification before sending to {getTargetLabel()}
+                {estimatedRecipients !== null && ` (~${estimatedRecipients.toLocaleString()} recipients)`}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="mx-auto w-[280px] rounded-2xl border bg-slate-50 p-3 shadow-inner">
+              <div className="rounded-xl bg-white p-3 shadow-sm border">
+                <div className="flex items-start gap-2">
+                  {formData.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={formData.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{formData.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-3 mt-0.5">{formData.content}</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-center text-muted-foreground mt-2">Preview on device</p>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmSend} disabled={isSending}>
+                {isSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Confirm Send"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )
@@ -347,6 +415,9 @@ function NotificationQueue() {
   const { queue, loading, error, refetch } = useNotificationQueue()
   const { toast } = useToast()
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<"all" | "broadcast" | "redemption">("all")
+
+  const filteredQueue = typeFilter === "redemption" ? [] : queue
 
   const handlePush = async (item: NotificationQueueItem) => {
     if (sendingId) return
@@ -390,10 +461,22 @@ function NotificationQueue() {
               Manage pending and scheduled notifications.
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={typeFilter} onValueChange={(v: "all" | "broadcast" | "redemption") => setTypeFilter(v)}>
+              <SelectTrigger className="w-[160px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="broadcast">Broadcasts</SelectItem>
+                <SelectItem value="redemption">Redemptions</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -403,7 +486,11 @@ function NotificationQueue() {
           </div>
         ) : error ? (
           <div className="text-center py-8 text-destructive">{error}</div>
-        ) : (queue?.length || 0) === 0 ? (
+        ) : typeFilter === "redemption" ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Queue items are broadcast suggestions only. Redemption notifications appear in History.
+          </div>
+        ) : (filteredQueue?.length || 0) === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No notifications in the queue.
           </div>
@@ -420,7 +507,7 @@ function NotificationQueue() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {queue.map((item) => (
+              {filteredQueue.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
                     <div>{item.title}</div>
@@ -466,7 +553,9 @@ function NotificationQueue() {
 
 function NotificationHistory() {
   const [page, setPage] = useState(1)
-  const { history, meta, loading, error, refetch } = useNotificationHistory(page, 10)
+  const [typeFilter, setTypeFilter] = useState<"all" | "broadcast" | "redemption">("all")
+  const apiTypeFilter = typeFilter === "all" ? undefined : typeFilter
+  const { history, meta, loading, error, refetch } = useNotificationHistory(page, 10, apiTypeFilter)
 
   const totalPages = meta ? meta.last_page : 1
 
@@ -522,10 +611,22 @@ function NotificationHistory() {
               View past broadcast notifications.
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch(page)}>
-             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-             Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={typeFilter} onValueChange={(v: "all" | "broadcast" | "redemption") => { setTypeFilter(v); setPage(1) }}>
+              <SelectTrigger className="w-[160px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="broadcast">Broadcasts</SelectItem>
+                <SelectItem value="redemption">Redemptions</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => refetch(page)}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -537,7 +638,7 @@ function NotificationHistory() {
           <div className="text-center py-8 text-destructive">{error}</div>
         ) : (history?.length || 0) === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No history found.
+            No history found{typeFilter !== "all" ? ` for ${typeFilter} notifications` : ""}.
           </div>
         ) : (
           <div className="space-y-4">

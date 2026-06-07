@@ -57,7 +57,11 @@ interface UseNotificationHistoryResult {
   refetch: (page?: number, limit?: number) => Promise<void>
 }
 
-export function useNotificationHistory(initialPage = 1, initialLimit = 10): UseNotificationHistoryResult {
+export function useNotificationHistory(
+  initialPage = 1,
+  initialLimit = 10,
+  typeFilter?: 'broadcast' | 'redemption',
+): UseNotificationHistoryResult {
   const [history, setHistory] = useState<NotificationHistoryItem[]>([])
   const [meta, setMeta] = useState<PaginationMeta | null>(null)
   const [loading, setLoading] = useState(true)
@@ -68,7 +72,7 @@ export function useNotificationHistory(initialPage = 1, initialLimit = 10): UseN
     setLoading(true)
     setError(null)
     try {
-      const response = await getNotificationHistory(page, limit)
+      const response = await getNotificationHistory(page, limit, typeFilter)
       setHistory(response.data?.data || [])
       setMeta(response.data?.meta || null)
     } catch (err: any) {
@@ -83,7 +87,7 @@ export function useNotificationHistory(initialPage = 1, initialLimit = 10): UseN
     } finally {
       setLoading(false)
     }
-  }, [initialPage, initialLimit, toast])
+  }, [initialPage, initialLimit, typeFilter, toast])
 
   useEffect(() => {
     fetchHistory()

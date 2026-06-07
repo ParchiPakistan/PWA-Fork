@@ -27,6 +27,7 @@ import type { Student, UpdateStudentAdminRequest, Institute, AdminDashboardStats
 import { getActiveInstitutes } from "@/lib/api-client"
 
 import { AdminInstitutesDialog } from "./admin-institutes-dialog"
+import { AdminSelfieChanges } from "./admin-selfie-changes"
 import { cn } from "@/lib/utils"
 
 export function AdminKYC({
@@ -56,7 +57,9 @@ export function AdminKYC({
   const [pendingPage, setPendingPage] = useState(1)
   const [allPage, setAllPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'expired' | undefined>(undefined)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState<"pending" | "all" | "selfie">("pending")
+  const [pendingSearch, setPendingSearch] = useState("")
+  const [allSearch, setAllSearch] = useState("")
   const [instituteQuery, setInstituteQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [debouncedInstitute, setDebouncedInstitute] = useState("")
@@ -85,18 +88,26 @@ export function AdminKYC({
       .catch(() => { /* non-critical */ })
   }, [])
 
-  // Debounce search and institute queries
+  // Debounce all-students search and institute queries only (server-side)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery)
+      setDebouncedSearch(allSearch)
       setDebouncedInstitute(instituteQuery)
-      // Reset to page 1 when search or institute changes
-      if (searchQuery !== debouncedSearch || instituteQuery !== debouncedInstitute) {
-        setAllPage(1)
-      }
-    }, 500) // Increased debounce time for both
+      setAllPage(1)
+    }, 500)
     return () => clearTimeout(timer)
-  }, [searchQuery, instituteQuery, debouncedSearch, debouncedInstitute]) // Added debounced values to dependencies to trigger page reset correctly
+  }, [allSearch, instituteQuery])
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as "pending" | "all" | "selfie")
+    setPendingSearch("")
+    setAllSearch("")
+    setInstituteQuery("")
+    setDebouncedSearch("")
+    setDebouncedInstitute("")
+    setPendingPage(1)
+    setAllPage(1)
+  }
 
   // Memoize filters object to prevent unnecessary re-renders
   const allStudentsFilters = useMemo(() => ({
@@ -319,46 +330,60 @@ export function AdminKYC({
                 <div className="space-y-5">
                   <div className="space-y-2.5">
                     <Label className="text-[10px] font-black uppercase text-slate-500 ml-2 tracking-[0.1em]">Target Institution *</Label>
-                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className="w-full h-14 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 justify-between font-bold text-sm shadow-sm hover:bg-slate-50 transition-all px-5"
-                        >
-                          <span className="truncate">
-                            {selectedInstituteId
-                              ? availableInstitutes.find((inst) => inst.id === selectedInstituteId)?.name
-                              : "Select verified institute"}
-                          </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] md:w-[350px] p-0 rounded-2xl border-2 shadow-2xl" align="start">
-                        <Command className="rounded-xl">
-                          <CommandInput placeholder="Search..." className="h-12 font-bold" />
-                          <CommandList className="max-h-[300px]">
-                            <CommandEmpty className="py-6 text-center text-sm font-bold text-slate-500">No institute found.</CommandEmpty>
-                            <CommandGroup>
-                              {availableInstitutes.map((inst) => (
-                                <CommandItem
-                                  key={inst.id}
-                                  value={inst.name}
-                                  onSelect={() => {
-                                    setSelectedInstituteId(inst.id === selectedInstituteId ? "" : inst.id)
-                                    setIsComboboxOpen(false)
-                                  }}
-                                  className="py-3 px-4 rounded-xl my-1 mx-1 font-bold cursor-pointer"
-                                >
-                                  <Check className={cn("mr-3 h-4 w-4 text-[#007AFF]", selectedInstituteId === inst.id ? "opacity-100" : "opacity-0")} />
-                                  {inst.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    {/* Mobile: native select with large tap targets */}
+                    <select
+                      className="md:hidden w-full h-14 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 font-bold text-base px-5 shadow-sm"
+                      value={selectedInstituteId}
+                      onChange={(e) => setSelectedInstituteId(e.target.value)}
+                    >
+                      <option value="">Select verified institute</option>
+                      {availableInstitutes.map((inst) => (
+                        <option key={inst.id} value={inst.id}>{inst.name}</option>
+                      ))}
+                    </select>
+                    {/* Desktop: searchable combobox */}
+                    <div className="hidden md:block">
+                      <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full h-14 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 justify-between font-bold text-sm shadow-sm hover:bg-slate-50 transition-all px-5"
+                          >
+                            <span className="truncate">
+                              {selectedInstituteId
+                                ? availableInstitutes.find((inst) => inst.id === selectedInstituteId)?.name
+                                : "Select verified institute"}
+                            </span>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[350px] p-0 rounded-2xl border-2 shadow-2xl" align="start">
+                          <Command className="rounded-xl">
+                            <CommandInput placeholder="Search..." className="h-12 font-bold" />
+                            <CommandList className="max-h-[300px]">
+                              <CommandEmpty className="py-6 text-center text-sm font-bold text-slate-500">No institute found.</CommandEmpty>
+                              <CommandGroup>
+                                {availableInstitutes.map((inst) => (
+                                  <CommandItem
+                                    key={inst.id}
+                                    value={inst.name}
+                                    onSelect={() => {
+                                      setSelectedInstituteId(inst.id === selectedInstituteId ? "" : inst.id)
+                                      setIsComboboxOpen(false)
+                                    }}
+                                    className="py-3 px-4 rounded-xl my-1 mx-1 font-bold cursor-pointer"
+                                  >
+                                    <Check className={cn("mr-3 h-4 w-4 text-[#007AFF]", selectedInstituteId === inst.id ? "opacity-100" : "opacity-0")} />
+                                    {inst.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
 
                   <div className="space-y-2.5">
@@ -771,22 +796,12 @@ export function AdminKYC({
     }
   }
 
-  // Server-side search is now handled by the API, but keep client-side filtering as fallback
-  // This will be removed once backend search is fully implemented
-  const filteredAllStudents = allStudents.filter((student) =>
-    !searchQuery.trim() ||
-    `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.parchiId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.university.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
   const filteredPendingStudents = pendingStudents.filter((student) =>
-    !searchQuery.trim() ||
-    `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.parchiId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.university.toLowerCase().includes(searchQuery.toLowerCase())
+    !pendingSearch.trim() ||
+    `${student.firstName} ${student.lastName}`.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    student.email.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    student.parchiId.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    student.university.toLowerCase().includes(pendingSearch.toLowerCase())
   )
 
   // Client-side grouping logic for segmentation
@@ -910,7 +925,7 @@ export function AdminKYC({
 
       <AdminInstitutesDialog open={isInstitutesDialogOpen} onOpenChange={setIsInstitutesDialogOpen} />
 
-      <Tabs defaultValue="pending" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <div className="overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
           <TabsList className="w-full sm:w-auto inline-flex min-w-max">
             <TabsTrigger value="pending" className="flex-1 sm:flex-none px-4 font-bold">
@@ -918,6 +933,9 @@ export function AdminKYC({
             </TabsTrigger>
             <TabsTrigger value="all" className="flex-1 sm:flex-none px-4 font-bold">
               All Students {allPagination ? `(${allPagination.total})` : ''}
+            </TabsTrigger>
+            <TabsTrigger value="selfie" className="flex-1 sm:flex-none px-4 font-bold">
+              Selfie Changes
             </TabsTrigger>
           </TabsList>
         </div>
@@ -944,14 +962,14 @@ export function AdminKYC({
                   <Input
                     placeholder="Search pending students..."
                     className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={pendingSearch}
+                    onChange={(e) => setPendingSearch(e.target.value)}
                   />
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {pendingStudents.map((student) => (
+                {filteredPendingStudents.map((student) => (
                   <div key={student.id} className="group relative p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-1 transition-all duration-500 overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
@@ -1142,8 +1160,8 @@ export function AdminKYC({
                       <Input
                         placeholder="Search students..."
                         className="pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        value={allSearch}
+                        onChange={(e) => setAllSearch(e.target.value)}
                       />
                     </div>
                     <div className="relative flex-1">
@@ -1238,16 +1256,16 @@ export function AdminKYC({
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   <span className="ml-2 text-muted-foreground text-sm font-medium">Synchronizing student records...</span>
                 </div>
-              ) : filteredAllStudents.length === 0 ? (
+              ) : allStudents.length === 0 ? (
                 <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border-2 border-dashed">
                   <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-4">
                     <Search className="w-6 h-6" />
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">No results found</h3>
                   <p className="text-xs text-muted-foreground mt-1 px-4">
-                    {searchQuery ? `We couldn't find any students matching "${searchQuery}".` : 'Your student database is currently empty.'}
+                    {allSearch ? `We couldn't find any students matching "${allSearch}".` : 'Your student database is currently empty.'}
                   </p>
-                  <Button variant="link" className="mt-2 text-blue-600" onClick={() => { setSearchQuery(""); setInstituteQuery(""); setStatusFilter(undefined); }}>
+                  <Button variant="link" className="mt-2 text-blue-600" onClick={() => { setAllSearch(""); setInstituteQuery(""); setStatusFilter(undefined); }}>
                     Clear all filters
                   </Button>
                 </div>
@@ -1305,7 +1323,7 @@ export function AdminKYC({
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredAllStudents.map((student) => (
+                            {allStudents.map((student) => (
                               <TableRow key={student.id}>
                                 <TableCell className="font-medium">
                                   {student.firstName} {student.lastName}
@@ -1442,6 +1460,10 @@ export function AdminKYC({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="selfie" className="space-y-4">
+          <AdminSelfieChanges />
         </TabsContent>
       </Tabs>
 

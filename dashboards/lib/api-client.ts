@@ -2113,16 +2113,33 @@ export const getNotificationQueue = async (status?: string): Promise<GetQueueRes
 /**
  * Get notification history
  */
-export const getNotificationHistory = async (page: number = 1, limit: number = 10): Promise<GetHistoryResponse> => {
+export const getNotificationHistory = async (
+  page: number = 1,
+  limit: number = 10,
+  type?: 'broadcast' | 'redemption',
+): Promise<GetHistoryResponse> => {
   const queryParams = new URLSearchParams();
   queryParams.append('page', page.toString());
   queryParams.append('limit', limit.toString());
+  if (type) queryParams.append('type', type);
 
   const endpoint = `/admin/notifications/history?${queryParams.toString()}`;
   const response = await apiRequest(endpoint, {
     method: 'GET',
   });
   return response;
+};
+
+export const getNotificationEstimate = async (
+  targetType: string,
+  targetValue?: string,
+): Promise<{ data: { count: number } }> => {
+  const queryParams = new URLSearchParams();
+  queryParams.append('targetType', targetType);
+  if (targetValue) queryParams.append('targetValue', targetValue);
+  return apiRequest(`/admin/notifications/estimate?${queryParams.toString()}`, {
+    method: 'GET',
+  });
 };
 
 /**
@@ -2340,6 +2357,7 @@ export interface QrPendingRequest {
     verificationStatus: string;
     totalRedemptions: number;
     profilePicture: string | null;
+    verificationSelfie: string | null;
   };
   offer: {
     id: string;
@@ -2378,5 +2396,39 @@ export const rejectQrRequest = async (requestId: string, rejectionReason?: strin
   await apiRequest(`/qr-redemptions/${requestId}/reject`, {
     method: 'PATCH',
     body: JSON.stringify({ rejectionReason }),
+  });
+};
+
+export interface SelfieChangeRequest {
+  id: string;
+  status: string;
+  newSelfiePath: string;
+  adminNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  student: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    parchiId: string | null;
+    university: string;
+    verificationSelfie: string | null;
+    idCardFrontPath: string | null;
+  };
+}
+
+export const getSelfieChangeRequests = async (status = 'pending'): Promise<SelfieChangeRequest[]> => {
+  const response = await apiRequest(`/admin/selfie-change-requests?status=${status}`, { method: 'GET' });
+  return response.data;
+};
+
+export const resolveSelfieChangeRequest = async (
+  id: string,
+  action: 'approve' | 'reject',
+  adminNote?: string,
+): Promise<void> => {
+  await apiRequest(`/admin/selfie-change-requests/${id}/resolve`, {
+    method: 'PUT',
+    body: JSON.stringify({ action, adminNote }),
   });
 };

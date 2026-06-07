@@ -1110,7 +1110,7 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
               {/* Student info */}
               <div className="flex flex-col items-center text-center space-y-3">
                 <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
-                  <AvatarImage src={activeQrRequest.student.profilePicture || ""} />
+                  <AvatarImage src={activeQrRequest.student.verificationSelfie || activeQrRequest.student.profilePicture || ""} />
                   <AvatarFallback className="text-2xl bg-muted">
                     {activeQrRequest.student.firstName[0]}{activeQrRequest.student.lastName[0]}
                   </AvatarFallback>

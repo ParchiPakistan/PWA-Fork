@@ -85,10 +85,8 @@ function BranchQrCard({
   return (
     <Card className="flex flex-col border-2 hover:shadow-md transition-shadow" style={{ borderColor: `${colors.primary}20` }}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base leading-tight">{branch.branch_name}</CardTitle>
-        {branch.merchant?.business_name && (
-          <CardDescription className="text-xs truncate">{branch.merchant.business_name}</CardDescription>
-        )}
+        <CardTitle className="text-base leading-tight">{branch.merchant?.business_name || branch.branch_name}</CardTitle>
+        <CardDescription className="text-xs truncate">{branch.branch_name}</CardDescription>
         <div className="flex items-center gap-2 flex-wrap mt-1">
           <Badge variant="outline" className="text-[10px]">{branch.city}</Badge>
           <Badge

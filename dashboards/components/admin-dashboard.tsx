@@ -23,6 +23,8 @@ import {
 import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
 import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw, School, Search, Utensils, ShoppingBag, Sparkles, Ticket, Heart, ShieldCheck, UserPlus, Clock, Ban } from "lucide-react"
 
+const fmtGrowth = (v: number) => `${v > 0 ? "+" : ""}${v}%`
+
 // Premium Metric Card Component
 const MetricCard = ({ title, value, subtitle, icon: Icon, color }: { title: string, value: any, subtitle: string, icon: any, color: string }) => (
   <div className="relative group p-5 md:p-7 rounded-[2rem] md:rounded-[2.5rem] bg-white/70 dark:bg-slate-900/70 border border-white/40 dark:border-slate-800/40 shadow-2xl shadow-slate-200/50 dark:shadow-none backdrop-blur-xl transition-all duration-700 overflow-hidden hover:-translate-y-2 hover:shadow-indigo-500/10">
@@ -730,14 +732,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                        <MetricCard 
                          title="Total Active Students" 
                          value={stats?.platformOverview?.totalActiveStudents || 0} 
-                         subtitle={`+${stats?.platformOverview?.totalActiveStudentsGrowth || 0}% MoM Growth`} 
+                         subtitle={`${fmtGrowth(stats?.platformOverview?.totalActiveStudentsGrowth || 0)} MoM Growth`} 
                          icon={UserPlus} 
                          color="#007AFF" 
                        />
                        <MetricCard 
                          title="Verified Merchants" 
                          value={stats?.platformOverview?.totalVerifiedMerchants || 0} 
-                         subtitle={`+${stats?.platformOverview?.totalVerifiedMerchantsGrowth || 0}% this month`} 
+                         subtitle={`${fmtGrowth(stats?.platformOverview?.totalVerifiedMerchantsGrowth || 0)} this month`} 
                          icon={ShieldCheck} 
                          color="#10b981" 
                        />

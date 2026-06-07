@@ -61,6 +61,7 @@ export function AdminStudents({
   
   // Filters
   const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [university, setUniversity] = useState<string | undefined>(undefined)
   const [gender, setGender] = useState<string | undefined>(undefined)
   const [kycStatuses, setKycStatuses] = useState<string[]>([])
@@ -86,10 +87,18 @@ export function AdminStudents({
 
 
   // Fetch data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const filters = useMemo(() => ({
     page,
     limit,
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     university,
     gender,
     kycStatus: kycStatuses.length > 0 ? kycStatuses.join(',') : undefined,
@@ -99,7 +108,7 @@ export function AdminStudents({
     dateTo: dateRange?.to ? dateRange.to.toISOString() : undefined,
     hasRedeemed,
     foundersClub
-  }), [page, limit, search, university, gender, kycStatuses, minRedemptions, maxRedemptions, dateRange, hasRedeemed, foundersClub])
+  }), [page, limit, debouncedSearch, university, gender, kycStatuses, minRedemptions, maxRedemptions, dateRange, hasRedeemed, foundersClub])
 
   const { students, loading, error, pagination, refetch } = useAllStudents(filters)
   const { updateStatus } = useUpdateStudentStatus()
@@ -122,6 +131,7 @@ export function AdminStudents({
 
   const handleResetFilters = () => {
     setSearch("")
+    setDebouncedSearch("")
     setUniversity(undefined)
     setGender(undefined)
     setKycStatuses([])
@@ -275,7 +285,7 @@ export function AdminStudents({
                     placeholder="Name, ID, Email..." 
                     className="pl-9"
                     value={search}
-                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                    onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
               </div>
