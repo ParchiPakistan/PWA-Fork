@@ -90,6 +90,7 @@ import { AdminBrandPortfolio } from "./admin-brand-portfolio"
 import { AdminStudents } from "./admin-students"
 import { AdminQrCodes } from "./admin-qr-codes"
 import { getAdminDashboardStats, getTopPerformingMerchants, AdminDashboardStats, getSignupDropoff, SignupDropoff } from "@/lib/api-client"
+import { orderStagesForChart, signupStepNumber } from "@/lib/signup-funnel-display"
 
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -485,8 +486,6 @@ const UniversityInsights = ({
 
 // Signup Dropoff Analysis Component
 const SignupDropoffSection = ({ data, isLoading }: { data: SignupDropoff | null, isLoading: boolean }) => {
-  const [showAll, setShowAll] = useState(false);
-  
   if (isLoading && !data) {
     return (
       <div className="mb-12">
@@ -501,7 +500,7 @@ const SignupDropoffSection = ({ data, isLoading }: { data: SignupDropoff | null,
 
   if (!data) return null;
 
-  const displayedStages = showAll ? data.stages : data.stages.slice(0, 3);
+  const displayedStages = orderStagesForChart(data.stages);
 
   return (
     <div className="mb-12">
@@ -524,11 +523,18 @@ const SignupDropoffSection = ({ data, isLoading }: { data: SignupDropoff | null,
                 <div className="relative z-10 flex items-center justify-between p-4 rounded-2xl border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center font-black text-indigo-600 text-xs">
-                      {idx + 1}
+                      {signupStepNumber(stage.stage) || idx + 1}
                     </div>
                     <div>
                       <p className="font-black text-slate-900 dark:text-white text-base">{stage.stage}</p>
                       <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">{stage.count.toLocaleString()} Users</p>
+                      {stage.stage === 'Submitted for KYC' && stage.kycStatusBreakdown && (
+                        <p className="text-[10px] font-medium text-slate-400 mt-0.5">
+                          <span className="text-amber-500">{stage.kycStatusBreakdown.pending.toLocaleString()} still pending</span>
+                          {' · '}
+                          <span className="text-red-500">{stage.kycStatusBreakdown.rejected.toLocaleString()} rejected</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                   
@@ -551,23 +557,6 @@ const SignupDropoffSection = ({ data, isLoading }: { data: SignupDropoff | null,
               </div>
             ))}
           </div>
-          
-          {data.stages.length > 3 && (
-            <div className="mt-8 flex justify-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowAll(!showAll)}
-                className="rounded-full px-6 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 text-indigo-600"
-              >
-                {showAll ? (
-                  <>Show Less <ChevronUp className="ml-2 w-4 h-4" /></>
-                ) : (
-                  <>Show All Stages <ChevronDown className="ml-2 w-4 h-4" /></>
-                )}
-              </Button>
-            </div>
-          )}
         </div>
       </Card>
     </div>
@@ -835,7 +824,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             )}
 
           {activeTab === "analytics" && (
-            <AdminAnalytics stats={stats} isFiltered={!!dateRange?.from} key={lastUpdated.getTime()} />
+            <AdminAnalytics stats={stats} signupFunnel={funnelData} isFiltered={!!dateRange?.from} key={lastUpdated.getTime()} />
           )}
 
           {activeTab === "redemption-engine" && (

@@ -1682,6 +1682,7 @@ export interface AdminDashboardStats {
     step: string;
     count: number;
   }[];
+  /** @deprecated Use GET /admin/dashboard/signup-funnel (DB-state) instead */
   onboardingDropoff?: {
     step: string;
     count: number;
@@ -2321,7 +2322,38 @@ export interface SignupDropoff {
     count: number;
     percentOfTotal: number;
     dropoffPct: number;
+    exits: number;
+    previousStage: string | null;
+    previousCount: number | null;
+    /** Share of email-verified students — set for KYC outcome stages only */
+    shareOfPreviousPct?: number | null;
+    stageType?: 'progression' | 'outcome';
+    /** Pending vs rejected counts on the Submitted for KYC stage */
+    kycStatusBreakdown?: {
+      pending: number;
+      rejected: number;
+    };
   }[];
+  /** Student rows with no student_kyc record — excluded from funnel counts */
+  excludedLegacyAccounts?: number;
+  /** All students rows in DB (funnel + excluded) */
+  totalStudentsInDb?: number;
+  /** Students at email-verified stage who are not yet KYC approved */
+  kycBreakdown?: {
+    approved: number;
+    pending: number;
+    rejected: number;
+    /** Rejected status on student row but no admin reviewer on KYC record */
+    rejectedStatusOnly?: number;
+  };
+  /** Unique KYC-approved funnel students with at least one redemption (database) */
+  firstRedemption?: {
+    count: number;
+    exits: number;
+    dropoffPct: number;
+    previousStage: string;
+    previousCount: number;
+  };
 }
 
 /**

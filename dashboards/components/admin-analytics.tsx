@@ -16,24 +16,45 @@ import {
   Legend,
   AreaChart,
   Area,
+  ComposedChart,
+  Line,
 } from "recharts"
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { AdminDashboardStats } from "@/lib/api-client"
+import { AdminDashboardStats, SignupDropoff } from "@/lib/api-client"
+import { orderStagesForChart } from "@/lib/signup-funnel-display"
 import { TrendingUp, Users, Smartphone, Target, ArrowDownRight, Info, Apple, Download, UserPlus, ShieldCheck, Ticket } from "lucide-react"
 
 interface AdminAnalyticsProps {
   stats: AdminDashboardStats | null
+  signupFunnel?: SignupDropoff | null
   isFiltered?: boolean
 }
 
-export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
+export function AdminAnalytics({ stats, signupFunnel, isFiltered }: AdminAnalyticsProps) {
   const colors = DASHBOARD_COLORS("admin")
 
   if (!stats) return null
 
   // Process data with safety checks
   const funnelData = stats.funnelStats || []
-  const dropoffData = stats.onboardingDropoff || []
+  const dropoffData = signupFunnel?.stages?.map((s) => ({
+    step: s.stage,
+    count: s.count,
+    dropoffPct: s.dropoffPct,
+    percentOfTotal: s.percentOfTotal,
+    exits: s.exits ?? 0,
+    previousStage: s.previousStage ?? null,
+    previousCount: s.previousCount ?? null,
+    shareOfPreviousPct: s.shareOfPreviousPct ?? null,
+    stageType: s.stageType ?? 'progression',
+    kycStatusBreakdown: s.kycStatusBreakdown ?? null,
+  })) || []
+  const excludedLegacyAccounts = signupFunnel?.excludedLegacyAccounts ?? 0
+  const funnelChartData = orderStagesForChart(dropoffData).map((s) => ({
+    name: s.step,
+    count: s.count,
+  }))
+  const funnelEntryCount = dropoffData[0]?.count ?? 0
   const platformData = stats.platformDistribution || []
   const kycByReason = stats.kycRejectionStats?.byReason || []
   const kycByUniversity = stats.kycRejectionStats?.byUniversity || []
@@ -53,59 +74,88 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
   const signupStarted = funnelData.find(s => s.step === 'Student Info Started')?.count || 0
   const kycSubmitted = funnelData.find(s => s.step === 'Kyc Submitted')?.count || 0
   const accountVerified = funnelData.find(s => s.step === 'Account Verified')?.count || 0
-  const firstRedemptions = funnelData.find(s => s.step === 'First Redemption')?.count || 0
+  const firstRedemptions = signupFunnel?.firstRedemption?.count ?? 0
   const approvedStudents = stats.platformOverview?.totalActiveStudents || 0
   const overallConversion = approvedStudents > 0 ? ((firstRedemptions / approvedStudents) * 100).toFixed(1) : "0"
 
+  const kycRejectedStatusOnly = signupFunnel?.kycBreakdown?.rejectedStatusOnly ?? 0
+  const kycApprovedCount = dropoffData.find((s) => s.step === 'KYC Approved')?.count ?? 0
+  const firstRedemptionMeta = signupFunnel?.firstRedemption
+  const firstRedemptionExits = firstRedemptionMeta?.exits ?? Math.max(0, kycApprovedCount - firstRedemptions)
+  const firstRedemptionDropoffPct = firstRedemptionMeta?.dropoffPct ??
+    (kycApprovedCount > 0 ? Math.round((firstRedemptionExits / kycApprovedCount) * 1000) / 10 : 0)
 
-  // Find biggest drop-off point
+  // DB signup stages + First Redemption (unique approved students who redeemed)
+  const acquisitionStages = [
+    ...dropoffData,
+    {
+      step: 'First Redemption',
+      count: firstRedemptions,
+      percentOfTotal:
+        funnelEntryCount > 0 ? Math.round((firstRedemptions / funnelEntryCount) * 1000) / 10 : 0,
+      dropoffPct: firstRedemptionDropoffPct,
+      exits: firstRedemptionExits,
+      previousStage: 'KYC Approved' as string | null,
+      previousCount: firstRedemptionMeta?.previousCount ?? kycApprovedCount,
+      stageType: 'progression' as const,
+    },
+  ]
+
+  const acquisitionFunnelData = [
+    ...orderStagesForChart(dropoffData).map((item) => ({
+      step: item.step,
+      count: item.count,
+      visualCount: item.count,
+      percentage: funnelEntryCount > 0 ? ((item.count / funnelEntryCount) * 100).toFixed(1) : '0',
+    })),
+    {
+      step: 'First Redemption',
+      count: firstRedemptions,
+      visualCount: firstRedemptions,
+      percentage: funnelEntryCount > 0 ? ((firstRedemptions / funnelEntryCount) * 100).toFixed(1) : '0',
+    },
+  ]
+
+  // Find biggest drop-off point (includes First Redemption after KYC Approved)
   let maxDropoffStep = "N/A"
   let maxDropoffPct = 0
-  for (let i = 0; i < dropoffData.length - 1; i++) {
-    const current = dropoffData[i].count
-    const next = dropoffData[i + 1].count
-    if (current > 0) {
-      const dropPct = ((current - next) / current) * 100
-      if (dropPct > maxDropoffPct) {
-        maxDropoffPct = dropPct
-        const rawStep = dropoffData[i].step;
-        if (rawStep === "Document Upload Start") {
-          maxDropoffStep = "Document Upload";
-        } else {
-          maxDropoffStep = rawStep.replace(/signup_/g, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        }
-      }
+  for (let i = 1; i < acquisitionStages.length; i++) {
+    const pct = acquisitionStages[i].dropoffPct ?? 0
+    if (pct > maxDropoffPct) {
+      maxDropoffPct = pct
+      maxDropoffStep = acquisitionStages[i].step
     }
   }
 
   const PIE_COLORS = [colors.primary, "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"]
 
-  // Dedicated funnel tooltip component to calculate passes and drop-offs
-  const FunnelTooltip = ({ active, payload, label }: any) => {
+  const FunnelTooltip = ({
+    active,
+    payload,
+    label,
+    stagesSource = dropoffData,
+  }: any) => {
     if (active && payload && payload.length) {
       const currentStepName = label;
       const currentCount = payload[0].value;
 
-      // Find the index of this step in dropoffData
-      const mappedSteps = dropoffData.map((s: any) => ({
-        step: s.step.replace(/signup_/g, '').replace(/_/g, ' ').replace(/\b\w/g, (l: any) => l.toUpperCase()),
-        count: s.count
-      }));
+      const stageMeta = stagesSource.find(
+        (s: { step: string }) => s.step.toLowerCase() === String(currentStepName).toLowerCase()
+      );
 
-      const currentIndex = mappedSteps.findIndex((s: any) => s.step === currentStepName);
+      const currentIndex = stageMeta
+        ? stagesSource.findIndex((s: { step: string }) => s.step === stageMeta.step)
+        : -1;
 
-      let exits = 0;
-      let dropPercent = 0;
-      let previousCount = 0;
-      const startCount = mappedSteps[0]?.count || 0;
+      const exits = stageMeta?.exits ?? 0;
+      const dropPercent = stageMeta?.dropoffPct ?? 0;
+      const previousCount = stageMeta?.previousCount ?? 0;
+      const previousStage = stageMeta?.previousStage;
+      const startCount = dropoffData[0]?.count || 0;
       const progressPercent = startCount > 0 ? (currentCount / startCount) * 100 : 100;
-
-      if (currentIndex > 0) {
-        previousCount = mappedSteps[currentIndex - 1].count;
-        // Clamp to 0 to prevent negative exits/drops caused by analytics log anomalies (e.g. app restarts/refreshes directly on step 2)
-        exits = Math.max(0, previousCount - currentCount);
-        dropPercent = previousCount > 0 ? Math.max(0, (exits / previousCount) * 100) : 0;
-      }
+      const isFirstRedemption = stageMeta?.step === 'First Redemption';
+      const isSubmittedForKyc = stageMeta?.step === 'Submitted for KYC';
+      const kycStatusBreakdown = stageMeta?.kycStatusBreakdown;
 
 
       return (
@@ -128,8 +178,40 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
               )}
             </div>
 
-            {/* Step Drop-off/Exits */}
-            {currentIndex > 0 ? (
+            {/* Progression drop-off OR KYC submitted status breakdown */}
+            {currentIndex > 0 && isSubmittedForKyc && kycStatusBreakdown ? (
+              <div className="flex flex-col gap-1 pt-2.5 border-t border-slate-800/80">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    Still pending:
+                  </span>
+                  <span className="text-sm font-black text-amber-300">
+                    {kycStatusBreakdown.pending.toLocaleString()} Users
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-400/90 font-medium ml-3.5">
+                  Email verified — waiting for admin KYC review
+                </span>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-400" />
+                    Rejected:
+                  </span>
+                  <span className="text-sm font-black text-red-300">
+                    {kycStatusBreakdown.rejected.toLocaleString()} Users
+                  </span>
+                </div>
+                <span className="text-[10px] text-red-400/90 font-medium ml-3.5">
+                  Rejected in Admin KYC review (reviewer on file)
+                </span>
+                {kycRejectedStatusOnly > 0 && (
+                  <span className="text-[10px] text-slate-500 font-medium ml-3.5 mt-1">
+                    +{kycRejectedStatusOnly.toLocaleString()} marked rejected without a KYC review record
+                  </span>
+                )}
+              </div>
+            ) : currentIndex > 0 ? (
               <div className="flex flex-col gap-0.5 pt-2.5 border-t border-slate-800/80">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
@@ -139,8 +221,14 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                   <span className="text-sm font-black text-amber-400">{exits.toLocaleString()} Exits</span>
                 </div>
                 <span className="text-[10px] text-amber-500/80 font-medium ml-3.5">
-                  {dropPercent.toFixed(1)}% drop-off rate from previous stage
+                  {dropPercent.toFixed(1)}% drop-off from {previousStage ?? 'previous stage'}
+                  {previousCount > 0 && ` (${previousCount.toLocaleString()} → ${currentCount.toLocaleString()})`}
                 </span>
+                {isFirstRedemption && (
+                  <span className="text-[10px] text-slate-400 font-medium ml-3.5 mt-1">
+                    KYC-approved students with at least one redemption (database)
+                  </span>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-0.5 pt-2.5 border-t border-slate-800/80">
@@ -232,12 +320,12 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                     <Users className="w-6 h-6" />
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">Total Reach</span>
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">Funnel Entry</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{appOpens}</div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Unique App Sessions</p>
+                  <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{funnelEntryCount.toLocaleString()}</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Documents Submitted</p>
                 </div>
               </CardContent>
             </Card>
@@ -293,25 +381,24 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <CardTitle className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">Acquisition Funnel</CardTitle>
-                  <CardDescription className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Journey Architecture & Retention Flow</CardDescription>
+                  <CardDescription className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Signup conversion + first redemption (database, all-time)</CardDescription>
                 </div>
                 <div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Live Traffic Intelligence</span>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">DB Records</span>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-12 px-8 pb-10">
               <div className="h-[500px] w-full">
+                {acquisitionFunnelData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-sm text-slate-400">
+                    No signup funnel data yet
+                  </div>
+                ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={funnelData.map(item => ({
-                      ...item,
-                      // Fix visual logic: step cannot exceed initial traffic (App Opened)
-                      // We use appOpens as the base for the visual width
-                      visualCount: Math.min(appOpens, item.count),
-                      percentage: appOpens > 0 ? ((item.count / appOpens) * 100).toFixed(1) : 0
-                    }))}
+                    data={acquisitionFunnelData}
                     layout="vertical"
                     margin={{ left: 60, right: 100, top: 0, bottom: 0 }}
                     barGap={24}
@@ -339,7 +426,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                     />
                     <Tooltip
                       cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 12 }}
-                      content={<ChartTooltip suffix="Events" />}
+                      content={<FunnelTooltip stagesSource={acquisitionStages} />}
                     />
                     <Bar
                       dataKey="visualCount"
@@ -347,8 +434,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                       barSize={32}
                       background={{ fill: '#f8fafc', radius: 8 }}
                     >
-                      {funnelData.map((entry: any, index: number) => {
-                        const retention = appOpens > 0 ? (entry.count / appOpens) * 100 : 0
+                      {acquisitionFunnelData.map((entry: any, index: number) => {
                         const opacity = Math.max(0.3, 1 - (index * 0.08));
                         return (
                           <Cell
@@ -361,6 +447,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -371,7 +458,7 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                 <div className="flex justify-between items-start gap-4">
                   <div>
                     <CardTitle className="text-lg">Detailed Signup Drop-off</CardTitle>
-                    <CardDescription>Granular view of the registration form completion</CardDescription>
+                    <CardDescription>Unique students at each signup milestone (database records, all-time)</CardDescription>
                   </div>
                 </div>
 
@@ -382,59 +469,69 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Completed:
                     </span>
-                    <span>Students who successfully finished this specific stage.</span>
+                    <span>Students who reached this milestone. Hover <strong>Submitted for KYC</strong> to see still-pending vs rejected counts.</span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-850">
                     <span className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
                       <span className="w-2 h-2 rounded-full bg-amber-500" />
                       Drop-offs (Exits):
                     </span>
-                    <span>Students who abandoned the sign-up process during this step.</span>
+                    <span>Students lost between sequential signup steps (e.g. verified email but never submitted KYC).</span>
                   </div>
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 flex items-start gap-1">
                     <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-500" />
-                    <span>Note: High values or spikes in Verification screen are due to students launching/reopening their app repeatedly to check their status or resending verification links.</span>
+                    <span>
+                      Chart order: Documents Submitted → Email Verified → Submitted for KYC → KYC Approved → First Redemption.
+                      {excludedLegacyAccounts > 0 && (
+                        <> {excludedLegacyAccounts.toLocaleString()} legacy rows without KYC omitted.</>
+                      )}
+                    </span>
                   </div>
                 </div>
               </CardHeader>
 
               <CardContent>
-                <div className="h-[300px] w-full">
+                <div className="h-[340px] w-full">
+                  {funnelChartData.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-sm text-slate-400">
+                      No signup funnel data yet
+                    </div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={dropoffData.map(s => ({
-                        name: s.step.replace(/signup_/g, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                        count: s.count
-                      }))}
+                    <ComposedChart
+                      data={funnelChartData}
+                      layout="vertical"
+                      margin={{ left: 8, right: 48, top: 8, bottom: 8 }}
                     >
                       <defs>
-                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={colors.primary} stopOpacity={0} />
+                        <linearGradient id="signupFunnelBar" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="5%" stopColor={colors.primary} stopOpacity={0.85} />
+                          <stop offset="95%" stopColor={colors.primary} stopOpacity={0.35} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                      <XAxis
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                      <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis
+                        type="category"
                         dataKey="name"
+                        width={130}
                         fontSize={10}
                         tickLine={false}
                         axisLine={false}
-                        padding={{ left: 20, right: 20 }}
                       />
-                      <YAxis fontSize={12} tickLine={false} axisLine={false} hide />
                       <Tooltip content={<FunnelTooltip />} />
-                      <Area
-                        type="monotone"
+                      <Bar dataKey="count" name="Students" radius={[0, 6, 6, 0]} barSize={26} fill="url(#signupFunnelBar)" />
+                      <Line
                         dataKey="count"
-                        name="Completed Stage"
+                        type="monotone"
                         stroke={colors.primary}
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorCount)"
+                        strokeWidth={2.5}
+                        dot={{ r: 4, fill: colors.primary, strokeWidth: 0 }}
+                        activeDot={{ r: 6 }}
                       />
-
-                    </AreaChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -882,32 +979,21 @@ export function AdminAnalytics({ stats, isFiltered }: AdminAnalyticsProps) {
                   </div>
                   <div className="space-y-4">
                     <p className="text-sm text-slate-300 leading-relaxed min-h-[40px]">
-                      The highest drop-off rate of <strong className="text-white">{maxDropoffPct.toFixed(0)}%</strong> occurs during the <strong className="text-white font-bold">{maxDropoffStep}</strong> phase (between start and completion).
+                      The highest drop-off rate of <strong className="text-white">{maxDropoffPct.toFixed(0)}%</strong> occurs at the <strong className="text-white font-bold">{maxDropoffStep}</strong> stage.
                     </p>
                     <div className="h-32 w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={dropoffData.slice(0, 6).map(s => ({ count: s.count, name: s.step }))}
-                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        <ComposedChart
+                          data={funnelChartData}
+                          layout="vertical"
+                          margin={{ top: 0, right: 8, left: -20, bottom: 0 }}
                         >
-                          <defs>
-                            <linearGradient id="bottleneckGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
+                          <XAxis type="number" hide />
+                          <YAxis type="category" dataKey="name" width={72} tick={{ fontSize: 8, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
                           <Tooltip content={<FunnelTooltip />} />
-                          <Area
-                            type="monotone"
-                            dataKey="count"
-                            name="Completed Stage"
-                            stroke="#3B82F6"
-                            strokeWidth={3}
-                            fillOpacity={1}
-                            fill="url(#bottleneckGradient)"
-                          />
-
-                        </AreaChart>
+                          <Bar dataKey="count" fill="#3B82F6" fillOpacity={0.35} radius={[0, 4, 4, 0]} barSize={12} />
+                          <Line dataKey="count" type="monotone" stroke="#3B82F6" strokeWidth={2} dot={false} />
+                        </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
