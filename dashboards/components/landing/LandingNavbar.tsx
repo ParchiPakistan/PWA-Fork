@@ -75,24 +75,35 @@ export function LandingNavbar() {
                             ))}
                         </nav>
 
-                        {/* Desktop CTA */}
+                        {/* Desktop CTAs — store badges */}
                         <div className="hidden md:flex items-center gap-3">
                             <Link
-                                href="/portal"
-                                className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors duration-200"
-                                style={{ fontSize: "0.8125rem" }}
+                                href="https://apps.apple.com/app/parchi-the-student-app/id6760251460"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-200 hover:scale-105 hover:opacity-90"
                             >
-                                Login
+                                <Image
+                                    src="/app-store-badge.svg"
+                                    alt="Download on the App Store"
+                                    width={120}
+                                    height={40}
+                                    className="h-9 w-auto"
+                                />
                             </Link>
                             <Link
-                                href="https://apps.apple.com/app/parchi-the-student-app/id6760251460"
-                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-white text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:-translate-y-px"
-                                style={{ fontSize: "0.8125rem" }}
+                                href="https://play.google.com/store/apps/details?id=com.parchi.student&hl=en"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-200 hover:scale-105 hover:opacity-90"
                             >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                                </svg>
-                                Download App
+                                <Image
+                                    src="/google-play-badge.svg"
+                                    alt="Get it on Google Play"
+                                    width={120}
+                                    height={40}
+                                    className="h-9 w-auto"
+                                />
                             </Link>
                         </div>
 
@@ -136,20 +147,36 @@ export function LandingNavbar() {
                                     {link.label}
                                 </Link>
                             ))}
-                            <div className="border-t border-border/50 mt-2 pt-3 flex flex-col gap-2">
-                                <Link
-                                    href="/portal"
-                                    className="px-4 py-3 text-sm font-medium text-center text-foreground/70 rounded-xl hover:bg-black/5 transition-all"
-                                    onClick={() => setMobileOpen(false)}
-                                >
-                                    Login
-                                </Link>
+                            <div className="border-t border-border/50 mt-2 pt-3 flex gap-3 justify-center">
                                 <Link
                                     href="https://apps.apple.com/app/parchi-the-student-app/id6760251460"
-                                    className="px-4 py-3 text-sm font-semibold text-center text-white rounded-xl bg-primary hover:bg-primary/90 transition-all"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-all hover:scale-105 hover:opacity-90"
                                     onClick={() => setMobileOpen(false)}
                                 >
-                                    Download App
+                                    <Image
+                                        src="/app-store-badge.svg"
+                                        alt="Download on the App Store"
+                                        width={140}
+                                        height={48}
+                                        className="h-12 w-auto"
+                                    />
+                                </Link>
+                                <Link
+                                    href="https://play.google.com/store/apps/details?id=com.parchi.student&hl=en"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-all hover:scale-105 hover:opacity-90"
+                                    onClick={() => setMobileOpen(false)}
+                                >
+                                    <Image
+                                        src="/google-play-badge.svg"
+                                        alt="Get it on Google Play"
+                                        width={140}
+                                        height={48}
+                                        className="h-12 w-auto"
+                                    />
                                 </Link>
                             </div>
                         </nav>
