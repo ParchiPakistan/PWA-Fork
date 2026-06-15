@@ -21,6 +21,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar, AdminSidebarContent } from "./admin-sidebar"
+import { useAuth } from "@/contexts/AuthContext"
 import { Check, X, TrendingUp, Users, FileText, ShoppingCart, CheckCircle2, ChevronDown, ChevronUp, Menu, RefreshCw, School, Search, Utensils, ShoppingBag, Sparkles, Ticket, Heart, ShieldCheck, UserPlus, Clock, Ban } from "lucide-react"
 
 const fmtGrowth = (v: number) => `${v > 0 ? "+" : ""}${v}%`
@@ -642,6 +643,7 @@ const SignupDropoffSection = ({ data, isLoading }: { data: SignupDropoff | null,
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<string>("overview")
   const colors = DASHBOARD_COLORS("admin")
+  const { user } = useAuth()
 
   // Real-time dashboard statistics
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
@@ -971,7 +973,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {activeTab === "account-creation" && <AccountCreation />}
 
 
-          {activeTab === "notifications" && <AdminNotifications />}
+          {activeTab === "notifications" && user?.email !== "muhib@parchipakistan.com" && <AdminNotifications />}
 
           {activeTab === "account-deletions" && <AdminAccountDeletion />}
 
