@@ -431,6 +431,7 @@ export interface AdminBranch {
   is_active: boolean
   qr_auto_approve: boolean
   created_at: string
+  email?: string | null
   merchant?: {
     business_name: string
   }
@@ -529,6 +530,7 @@ const transformBranchResponse = (branch: any): AdminBranch => {
     is_active: branch.isActive,
     qr_auto_approve: branch.qrAutoApprove ?? false,
     created_at: branch.createdAt,
+    email: branch.email,
     merchant: branch.merchantName ? {
       business_name: branch.merchantName
     } : (branch.merchant ? {

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal, Zap, Tag } from "lucide-react"
+import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal, Zap, Tag, Copy, Check } from "lucide-react"
 import { AssignBranchOfferDialog } from "./assign-branch-offer-dialog"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { toast } from "sonner"
@@ -57,6 +57,18 @@ export function AdminBranches() {
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [branchToReject, setBranchToReject] = useState<AdminBranch | null>(null)
   const [isDeletingBranch, setIsDeletingBranch] = useState(false)
+
+  // Copy state
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    setCopiedEmail(email)
+    toast({ title: "Copied", description: "Email address copied to clipboard" })
+    setTimeout(() => {
+      setCopiedEmail(null)
+    }, 2000)
+  }
 
   // Offer assignment
   const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string | null>>({})
@@ -521,9 +533,9 @@ export function AdminBranches() {
                       {assignmentByBranchId[branch.id] ? "Change offer" : "Assign offer"}
                     </Button>
 
-                    <div className="text-sm bg-muted/50 p-3 rounded-md">
+                    <div className="text-sm bg-muted/50 p-3 rounded-md space-y-1">
                       <div className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact</div>
-                      {branch.contact_phone}
+                      {branch.contact_phone && <div>{branch.contact_phone}</div>}
                     </div>
                   </div>
                 ))
@@ -549,6 +561,31 @@ export function AdminBranches() {
                 </div>
               </div>
             )}
+            <div className="space-y-2">
+              <Label>Login Email</Label>
+              <div className="flex gap-2">
+                {editingBranch?.email && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => handleCopyEmail(editingBranch.email!)}
+                  >
+                    {copiedEmail === editingBranch.email ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Input
+                  value={editingBranch?.email || "N/A"}
+                  disabled
+                  className="bg-muted text-muted-foreground flex-1"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Branch Name</Label>
               <Input
