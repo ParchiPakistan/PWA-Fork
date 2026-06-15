@@ -188,6 +188,8 @@ export interface AppConfig {
   force_update_title: string;
   force_update_message: string;
   is_under_maintenance: boolean;
+  auto_queue_offers: boolean;
+  auto_queue_partners: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -200,6 +202,8 @@ export interface UpdateAppConfigDto {
   force_update_title?: string;
   force_update_message?: string;
   is_under_maintenance?: boolean;
+  auto_queue_offers?: boolean;
+  auto_queue_partners?: boolean;
 }
 
 /**

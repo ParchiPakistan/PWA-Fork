@@ -46,6 +46,8 @@ export function AdminSystemConfig() {
         force_update_title: config.force_update_title,
         force_update_message: config.force_update_message,
         is_under_maintenance: config.is_under_maintenance,
+        auto_queue_offers: config.auto_queue_offers,
+        auto_queue_partners: config.auto_queue_partners,
       })
       toast.success("Configuration updated successfully")
       fetchConfig() // Refresh data
