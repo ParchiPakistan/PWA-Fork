@@ -656,7 +656,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [isFunnelLoading, setIsFunnelLoading] = useState(false)
 
   // Fetch dashboard stats
-  const fetchStats = async (start?: Date, end?: Date, group: 'institution' | 'city' = groupBy) => {
+  const fetchStats = async (
+    start?: Date,
+    end?: Date,
+    group: 'institution' | 'city' = groupBy,
+    signal?: AbortSignal,
+  ) => {
     // Only show loading state on initial load to prevent flashing skeletons on refresh
     if (!stats) {
       setIsLoading(true);
@@ -664,29 +669,39 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setIsRefreshing(true);
     }
 
+    const requestOptions = { signal, timeoutMs: 90000 };
+
     try {
       const [data, funnel] = await Promise.all([
-        getAdminDashboardStats(start, end, group),
-        getSignupDropoff()
-      ])
-      setStats(data)
-      setFunnelData(funnel)
-      setLastUpdated(new Date())
-
-
-    } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error)
-      toast.error('Failed to load dashboard statistics')
+        getAdminDashboardStats(start, end, group, requestOptions),
+        getSignupDropoff(requestOptions),
+      ]);
+      if (signal?.aborted) return;
+      setStats(data);
+      setFunnelData(funnel);
+      setLastUpdated(new Date());
+    } catch (error: unknown) {
+      if (signal?.aborted) return;
+      const apiError = error as { statusCode?: number; message?: string; error?: string };
+      console.error(
+        'Failed to fetch dashboard stats:',
+        apiError.message ?? apiError.error ?? error,
+      );
+      toast.error(apiError.message ?? 'Failed to load dashboard statistics');
     } finally {
-      setIsLoading(false)
-      setIsRefreshing(false)
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
-  }
+  };
 
   // Fetch on mount and when date range changes
   useEffect(() => {
-    fetchStats(dateRange?.from, dateRange?.to, groupBy)
-  }, [dateRange, groupBy])
+    const controller = new AbortController();
+    fetchStats(dateRange?.from, dateRange?.to, groupBy, controller.signal);
+    return () => controller.abort();
+  }, [dateRange, groupBy]);
 
   return (
     <div className="flex min-h-screen bg-background">

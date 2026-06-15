@@ -221,34 +221,55 @@ export async function updateAppConfig(data: UpdateAppConfigDto): Promise<{ data:
 
 export async function apiRequest(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { timeoutMs?: number } = {}
 ): Promise<any> {
+  const { timeoutMs = 60000, ...fetchOptions } = options;
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('access_token')
     : null;
 
-  // Create AbortController for timeout
+  // Create AbortController for timeout (composable with caller-provided signal)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const onCallerAbort = () => controller.abort();
+  if (fetchOptions.signal) {
+    if (fetchOptions.signal.aborted) {
+      controller.abort();
+    } else {
+      fetchOptions.signal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
+      cache: 'no-store',
       signal: controller.signal,
       headers: {
-        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(fetchOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
+        ...fetchOptions.headers,
       },
     });
+
+    // 304 has an empty body — Express ETag can trigger this on repeat GETs
+    if (response.status === 304) {
+      const notModifiedError: ApiError = {
+        statusCode: 304,
+        message: 'Stale cached response — please retry',
+        error: 'NotModified',
+      };
+      throw notModifiedError;
+    }
 
     // Handle non-JSON responses
     let data;
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
+      const text = await response.text();
+      data = text ? JSON.parse(text) : { message: 'Empty response' };
     } else {
-      // If response is not JSON, try to get text
       const text = await response.text();
       data = text ? { message: text } : { message: 'Request failed' };
     }
@@ -276,6 +297,9 @@ export async function apiRequest(
     return data;
   } catch (error: any) {
     clearTimeout(timeoutId);
+    if (fetchOptions.signal) {
+      fetchOptions.signal.removeEventListener('abort', onCallerAbort);
+    }
 
     // Handle network errors and timeouts
     if (error.name === 'AbortError') {
@@ -1791,6 +1815,7 @@ export const getAdminDashboardStats = async (
   startDate?: Date,
   endDate?: Date,
   groupBy: 'institution' | 'city' = 'institution',
+  options?: { signal?: AbortSignal; timeoutMs?: number },
 ): Promise<AdminDashboardStats> => {
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate.toISOString());
@@ -1802,6 +1827,8 @@ export const getAdminDashboardStats = async (
 
   const response = await apiRequest(url, {
     method: 'GET',
+    signal: options?.signal,
+    timeoutMs: options?.timeoutMs ?? 90000,
   });
   return response.data;
 };
@@ -2487,9 +2514,13 @@ export interface SignupDropoff {
 /**
  * Fetch detailed signup dropoff/funnel statistics
  */
-export async function getSignupDropoff(): Promise<SignupDropoff> {
+export async function getSignupDropoff(
+  options?: { signal?: AbortSignal; timeoutMs?: number },
+): Promise<SignupDropoff> {
   const response = await apiRequest('/admin/dashboard/signup-funnel', {
     method: 'GET',
+    signal: options?.signal,
+    timeoutMs: options?.timeoutMs ?? 90000,
   });
   return response.data;
 }
