@@ -23,6 +23,7 @@ import { DASHBOARD_COLORS } from "@/lib/colors"
 import { AdminDashboardStats, SignupDropoff } from "@/lib/api-client"
 import { orderStagesForChart } from "@/lib/signup-funnel-display"
 import { TrendingUp, Users, Smartphone, Target, ArrowDownRight, Info, Apple, Download, UserPlus, ShieldCheck, Ticket } from "lucide-react"
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface AdminAnalyticsProps {
   stats: AdminDashboardStats | null
@@ -352,27 +353,49 @@ export function AdminAnalytics({ stats, signupFunnel, isFiltered }: AdminAnalyti
             </Card>
 
             {/* Lead Device */}
-            <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-indigo-50/50 dark:from-slate-900 dark:to-indigo-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10">
-              <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
-                <Smartphone className="w-24 h-24 text-indigo-600" />
-              </div>
-              <CardContent className="p-6 relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
-                    <Smartphone className="w-6 h-6" />
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-800">Primary OS</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
-                    {[...platformData].sort((a, b) => b.count - a.count)[0]?.platform || "N/A"}
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Device Engagement</p>
-                </div>
-              </CardContent>
-            </Card>
+            {(() => {
+              const topPlatformRaw = [...platformData].sort((a, b) => b.count - a.count)[0]?.platform || "N/A";
+              const isUnknown = topPlatformRaw.toLowerCase() === 'unknown';
+              return (
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Card className={`group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-indigo-50/50 dark:from-slate-900 dark:to-indigo-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 ${isUnknown ? 'cursor-help' : ''}`}>
+                        <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
+                          <Smartphone className="w-24 h-24 text-indigo-600" />
+                        </div>
+                        <CardContent className="p-6 relative z-10">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
+                              <Smartphone className="w-6 h-6" />
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-800">Primary OS</span>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
+                              {isUnknown ? "LEGACY" : topPlatformRaw}
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Device Engagement</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-slate-900 text-white p-3 rounded-xl max-w-xs text-xs shadow-xl border border-slate-800 z-50">
+                      <p className="font-bold mb-1">
+                        {isUnknown ? 'Legacy Account Distribution' : 'Primary Operating System'}
+                      </p>
+                      <p className="leading-relaxed text-[11px] text-slate-300">
+                        {isUnknown
+                          ? 'These are legacy students who registered before device platform tracking (iOS/Android detection) was implemented on April 30, 2026.'
+                          : `Most signup engagement is coming from ${topPlatformRaw} devices.`}
+                      </p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              );
+            })()}
           </div>
 
           {/* --- Main Acquisition Funnel --- */}

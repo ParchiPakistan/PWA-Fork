@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone, ShieldCheck, CheckCircle2, School, Calendar as CalendarIcon, ChevronsUpDown, Phone, Cake } from "lucide-react"
+import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone, ShieldCheck, CheckCircle2, School, Calendar as CalendarIcon, ChevronsUpDown, Phone, Cake, HelpCircle } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -1066,25 +1066,7 @@ export function AdminKYC({
 
         <TabsContent value="all" className="space-y-6">
           {stats?.platformDistribution && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-blue-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 rounded-[2.5rem]">
-                <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-all duration-700">
-                  <RefreshCw className="w-24 h-24 text-blue-600" />
-                </div>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
-                      <RefreshCw className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-800">Total Database</span>
-                  </div>
-                  <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                    {stats.platformDistribution.reduce((acc, curr) => acc + curr.count, 0).toLocaleString()}
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Cross-Platform Reach</p>
-                </CardContent>
-              </Card>
-
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900 transition-all duration-500 hover:shadow-xl hover:shadow-slate-500/10 rounded-[2.5rem]">
                 <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-all duration-700">
                   <Apple className="w-24 h-24 text-slate-900 dark:text-white" />
@@ -1120,6 +1102,38 @@ export function AdminKYC({
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Play Store Ecosystem</p>
                 </CardContent>
               </Card>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-amber-50/50 dark:from-slate-900 dark:to-amber-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-amber-500/10 rounded-[2.5rem] cursor-help">
+                      <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-all duration-700">
+                        <HelpCircle className="w-24 h-24 text-amber-600" />
+                      </div>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-600 flex items-center justify-center text-white shadow-lg">
+                            <HelpCircle className="w-5 h-5" />
+                          </div>
+                          <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-100 dark:border-amber-800">
+                            LEGACY STUDENTS (?)
+                          </span>
+                        </div>
+                        <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+                          {stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'unknown')?.count || 0}
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">LEGACY STUDENTS</p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-slate-900 text-white p-3 rounded-xl max-w-xs text-xs shadow-xl border border-slate-800 z-50">
+                    <p className="font-bold mb-1">Legacy Account Distribution</p>
+                    <p className="leading-relaxed text-[11px] text-slate-300">
+                      These are legacy students who registered before device platform tracking (iOS/Android detection) was implemented on April 30, 2026.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
 
