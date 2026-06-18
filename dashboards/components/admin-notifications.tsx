@@ -417,19 +417,21 @@ function NotificationQueue() {
   const { toast } = useToast()
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<"all" | "broadcast" | "redemption">("all")
+  const [previewItem, setPreviewItem] = useState<NotificationQueueItem | null>(null)
 
   const filteredQueue = typeFilter === "redemption" ? [] : queue
 
-  const handlePush = async (item: NotificationQueueItem) => {
-    if (sendingId) return
+  const handleConfirmPush = async () => {
+    if (!previewItem || sendingId) return
 
-    setSendingId(item.id)
+    setSendingId(previewItem.id)
     try {
-      await sendQueueItem(item.id)
+      await sendQueueItem(previewItem.id)
       toast({
         title: "Notification Pushed",
         description: "Notification has been successfully broadcasted."
       })
+      setPreviewItem(null)
       refetch()
     } catch (error) {
       toast({
@@ -529,9 +531,9 @@ function NotificationQueue() {
                     {item.scheduled_for ? formatDate(item.scheduled_for) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button 
-                      size="sm" 
-                      onClick={() => handlePush(item)} 
+                    <Button
+                      size="sm"
+                      onClick={() => setPreviewItem(item)}
                       disabled={sendingId === item.id || item.status === 'sent'}
                     >
                       {sendingId === item.id ? (
@@ -548,6 +550,49 @@ function NotificationQueue() {
           </Table>
         )}
       </CardContent>
+
+      <AlertDialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Push</AlertDialogTitle>
+            <AlertDialogDescription>
+              Review this notification before pushing it to {previewItem?.target_topic}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {previewItem && (
+            <div className="mx-auto w-[280px] rounded-2xl border bg-slate-50 p-3 shadow-inner">
+              <div className="rounded-xl bg-white p-3 shadow-sm border">
+                <div className="flex items-start gap-2">
+                  {previewItem.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={previewItem.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{previewItem.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-3 mt-0.5">{previewItem.content}</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-center text-muted-foreground mt-2">Preview on device</p>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!sendingId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmPush} disabled={!!sendingId}>
+              {sendingId === previewItem?.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Pushing...
+                </>
+              ) : (
+                "Confirm Push"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }
