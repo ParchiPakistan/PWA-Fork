@@ -5,7 +5,6 @@ import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, L
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
-import { useAuth } from "@/contexts/AuthContext"
 
 interface AdminSidebarProps {
   activeTab: string
@@ -16,7 +15,6 @@ interface AdminSidebarProps {
 export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminSidebarProps) {
   const colors = DASHBOARD_COLORS("admin")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const { user } = useAuth()
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -119,7 +117,6 @@ export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminS
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems
-          .filter((item) => !(item.id === "notifications" && user?.email === "muhib@parchipakistan.com"))
           .map((item) => {
             const Icon = item.icon
           return (
