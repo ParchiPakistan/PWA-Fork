@@ -1321,6 +1321,7 @@ export interface RedemptionResponse {
   branchId: string;
   isBonusApplied: boolean;
   bonusDiscountApplied: number | null;
+  bonusDiscountType?: string | null;
   verifiedBy: string | null;
   notes: string | null;
   createdAt: string;
