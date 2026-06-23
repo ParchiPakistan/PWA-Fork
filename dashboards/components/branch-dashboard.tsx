@@ -23,7 +23,7 @@ import { DASHBOARD_COLORS } from "@/lib/colors"
 import { formatPakistanDateTime } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
-import { getStudentByParchiId, createRedemption, rejectRedemptionAttempt, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats, getQrSettings, getPendingQrRequests, approveQrRequest, rejectQrRequest, QrSettings, QrPendingRequest } from "@/lib/api-client"
+import { getStudentByParchiId, createRedemption, rejectRedemptionAttempt, StudentVerificationResponse, getDailyRedemptionStats, DailyRedemptionStats, getDailyRedemptionDetails, DailyRedemptionDetail, getAggregatedRedemptionStats, AggregatedStats, getQrSettings, getPendingQrRequests, approveQrRequest, rejectQrRequest, QrSettings, QrPendingRequest, ApiError } from "@/lib/api-client"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -248,7 +248,8 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
         setIsVerificationDialogOpen(false)
         toast.success("Redemption processed successfully")
       } catch (error) {
-        toast.error("Failed to process redemption. Please try again.")
+        const message = (error as ApiError)?.message
+        toast.error(Array.isArray(message) ? message.join(", ") : message || "Failed to process redemption. Please try again.")
       } finally {
         setIsCreatingRedemption(false)
       }
@@ -312,8 +313,9 @@ export function BranchDashboard({ onLogout }: { onLogout: () => void }) {
       setDailyRedemptionDetails(details)
       setAggregatedStats(aggregated)
       toast.success("QR redemption approved!")
-    } catch {
-      toast.error("Failed to approve request")
+    } catch (error) {
+      const message = (error as ApiError)?.message
+      toast.error(Array.isArray(message) ? message.join(", ") : message || "Failed to approve request")
     } finally {
       setIsApprovingQr(false)
     }
