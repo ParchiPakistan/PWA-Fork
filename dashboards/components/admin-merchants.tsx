@@ -19,6 +19,7 @@ import { updateCorporateMerchant, toggleCorporateMerchant, deleteCorporateMercha
 import { SupabaseStorageService } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 import { MERCHANT_CATEGORIES, getSubcategoriesForCategory } from "@/lib/merchant-categories"
+import { useCategories, buildCategoryMap } from "@/hooks/use-categories"
 
 export function AdminMerchants() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -27,6 +28,16 @@ export function AdminMerchants() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const { merchants, loading, error, refetch } = useMerchants(debouncedSearch)
   const { toast } = useToast()
+
+  const { categories: dbCategories } = useCategories()
+  const categoryMap = buildCategoryMap(dbCategories)
+  const activeCategories = dbCategories.length > 0 ? Object.keys(categoryMap) : MERCHANT_CATEGORIES
+  const getSubcategories = (cat: string) => {
+    if (dbCategories.length > 0) {
+      return categoryMap[cat] || []
+    }
+    return getSubcategoriesForCategory(cat)
+  }
 
   // Debounce search query
   useEffect(() => {
@@ -817,7 +828,7 @@ export function AdminMerchants() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MERCHANT_CATEGORIES.map((category) => (
+                    {activeCategories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
@@ -836,7 +847,7 @@ export function AdminMerchants() {
                     <SelectValue placeholder={editForm.category ? "Select subcategory" : "Select category first"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {getSubcategoriesForCategory(editForm.category).map((subCategory) => (
+                    {getSubcategories(editForm.category).map((subCategory) => (
                       <SelectItem key={subCategory} value={subCategory}>
                         {subCategory}
                       </SelectItem>

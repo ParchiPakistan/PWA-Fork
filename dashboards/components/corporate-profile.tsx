@@ -14,6 +14,9 @@ import { getCorporateMerchant, updateCorporateMerchant, CorporateMerchant } from
 import { useAuth } from "@/contexts/AuthContext"
 import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MERCHANT_CATEGORIES, getSubcategoriesForCategory } from "@/lib/merchant-categories"
+import { useCategories, buildCategoryMap } from "@/hooks/use-categories"
 
 export function CorporateProfile() {
   const { user } = useAuth()
@@ -33,9 +36,20 @@ export function CorporateProfile() {
     contactPhone: "",
     logoPath: "",
     category: "",
+    subCategory: "",
     bannerUrl: "",
     termsAndConditions: "",
   })
+
+  const { categories: dbCategories } = useCategories()
+  const categoryMap = buildCategoryMap(dbCategories)
+  const activeCategories = dbCategories.length > 0 ? Object.keys(categoryMap) : MERCHANT_CATEGORIES
+  const getSubcategories = (cat: string) => {
+    if (dbCategories.length > 0) {
+      return categoryMap[cat] || []
+    }
+    return getSubcategoriesForCategory(cat)
+  }
 
   const isAdmin = user?.role === "admin"
 
@@ -57,6 +71,7 @@ export function CorporateProfile() {
           contactPhone: merchantData.contactPhone || "",
           logoPath: merchantData.logoPath || "",
           category: merchantData.category || "",
+          subCategory: merchantData.subCategory || "",
           bannerUrl: merchantData.bannerUrl || "",
           termsAndConditions: merchantData.termsAndConditions || "",
         })
@@ -134,6 +149,9 @@ export function CorporateProfile() {
       }
       if (formData.category !== (merchant?.category || "")) {
         updateData.category = formData.category || null
+      }
+      if (formData.subCategory !== (merchant?.subCategory || "")) {
+        updateData.subCategory = formData.subCategory || null
       }
       if (formData.bannerUrl !== (merchant?.bannerUrl || "")) {
         updateData.bannerUrl = formData.bannerUrl || null
@@ -313,12 +331,47 @@ export function CorporateProfile() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
+                  <Select
                     value={formData.category}
-                    onChange={(e) => handleInputChange("category", e.target.value)}
-                    placeholder="e.g., Food & Beverage, Retail, etc."
-                  />
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        category: value,
+                        subCategory: "",
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory">Subcategory</Label>
+                  <Select
+                    value={formData.subCategory}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, subCategory: value }))}
+                    disabled={!formData.category}
+                  >
+                    <SelectTrigger id="subcategory">
+                      <SelectValue placeholder={formData.category ? "Select subcategory" : "Select category first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSubcategories(formData.category).map((subCategory) => (
+                        <SelectItem key={subCategory} value={subCategory}>
+                          {subCategory}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

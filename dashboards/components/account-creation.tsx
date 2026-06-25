@@ -14,6 +14,7 @@ import { corporateSignup, branchSignup, type ApiError } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 import { useMerchants } from "@/hooks/use-merchants"
 import { MERCHANT_CATEGORIES, getSubcategoriesForCategory } from "@/lib/merchant-categories"
+import { useCategories, buildCategoryMap } from "@/hooks/use-categories"
 
 interface AccountCreationProps {
   role?: 'admin' | 'corporate'
@@ -25,6 +26,16 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
   const colors = DASHBOARD_COLORS(role === 'corporate' ? 'corporate' : 'admin')
   const { toast } = useToast()
   const [showPassword, setShowPassword] = useState(false)
+
+  const { categories: dbCategories } = useCategories()
+  const categoryMap = buildCategoryMap(dbCategories)
+  const activeCategories = dbCategories.length > 0 ? Object.keys(categoryMap) : MERCHANT_CATEGORIES
+  const getSubcategories = (cat: string) => {
+    if (dbCategories.length > 0) {
+      return categoryMap[cat] || []
+    }
+    return getSubcategoriesForCategory(cat)
+  }
 
   // Form states
   const [corporateData, setCorporateData] = useState({
@@ -655,7 +666,7 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MERCHANT_CATEGORIES.map((category) => (
+                        {activeCategories.map((category) => (
                           <SelectItem key={category} value={category}>
                             {category}
                           </SelectItem>
@@ -675,7 +686,7 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
                         <SelectValue placeholder={corporateData.category ? "Select subcategory" : "Select category first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {getSubcategoriesForCategory(corporateData.category).map((subCategory) => (
+                        {getSubcategories(corporateData.category).map((subCategory) => (
                           <SelectItem key={subCategory} value={subCategory}>
                             {subCategory}
                           </SelectItem>

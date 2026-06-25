@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell, UserX, Settings, TrendingUp, Activity, Briefcase, QrCode } from "lucide-react"
+import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell, UserX, Settings, TrendingUp, Activity, Briefcase, QrCode, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
@@ -100,6 +100,11 @@ export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminS
       id: "account-deletions",
       label: "Deletion Requests",
       icon: UserX,
+    },
+    {
+      id: "categories",
+      label: "Categories",
+      icon: Tag,
     },
     {
       id: "system-config",

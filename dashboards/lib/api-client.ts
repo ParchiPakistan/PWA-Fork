@@ -2405,6 +2405,179 @@ export const deleteInstitute = async (id: string): Promise<void> => {
   });
 };
 
+// ========== Merchant Categories API Types & Functions ==========
+
+export interface MerchantSubcategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MerchantCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  subcategories: MerchantSubcategory[];
+}
+
+export const getCategories = async (): Promise<MerchantCategory[]> => {
+  const response = await apiRequest('/categories', {
+    method: 'GET',
+  });
+  const rawList = Array.isArray(response) ? response : (response?.data || []);
+  return rawList.map((cat: any) => ({
+    id: cat.id,
+    name: cat.name,
+    sortOrder: cat.sort_order,
+    isActive: cat.is_active ?? true,
+    createdAt: cat.created_at,
+    updatedAt: cat.updated_at,
+    subcategories: (cat.merchant_subcategories ?? []).map((sub: any) => ({
+      id: sub.id,
+      categoryId: sub.category_id,
+      name: sub.name,
+      sortOrder: sub.sort_order,
+      isActive: sub.is_active ?? true,
+      createdAt: sub.created_at,
+      updatedAt: sub.updated_at,
+    })),
+  }));
+};
+
+export const getAdminCategories = async (): Promise<MerchantCategory[]> => {
+  const response = await apiRequest('/admin/categories', {
+    method: 'GET',
+  });
+  const rawList = Array.isArray(response) ? response : (response?.data || []);
+  return rawList.map((cat: any) => ({
+    id: cat.id,
+    name: cat.name,
+    sortOrder: cat.sort_order,
+    isActive: cat.is_active ?? true,
+    createdAt: cat.created_at,
+    updatedAt: cat.updated_at,
+    subcategories: (cat.merchant_subcategories ?? []).map((sub: any) => ({
+      id: sub.id,
+      categoryId: sub.category_id,
+      name: sub.name,
+      sortOrder: sub.sort_order,
+      isActive: sub.is_active ?? true,
+      createdAt: sub.created_at,
+      updatedAt: sub.updated_at,
+    })),
+  }));
+};
+
+export const createCategory = async (name: string, sortOrder?: number): Promise<MerchantCategory> => {
+  const response = await apiRequest('/admin/categories', {
+    method: 'POST',
+    body: JSON.stringify({ name, sortOrder }),
+  });
+  const data = response?.data || response;
+  return {
+    id: data.id,
+    name: data.name,
+    sortOrder: data.sort_order,
+    isActive: data.is_active ?? true,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    subcategories: [],
+  };
+};
+
+export const updateCategory = async (
+  id: string,
+  name?: string,
+  isActive?: boolean,
+  sortOrder?: number
+): Promise<MerchantCategory> => {
+  const body: any = {};
+  if (name !== undefined) body.name = name;
+  if (isActive !== undefined) body.isActive = isActive;
+  if (sortOrder !== undefined) body.sortOrder = sortOrder;
+
+  const response = await apiRequest(`/admin/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+  const data = response?.data || response;
+  return {
+    id: data.id,
+    name: data.name,
+    sortOrder: data.sort_order,
+    isActive: data.is_active ?? true,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    subcategories: [],
+  };
+};
+
+export const deleteCategory = async (id: string): Promise<void> => {
+  await apiRequest(`/admin/categories/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const createSubcategory = async (
+  categoryId: string,
+  name: string,
+  sortOrder?: number
+): Promise<MerchantSubcategory> => {
+  const response = await apiRequest(`/admin/categories/${categoryId}/subcategories`, {
+    method: 'POST',
+    body: JSON.stringify({ name, sortOrder }),
+  });
+  const data = response?.data || response;
+  return {
+    id: data.id,
+    categoryId: data.category_id,
+    name: data.name,
+    sortOrder: data.sort_order,
+    isActive: data.is_active ?? true,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+};
+
+export const updateSubcategory = async (
+  id: string,
+  name?: string,
+  isActive?: boolean,
+  sortOrder?: number
+): Promise<MerchantSubcategory> => {
+  const body: any = {};
+  if (name !== undefined) body.name = name;
+  if (isActive !== undefined) body.isActive = isActive;
+  if (sortOrder !== undefined) body.sortOrder = sortOrder;
+
+  const response = await apiRequest(`/admin/subcategories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+  const data = response?.data || response;
+  return {
+    id: data.id,
+    categoryId: data.category_id,
+    name: data.name,
+    sortOrder: data.sort_order,
+    isActive: data.is_active ?? true,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+};
+export const deleteSubcategory = async (id: string): Promise<void> => {
+  await apiRequest(`/admin/subcategories/${id}`, {
+    method: 'DELETE',
+  });
+};
+
 /**
  * Admin reset password for branch and merchant accounts
  * Requires admin authentication

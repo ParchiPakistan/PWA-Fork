@@ -84,6 +84,7 @@ import { AdminNotifications } from "./admin-notifications"
 import { AdminFinancials } from "./admin-financials"
 import { AdminAccountDeletion } from "./admin-account-deletion"
 import { AdminSystemConfig } from "./admin-system-config"
+import AdminCategories from "./admin-categories"
 import { AdminAnalytics } from "./admin-analytics"
 import { AdminRedemptionEngine } from "./admin-redemption-engine"
 import { AdminBrandPortfolio } from "./admin-brand-portfolio"
@@ -974,6 +975,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {activeTab === "notifications" && <AdminNotifications />}
 
           {activeTab === "account-deletions" && <AdminAccountDeletion />}
+
+          {activeTab === "categories" && <AdminCategories />}
 
           {activeTab === "system-config" && <AdminSystemConfig />}
         </div>
