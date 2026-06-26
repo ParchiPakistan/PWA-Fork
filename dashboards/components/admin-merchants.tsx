@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Building2, MoreHorizontal, AlertCircle, Loader2, RefreshCw, Edit, X, Image as ImageIcon, GripVertical, Key, Copy } from "lucide-react"
+import { Plus, Search, Building2, MoreHorizontal, AlertCircle, Loader2, RefreshCw, Edit, X, Image as ImageIcon, GripVertical, Key, Copy, Eye, EyeOff, Check } from "lucide-react"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useMerchants } from "@/hooks/use-merchants"
@@ -52,6 +52,7 @@ export function AdminMerchants() {
   const [editingMerchant, setEditingMerchant] = useState<CorporateMerchant | null>(null)
   const [editForm, setEditForm] = useState({
     businessName: "",
+    email: "",
     contactPhone: "",
     contactEmail: "",
     businessRegistrationNumber: "",
@@ -74,6 +75,14 @@ export function AdminMerchants() {
     confirmPassword: "",
   })
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [credentialsDialog, setCredentialsDialog] = useState<{
+    accountName: string
+    email: string
+    password: string
+  } | null>(null)
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [merchantToDelete, setMerchantToDelete] = useState<CorporateMerchant | null>(null)
   const [savingPinFor, setSavingPinFor] = useState<string | null>(null)
@@ -92,10 +101,25 @@ export function AdminMerchants() {
     return isActive ? "Active" : "Inactive"
   }
 
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email)
+    setCopiedEmail(email)
+    toast({ title: "Copied", description: "Email address copied to clipboard" })
+    setTimeout(() => setCopiedEmail(null), 2000)
+  }
+
+  const handleCopyCredentials = () => {
+    if (!credentialsDialog) return
+    const text = `Login Email: ${credentialsDialog.email}\nPassword: ${credentialsDialog.password}`
+    navigator.clipboard.writeText(text)
+    toast({ title: "Copied", description: "Credentials copied to clipboard" })
+  }
+
   const openEditModal = (merchant: CorporateMerchant) => {
     setEditingMerchant(merchant)
     setEditForm({
       businessName: merchant.businessName,
+      email: merchant.email || "",
       contactPhone: merchant.contactPhone,
       contactEmail: merchant.contactEmail,
       businessRegistrationNumber: merchant.businessRegistrationNumber || "",
@@ -178,6 +202,7 @@ export function AdminMerchants() {
       // Convert empty strings to null for optional fields
       const updateData = {
         ...editForm,
+        email: editForm.email.trim() || undefined,
         businessRegistrationNumber: editForm.businessRegistrationNumber || null,
         logoPath: editForm.logoPath || null,
         category: editForm.category || null,
@@ -258,6 +283,8 @@ export function AdminMerchants() {
       newPassword: "",
       confirmPassword: "",
     })
+    setShowNewPassword(false)
+    setShowConfirmPassword(false)
     setIsPasswordResetOpen(true)
   }
 
@@ -305,10 +332,15 @@ export function AdminMerchants() {
 
     try {
       setIsResettingPassword(true)
-      await adminResetPassword(resettingMerchant.userId, passwordForm.newPassword)
-      toast({ title: "Success", description: "Password reset successfully" })
+      const newPassword = passwordForm.newPassword
+      await adminResetPassword(resettingMerchant.userId, newPassword)
       setIsPasswordResetOpen(false)
       setPasswordForm({ newPassword: "", confirmPassword: "" })
+      setCredentialsDialog({
+        accountName: resettingMerchant.businessName,
+        email: resettingMerchant.email || "N/A",
+        password: newPassword,
+      })
     } catch (error: any) {
       toast({
         title: "Error",
@@ -607,7 +639,16 @@ export function AdminMerchants() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <div>{merchant.contactEmail}</div>
+                            {merchant.email && (
+                              <div className="truncate" title={merchant.email}>
+                                <span className="text-xs text-muted-foreground">Login: </span>
+                                {merchant.email}
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-xs text-muted-foreground">Contact: </span>
+                              {merchant.contactEmail}
+                            </div>
                             <div className="text-muted-foreground">{merchant.contactPhone}</div>
                           </div>
                         </TableCell>
@@ -745,7 +786,16 @@ export function AdminMerchants() {
 
                     <div className="text-sm bg-muted/50 p-3 rounded-md space-y-1">
                       <div className="font-medium text-xs text-muted-foreground uppercase tracking-wider">Contact Info</div>
-                      <div className="truncate">{merchant.contactEmail}</div>
+                      {merchant.email && (
+                        <div className="truncate" title={merchant.email}>
+                          <span className="text-xs text-muted-foreground">Login: </span>
+                          {merchant.email}
+                        </div>
+                      )}
+                      <div className="truncate">
+                        <span className="text-xs text-muted-foreground">Contact: </span>
+                        {merchant.contactEmail}
+                      </div>
                       <div className="text-muted-foreground">{merchant.contactPhone}</div>
                     </div>
                   </div>
@@ -868,6 +918,34 @@ export function AdminMerchants() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label>Login Email</Label>
+                <div className="flex gap-2">
+                  {editForm.email && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => handleCopyEmail(editForm.email)}
+                    >
+                      {copiedEmail === editForm.email ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                  <Input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="login@parchipakistan.com"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Used to sign in to the merchant dashboard</p>
+              </div>
               <div className="space-y-2">
                 <Label>Contact Email</Label>
                 <Input
@@ -1305,24 +1383,48 @@ export function AdminMerchants() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter new password (min 8 characters)"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Enter new password (min 8 characters)"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Must contain at least 8 characters with uppercase, lowercase, number, and special character
+                Must contain at least 8 characters. Existing passwords cannot be viewed — only reset.
               </p>
             </div>
             <div className="space-y-2">
               <Label>Confirm Password</Label>
-              <Input
-                type="password"
-                placeholder="Confirm new password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -1334,6 +1436,35 @@ export function AdminMerchants() {
           </DialogFooter>
         </DialogContent>
       </Dialog >
+
+      {/* Credentials Dialog (shown once after password reset) */}
+      <Dialog open={!!credentialsDialog} onOpenChange={(open) => !open && setCredentialsDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Credentials</DialogTitle>
+            <DialogDescription>
+              Password reset for {credentialsDialog?.accountName}. Save these credentials — the password will not be shown again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Login Email</Label>
+              <div className="font-mono text-sm bg-muted p-2 rounded">{credentialsDialog?.email}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">New Password</Label>
+              <div className="font-mono text-sm bg-muted p-2 rounded">{credentialsDialog?.password}</div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCredentialsDialog(null)}>Close</Button>
+            <Button onClick={handleCopyCredentials}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Merchant Modal */}
       <Dialog

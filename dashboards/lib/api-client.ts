@@ -48,6 +48,8 @@ export interface ApiError {
 export interface CorporateMerchant {
   id: string;
   userId: string;
+  email?: string;
+  emailPrefix?: string | null;
   businessName: string;
   businessRegistrationNumber: string | null;
   contactEmail: string;
@@ -446,6 +448,7 @@ export interface UpdateBranchRequest {
   longitude?: number
   isActive?: boolean
   qrAutoApprove?: boolean
+  email?: string
 }
 
 export interface UpdateMerchantRequest {
@@ -453,6 +456,7 @@ export interface UpdateMerchantRequest {
   businessRegistrationNumber?: string | null
   contactEmail?: string
   contactPhone?: string
+  email?: string
   logoPath?: string | null
   category?: string | null
   subCategory?: string | null

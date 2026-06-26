@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal, Zap, Tag, Copy, Check } from "lucide-react"
+import { Search, AlertTriangle, Loader2, CheckCircle, XCircle, Edit, Key, MoreHorizontal, Zap, Tag, Copy, Check, Eye, EyeOff } from "lucide-react"
 import { AssignBranchOfferDialog } from "./assign-branch-offer-dialog"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { toast } from "sonner"
@@ -36,6 +36,7 @@ export function AdminBranches() {
   const [editingBranch, setEditingBranch] = useState<AdminBranch | null>(null)
   const [editForm, setEditForm] = useState({
     branchName: "",
+    email: "",
     address: "",
     city: "",
     contactPhone: "",
@@ -52,6 +53,13 @@ export function AdminBranches() {
     confirmPassword: "",
   })
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [credentialsDialog, setCredentialsDialog] = useState<{
+    accountName: string
+    email: string
+    password: string
+  } | null>(null)
 
   // Reject Modal State
   const [isRejectOpen, setIsRejectOpen] = useState(false)
@@ -68,6 +76,13 @@ export function AdminBranches() {
     setTimeout(() => {
       setCopiedEmail(null)
     }, 2000)
+  }
+
+  const handleCopyCredentials = () => {
+    if (!credentialsDialog) return
+    const text = `Login Email: ${credentialsDialog.email}\nPassword: ${credentialsDialog.password}`
+    navigator.clipboard.writeText(text)
+    toast({ title: "Copied", description: "Credentials copied to clipboard" })
   }
 
   // Offer assignment
@@ -217,6 +232,7 @@ export function AdminBranches() {
     setEditingBranch(branch)
     setEditForm({
       branchName: branch.branch_name,
+      email: branch.email || "",
       address: branch.address,
       city: branch.city,
       contactPhone: branch.contact_phone,
@@ -230,11 +246,14 @@ export function AdminBranches() {
     if (!editingBranch) return
     try {
       setIsSaving(true)
-      // Convert null to undefined for API compatibility
       const updateData = {
-        ...editForm,
+        branchName: editForm.branchName,
+        address: editForm.address,
+        city: editForm.city,
+        contactPhone: editForm.contactPhone,
         latitude: editForm.latitude ?? undefined,
         longitude: editForm.longitude ?? undefined,
+        email: editForm.email.trim() || undefined,
       }
       await updateBranch(editingBranch.id, updateData)
       toast({ title: "Success", description: "Branch updated successfully" })
@@ -253,6 +272,8 @@ export function AdminBranches() {
       newPassword: "",
       confirmPassword: "",
     })
+    setShowNewPassword(false)
+    setShowConfirmPassword(false)
     setIsPasswordResetOpen(true)
   }
 
@@ -272,10 +293,15 @@ export function AdminBranches() {
 
     try {
       setIsResettingPassword(true)
-      await adminResetPassword(resettingBranch.user_id!, passwordForm.newPassword)
-      toast({ title: "Success", description: "Password reset successfully" })
+      const newPassword = passwordForm.newPassword
+      await adminResetPassword(resettingBranch.user_id!, newPassword)
       setIsPasswordResetOpen(false)
       setPasswordForm({ newPassword: "", confirmPassword: "" })
+      setCredentialsDialog({
+        accountName: resettingBranch.branch_name,
+        email: resettingBranch.email || "N/A",
+        password: newPassword,
+      })
     } catch (error: any) {
       toast({
         title: "Error",
@@ -323,6 +349,7 @@ export function AdminBranches() {
                   <TableRow>
                     <TableHead>Merchant Name</TableHead>
                     <TableHead>Branch Name</TableHead>
+                    <TableHead>Login Email</TableHead>
                     <TableHead>City</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Status</TableHead>
@@ -334,7 +361,7 @@ export function AdminBranches() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
+                      <TableCell colSpan={9} className="text-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
@@ -354,6 +381,9 @@ export function AdminBranches() {
                           </div>
                         </TableCell>
                         <TableCell>{branch.branch_name}</TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={branch.email || undefined}>
+                          {branch.email || "—"}
+                        </TableCell>
                         <TableCell>{branch.city}</TableCell>
                         <TableCell>{branch.contact_phone}</TableCell>
                         <TableCell>
@@ -535,6 +565,7 @@ export function AdminBranches() {
 
                     <div className="text-sm bg-muted/50 p-3 rounded-md space-y-1">
                       <div className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-1">Contact</div>
+                      {branch.email && <div className="truncate">{branch.email}</div>}
                       {branch.contact_phone && <div>{branch.contact_phone}</div>}
                     </div>
                   </div>
@@ -564,15 +595,15 @@ export function AdminBranches() {
             <div className="space-y-2">
               <Label>Login Email</Label>
               <div className="flex gap-2">
-                {editingBranch?.email && (
+                {editForm.email && (
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     className="shrink-0"
-                    onClick={() => handleCopyEmail(editingBranch.email!)}
+                    onClick={() => handleCopyEmail(editForm.email)}
                   >
-                    {copiedEmail === editingBranch.email ? (
+                    {copiedEmail === editForm.email ? (
                       <Check className="h-4 w-4 text-green-600" />
                     ) : (
                       <Copy className="h-4 w-4" />
@@ -580,11 +611,14 @@ export function AdminBranches() {
                   </Button>
                 )}
                 <Input
-                  value={editingBranch?.email || "N/A"}
-                  disabled
-                  className="bg-muted text-muted-foreground flex-1"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  placeholder="branch@parchipakistan.com"
+                  className="flex-1"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">Used to sign in to the branch dashboard</p>
             </div>
             <div className="space-y-2">
               <Label>Branch Name</Label>
@@ -663,24 +697,48 @@ export function AdminBranches() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter new password (min 8 characters)"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Enter new password (min 8 characters)"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Must contain at least 8 characters with uppercase, lowercase, number, and special character
+                Must contain at least 8 characters. Existing passwords cannot be viewed — only reset.
               </p>
             </div>
             <div className="space-y-2">
               <Label>Confirm Password</Label>
-              <Input
-                type="password"
-                placeholder="Confirm new password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -688,6 +746,35 @@ export function AdminBranches() {
             <Button onClick={handlePasswordReset} disabled={isResettingPassword}>
               {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Dialog (shown once after password reset) */}
+      <Dialog open={!!credentialsDialog} onOpenChange={(open) => !open && setCredentialsDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Credentials</DialogTitle>
+            <DialogDescription>
+              Password reset for {credentialsDialog?.accountName}. Save these credentials — the password will not be shown again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Login Email</Label>
+              <div className="font-mono text-sm bg-muted p-2 rounded">{credentialsDialog?.email}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">New Password</Label>
+              <div className="font-mono text-sm bg-muted p-2 rounded">{credentialsDialog?.password}</div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCredentialsDialog(null)}>Close</Button>
+            <Button onClick={handleCopyCredentials}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy All
             </Button>
           </DialogFooter>
         </DialogContent>
