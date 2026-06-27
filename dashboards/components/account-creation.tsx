@@ -15,18 +15,13 @@ import { useToast } from "@/hooks/use-toast"
 import { useMerchants } from "@/hooks/use-merchants"
 import { MERCHANT_CATEGORIES, getSubcategoriesForCategory } from "@/lib/merchant-categories"
 import { useCategories, buildCategoryMap } from "@/hooks/use-categories"
+import { PakistaniPhoneInput } from "@/components/pakistani-phone-input"
+import { isCompletePakistaniPhone } from "@/lib/pakistani-phone"
 
 interface AccountCreationProps {
   role?: 'admin' | 'corporate'
   corporateId?: string
   emailPrefix?: string | null
-}
-
-const parsePakistaniPhone = (value: string) => value.replace(/\D/g, '').slice(0, 11)
-
-const formatPakistaniPhone = (digits: string) => {
-  if (digits.length <= 4) return digits
-  return `${digits.slice(0, 4)}-${digits.slice(4)}`
 }
 
 export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: AccountCreationProps) {
@@ -202,6 +197,16 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         return
       }
 
+      if (!isCompletePakistaniPhone(corporateData.contact)) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Phone Number",
+          description: "Please enter a complete contact phone (03xx-xxxxxxx).",
+        })
+        setIsUploading(false)
+        return
+      }
+
       const email = `${corporateData.emailPrefix}@parchipakistan.com`
 
       const requestData = {
@@ -285,6 +290,16 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
           variant: "destructive",
           title: "Corporate Account Required",
           description: role === 'admin' ? "Please select a corporate account." : "Corporate ID missing.",
+        })
+        setIsBranchUploading(false)
+        return
+      }
+
+      if (!isCompletePakistaniPhone(branchData.contact)) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Phone Number",
+          description: "Please enter a complete contact phone (03xx-xxxxxxx).",
         })
         setIsBranchUploading(false)
         return
@@ -458,12 +473,10 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
 
             <div className="space-y-2">
               <Label htmlFor="branch-contact">Contact Phone</Label>
-              <Input
+              <PakistaniPhoneInput
                 id="branch-contact"
-                placeholder="0300-1234567"
-                value={formatPakistaniPhone(branchData.contact)}
-                onChange={(e) => setBranchData(prev => ({ ...prev, contact: parsePakistaniPhone(e.target.value) }))}
-                maxLength={12}
+                value={branchData.contact}
+                onChange={(value) => setBranchData(prev => ({ ...prev, contact: value }))}
               />
             </div>
 
@@ -730,12 +743,10 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
 
                   <div className="space-y-2">
                     <Label htmlFor="corp-contact">Contact Phone</Label>
-                    <Input
+                    <PakistaniPhoneInput
                       id="corp-contact"
-                      placeholder="0300-1234567"
-                      value={formatPakistaniPhone(corporateData.contact)}
-                      onChange={(e) => setCorporateData(prev => ({ ...prev, contact: parsePakistaniPhone(e.target.value) }))}
-                      maxLength={12}
+                      value={corporateData.contact}
+                      onChange={(value) => setCorporateData(prev => ({ ...prev, contact: value }))}
                       required
                     />
                   </div>

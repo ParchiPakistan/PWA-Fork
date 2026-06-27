@@ -15,6 +15,7 @@ import { getBranches, updateBranch, AdminBranch, UpdateBranchRequest } from "@/l
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { PakistaniPhoneInput } from "@/components/pakistani-phone-input"
 
 export function CorporateBranches() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -311,11 +312,9 @@ export function CorporateBranches() {
               </div>
               <div className="space-y-2">
                 <Label>Contact Phone</Label>
-                <Input
+                <PakistaniPhoneInput
                   value={editForm.contactPhone}
-                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value.replace(/\D/g, '') })}
-                  placeholder="03001234567"
-                  maxLength={11}
+                  onChange={(value) => setEditForm({ ...editForm, contactPhone: value })}
                 />
               </div>
             </div>

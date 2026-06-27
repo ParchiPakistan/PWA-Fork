@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { updateCorporateMerchant, toggleCorporateMerchant, deleteCorporateMerchant, adminResetPassword, CorporateMerchant, getBrands, setFeaturedBrands, setRestaurantListPin, Brand, FeaturedBrand } from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
+import { PakistaniPhoneInput } from "@/components/pakistani-phone-input"
 import { MERCHANT_CATEGORIES, getSubcategoriesForCategory } from "@/lib/merchant-categories"
 import { useCategories, buildCategoryMap } from "@/hooks/use-categories"
 
@@ -956,9 +957,9 @@ export function AdminMerchants() {
               </div>
               <div className="space-y-2">
                 <Label>Contact Phone</Label>
-                <Input
+                <PakistaniPhoneInput
                   value={editForm.contactPhone}
-                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                  onChange={(value) => setEditForm({ ...editForm, contactPhone: value })}
                 />
               </div>
             </div>

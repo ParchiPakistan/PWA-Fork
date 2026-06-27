@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { PakistaniPhoneInput } from "@/components/pakistani-phone-input"
 import {
   getBranches,
   approveRejectBranch,
@@ -644,9 +645,9 @@ export function AdminBranches() {
               </div>
               <div className="space-y-2">
                 <Label>Contact Phone</Label>
-                <Input
+                <PakistaniPhoneInput
                   value={editForm.contactPhone}
-                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                  onChange={(value) => setEditForm({ ...editForm, contactPhone: value })}
                 />
               </div>
             </div>

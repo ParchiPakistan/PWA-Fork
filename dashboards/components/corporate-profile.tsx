@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MERCHANT_CATEGORIES, getSubcategoriesForCategory } from "@/lib/merchant-categories"
 import { useCategories, buildCategoryMap } from "@/hooks/use-categories"
+import { PakistaniPhoneInput } from "@/components/pakistani-phone-input"
 
 export function CorporateProfile() {
   const { user } = useAuth()
@@ -179,10 +180,6 @@ export function CorporateProfile() {
   }
 
   const handleInputChange = (field: string, value: string) => {
-    // Enforce number-only for phone
-    if (field === 'contactPhone') {
-      value = value.replace(/\D/g, '')
-    }
     setFormData((prev) => ({ ...prev, [field]: value }))
     // Clear error for this field when user starts typing
     if (errors[field]) {
@@ -405,12 +402,10 @@ export function CorporateProfile() {
                   <Label htmlFor="contactPhone">
                     Contact Phone
                   </Label>
-                  <Input
+                  <PakistaniPhoneInput
                     id="contactPhone"
                     value={formData.contactPhone}
-                    onChange={(e) => handleInputChange("contactPhone", e.target.value)}
-                    placeholder="03001234567"
-                    maxLength={11}
+                    onChange={(value) => handleInputChange("contactPhone", value)}
                   />
                 </div>
               </div>
