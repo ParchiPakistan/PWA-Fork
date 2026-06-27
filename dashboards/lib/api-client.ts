@@ -20,6 +20,7 @@ export interface CorporateSignupRequest {
   subCategory?: string;
   email: string;
   logo_path: string;
+  banner_path?: string;
 }
 
 export interface CorporateSignupResponse {

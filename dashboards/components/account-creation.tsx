@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, EyeOff, RefreshCw, Building2, Store, Upload, Loader2 } from "lucide-react"
+import { Eye, EyeOff, RefreshCw, Building2, Store, Upload, Loader2, ImageIcon, X } from "lucide-react"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { SupabaseStorageService } from "@/lib/storage"
 import { corporateSignup, branchSignup, type ApiError } from "@/lib/api-client"
@@ -48,11 +48,13 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
     category: "",
     subCategory: "",
     logo: null as File | null,
-    logoUrl: ""
+    logoUrl: "",
+    bannerUrl: ""
   })
 
   const [isUploading, setIsUploading] = useState(false)
   const [isLogoUploading, setIsLogoUploading] = useState(false)
+  const [isBannerUploading, setIsBannerUploading] = useState(false)
   const [isBranchUploading, setIsBranchUploading] = useState(false)
 
   const [branchData, setBranchData] = useState({
@@ -132,8 +134,38 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
       }))
     } catch (error) {
       console.error("Error uploading logo:", error)
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload logo. Please try again.",
+      })
     } finally {
       setIsLogoUploading(false)
+    }
+  }
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsBannerUploading(true)
+    try {
+      const businessName = corporateData.name || "temp-upload"
+      const url = await SupabaseStorageService.uploadCorporateBanner(file, businessName)
+
+      setCorporateData(prev => ({
+        ...prev,
+        bannerUrl: url
+      }))
+    } catch (error) {
+      console.error("Error uploading banner:", error)
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload banner. Please try again.",
+      })
+    } finally {
+      setIsBannerUploading(false)
     }
   }
 
@@ -173,6 +205,7 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         contact: corporateData.contact,
         email: email,
         logo_path: corporateData.logoUrl,
+        ...(corporateData.bannerUrl && { banner_path: corporateData.bannerUrl }),
         ...(corporateData.regNumber && { regNumber: corporateData.regNumber }),
         ...(corporateData.category && { category: corporateData.category }),
         ...(corporateData.subCategory && { subCategory: corporateData.subCategory }),
@@ -195,7 +228,8 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
         category: "",
         subCategory: "",
         logo: null,
-        logoUrl: ""
+        logoUrl: "",
+        bannerUrl: ""
       })
 
     } catch (error) {
@@ -626,6 +660,65 @@ export function AccountCreation({ role = 'admin', corporateId, emailPrefix }: Ac
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">Upload business logo (JPG, PNG)</p>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                    <Label htmlFor="corp-banner">Banner Image (Optional)</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          className="hidden"
+                          id="corp-banner"
+                          disabled={isBannerUploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('corp-banner')?.click()}
+                          disabled={isBannerUploading}
+                          className="gap-2"
+                        >
+                          {isBannerUploading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <ImageIcon className="w-4 h-4" />
+                              Select Banner Image
+                            </>
+                          )}
+                        </Button>
+                        {corporateData.bannerUrl && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive hover:text-destructive/90"
+                            onClick={() => setCorporateData(prev => ({ ...prev, bannerUrl: "" }))}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {corporateData.bannerUrl && (
+                        <div className="relative w-full max-w-md h-40 rounded border overflow-hidden bg-muted">
+                          <img
+                            src={corporateData.bannerUrl}
+                            alt="Banner preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none"
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Wide banner shown on the merchant profile in the student app</p>
                   </div>
 
                   <div className="space-y-2">
