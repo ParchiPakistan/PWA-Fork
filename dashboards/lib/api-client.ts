@@ -1126,11 +1126,13 @@ export interface StudentExportResult {
  */
 export const getPendingStudents = async (
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  search?: string
 ): Promise<PaginatedResponse<Student>> => {
   const queryParams = new URLSearchParams();
   queryParams.append('page', page.toString());
   queryParams.append('limit', limit.toString());
+  if (search?.trim()) queryParams.append('search', search.trim());
 
   return apiRequest(`/admin/students/pending?${queryParams.toString()}`, {
     method: 'GET',
@@ -1925,6 +1927,12 @@ export interface RedemptionVolumeDataPoint {
 export interface RedemptionAnalytics {
   uniqueRedeemers: number;
   totalRegisteredStudents: number;
+  momUniqueRedeemers: {
+    thisMonth: number;
+    lastMonth: number;
+    changePercent: number;
+  };
+  activeRedeemingPercent: number;
   volumeTrends: {
     daily: RedemptionVolumeDataPoint[];
     weekly: RedemptionVolumeDataPoint[];

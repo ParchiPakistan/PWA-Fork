@@ -62,6 +62,7 @@ export function AdminKYC({
   const [pendingSearch, setPendingSearch] = useState("")
   const [allSearch, setAllSearch] = useState("")
   const [instituteQuery, setInstituteQuery] = useState("")
+  const [debouncedPendingSearch, setDebouncedPendingSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [debouncedInstitute, setDebouncedInstitute] = useState("")
   const [emailVerifiedFilter, setEmailVerifiedFilter] = useState<boolean | undefined>(undefined)
@@ -80,7 +81,7 @@ export function AdminKYC({
   const { toast } = useToast()
 
 
-  const { students: pendingStudents, loading: pendingLoading, error: pendingError, pagination: pendingPagination, refetch: refetchPending } = usePendingStudents(pendingPage, 12)
+  const { students: pendingStudents, loading: pendingLoading, error: pendingError, pagination: pendingPagination, refetch: refetchPending } = usePendingStudents(pendingPage, 12, debouncedPendingSearch.trim() || undefined)
 
   // Load institutes once for the approve dropdown
   useEffect(() => {
@@ -88,6 +89,15 @@ export function AdminKYC({
       .then(setAvailableInstitutes)
       .catch(() => { /* non-critical */ })
   }, [])
+
+  // Debounce pending-students search (server-side)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPendingSearch(pendingSearch)
+      setPendingPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [pendingSearch])
 
   // Debounce all-students search and institute queries only (server-side)
   useEffect(() => {
@@ -104,6 +114,7 @@ export function AdminKYC({
     setPendingSearch("")
     setAllSearch("")
     setInstituteQuery("")
+    setDebouncedPendingSearch("")
     setDebouncedSearch("")
     setDebouncedInstitute("")
     setPendingPage(1)
@@ -799,14 +810,6 @@ export function AdminKYC({
     }
   }
 
-  const filteredPendingStudents = pendingStudents.filter((student) =>
-    !pendingSearch.trim() ||
-    `${student.firstName} ${student.lastName}`.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    student.email.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    student.parchiId.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    student.university.toLowerCase().includes(pendingSearch.toLowerCase())
-  )
-
   // Client-side grouping logic for segmentation
   const groupedData = useMemo(() => {
     if (!groupByFilter) return []
@@ -972,7 +975,7 @@ export function AdminKYC({
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredPendingStudents.map((student) => (
+                {pendingStudents.map((student) => (
                   <div key={student.id} className="group relative p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-1 transition-all duration-500 overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">

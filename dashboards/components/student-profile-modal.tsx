@@ -60,6 +60,7 @@ import { format } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { genderSelectItemClass, genderTextClass } from "@/lib/gender-styles"
 
 interface StudentProfileModalProps {
   studentId: string | null
@@ -515,13 +516,13 @@ export function StudentProfileModal({
                         <div className="space-y-2">
                           <Label>Gender</Label>
                           <Select value={editForm.gender} onValueChange={v => setEditForm({...editForm, gender: v})}>
-                            <SelectTrigger>
+                            <SelectTrigger className={cn(genderTextClass(editForm.gender === "not-set" ? null : editForm.gender))}>
                               <SelectValue placeholder="Select Gender" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Male">Male</SelectItem>
-                              <SelectItem value="Female">Female</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
+                              <SelectItem value="Male" className={genderSelectItemClass("Male")}>Male</SelectItem>
+                              <SelectItem value="Female" className={genderSelectItemClass("Female")}>Female</SelectItem>
+                              <SelectItem value="Other" className={genderSelectItemClass("Other")}>Other</SelectItem>
                               <SelectItem value="not-set">Not Set</SelectItem>
                             </SelectContent>
                           </Select>

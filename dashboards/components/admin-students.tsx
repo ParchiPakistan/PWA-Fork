@@ -49,6 +49,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
+import { genderBadgeClass, genderButtonClass, genderTextClass } from "@/lib/gender-styles"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StudentProfileModal } from "./student-profile-modal"
 import { StudentFilterBuilder } from "./student-filter-builder"
@@ -91,6 +92,7 @@ export function AdminStudents({
   const [showGenderPrompt, setShowGenderPrompt] = useState(false)
   const [genderFillIndex, setGenderFillIndex] = useState(0)
   const [isGenderFillingActive, setIsGenderFillingActive] = useState(false)
+  const [isGenderSaving, setIsGenderSaving] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -175,8 +177,15 @@ export function AdminStudents({
   }
 
   const handleFillGender = async (studentId: string, value: string) => {
+    if (isGenderSaving) return
+    const current = studentsWithNullGender[genderFillIndex]
+    setIsGenderSaving(true)
     try {
       await updateStudentAdmin(studentId, { gender: value })
+      toast({
+        title: "Saved",
+        description: `Saved ${value} for ${current?.firstName ?? "student"} ${current?.lastName ?? ""}`.trim(),
+      })
       if (genderFillIndex < studentsWithNullGender.length - 1) {
         setGenderFillIndex((prev) => prev + 1)
       } else {
@@ -187,6 +196,8 @@ export function AdminStudents({
       refetch()
     } catch {
       toast({ title: "Error", description: "Failed to update gender", variant: "destructive" })
+    } finally {
+      setIsGenderSaving(false)
     }
   }
 
@@ -361,10 +372,18 @@ export function AdminStudents({
                   <Button
                     key={g}
                     variant="outline"
-                    className="h-16 flex-col gap-1 border-2 hover:border-primary hover:bg-primary/5"
+                    disabled={isGenderSaving}
+                    className={cn(
+                      "h-16 flex-col gap-1 border-2",
+                      genderButtonClass(g),
+                    )}
                     onClick={() => handleFillGender(studentsWithNullGender[genderFillIndex].id, g)}
                   >
-                    <User className="h-5 w-5" />
+                    {isGenderSaving ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <User className="h-5 w-5" />
+                    )}
                     {g}
                   </Button>
                 ))}
@@ -619,9 +638,14 @@ export function AdminStudents({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs">{student.gender || "Not Set"}</span>
+                      <div className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5",
+                        genderBadgeClass(student.gender),
+                      )}>
+                        <User className={cn("h-3.5 w-3.5", genderTextClass(student.gender))} />
+                        <span className={cn("text-xs font-medium", genderTextClass(student.gender))}>
+                          {student.gender || "Not Set"}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(student.verificationStatus)}</TableCell>

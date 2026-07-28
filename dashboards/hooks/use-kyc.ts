@@ -57,7 +57,8 @@ interface UseStudentDetailResult {
 
 export function usePendingStudents(
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  search?: string
 ): UsePendingStudentsResult {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,7 +70,7 @@ export function usePendingStudents(
       setLoading(true)
       setError(null)
 
-      const response = await getPendingStudents(pageNum || page, limitNum || limit)
+      const response = await getPendingStudents(pageNum || page, limitNum || limit, search)
       // Backend returns: { data: { items: [...], pagination: {...} }, status, message }
       const studentsArray = response?.data?.items || []
       const paginationData = response?.data?.pagination || null
@@ -97,7 +98,7 @@ export function usePendingStudents(
     } finally {
       setLoading(false)
     }
-  }, [page, limit])
+  }, [page, limit, search])
 
   useEffect(() => {
     fetchStudents()

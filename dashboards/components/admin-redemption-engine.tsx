@@ -17,7 +17,7 @@ import {
 } from "recharts"
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { getRedemptionAnalytics, RedemptionAnalytics } from "@/lib/api-client"
-import { Users, TrendingUp, Repeat, Gift, Activity, X } from "lucide-react"
+import { Users, TrendingUp, Repeat, Gift, Activity, X, Percent, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -218,7 +218,7 @@ export function AdminRedemptionEngine({
         )}
 
       {/* ── KPI Row ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Unique Redeemers */}
         <Card>
           <CardHeader className="pb-2">
@@ -248,6 +248,81 @@ export function AdminRedemptionEngine({
                 {data.uniqueRedeemers.toLocaleString()} of {data.totalRegisteredStudents.toLocaleString()} total registered ({data.totalRegisteredStudents > 0 ? Math.round((data.uniqueRedeemers / data.totalRegisteredStudents) * 100) : 0}%)
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* MoM Unique Redeemers */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help border-b border-dashed border-muted-foreground/30 flex items-center gap-1">
+                      Unique Redeemers (MoM) <Info className="w-3 h-3 opacity-50" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Distinct verified redeemers this calendar month vs last calendar month (independent of the date-range filter above).</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+              <Activity className="w-4 h-4" style={{ color: colors.primary }} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+              {data.momUniqueRedeemers.thisMonth.toLocaleString()}
+            </div>
+            <div className="space-y-0.5 mt-1">
+              <p className="text-xs text-muted-foreground">
+                This month · last month {data.momUniqueRedeemers.lastMonth.toLocaleString()}
+              </p>
+              <p className={`text-[10px] font-medium flex items-center gap-0.5 ${
+                data.momUniqueRedeemers.changePercent > 0
+                  ? "text-emerald-600"
+                  : data.momUniqueRedeemers.changePercent < 0
+                    ? "text-rose-600"
+                    : "text-muted-foreground"
+              }`}>
+                {data.momUniqueRedeemers.changePercent > 0 ? (
+                  <ArrowUpRight className="w-3 h-3" />
+                ) : data.momUniqueRedeemers.changePercent < 0 ? (
+                  <ArrowDownRight className="w-3 h-3" />
+                ) : null}
+                {data.momUniqueRedeemers.changePercent > 0 ? "+" : ""}
+                {data.momUniqueRedeemers.changePercent}% vs last month
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* % Actively Redeeming */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help border-b border-dashed border-muted-foreground/30 flex items-center gap-1">
+                      % Actively Redeeming <Info className="w-3 h-3 opacity-50" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Share of approved, active students who completed at least one verified redemption this calendar month.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+              <Percent className="w-4 h-4" style={{ color: colors.primary }} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold" style={{ color: colors.primary }}>
+              {data.activeRedeemingPercent}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data.momUniqueRedeemers.thisMonth.toLocaleString()} of {data.totalRegisteredStudents.toLocaleString()} approved students this month
+            </p>
           </CardContent>
         </Card>
 
