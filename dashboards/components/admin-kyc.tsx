@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone, ShieldCheck, CheckCircle2, School, Calendar as CalendarIcon, ChevronsUpDown, Phone, Cake, HelpCircle } from "lucide-react"
+import { Check, X, Search, Eye, MoreHorizontal, Loader2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ZoomIn, Trash2, Save, Mail, Apple, Smartphone, ShieldCheck, CheckCircle2, School, Calendar as CalendarIcon, ChevronsUpDown, Phone, Cake, HelpCircle, CircleDashed } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -1068,8 +1068,17 @@ export function AdminKYC({
         </TabsContent>
 
         <TabsContent value="all" className="space-y-6">
-          {stats?.platformDistribution && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {stats?.platformDistribution && (() => {
+            const iosCount = stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'ios')?.count || 0
+            const androidCount = stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'android')?.count || 0
+            const legacyCount = stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'unknown')?.count || 0
+            const untrackedCount = stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'untracked')?.count || 0
+            // Fallback if API is older and omits untracked: gap between all students and the three buckets
+            const missingFromBuckets = Math.max(0, (allPagination?.total || 0) - iosCount - androidCount - legacyCount - untrackedCount)
+            const displayUntracked = untrackedCount > 0 ? untrackedCount : missingFromBuckets
+
+            return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
               <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900 transition-all duration-500 hover:shadow-xl hover:shadow-slate-500/10 rounded-[2.5rem]">
                 <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-all duration-700">
                   <Apple className="w-24 h-24 text-slate-900 dark:text-white" />
@@ -1082,7 +1091,7 @@ export function AdminKYC({
                     <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">iOS Users</span>
                   </div>
                   <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                    {stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'ios')?.count || 0}
+                    {iosCount}
                   </div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">App Store Ecosystem</p>
                 </CardContent>
@@ -1100,7 +1109,7 @@ export function AdminKYC({
                     <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">Android Users</span>
                   </div>
                   <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                    {stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'android')?.count || 0}
+                    {androidCount}
                   </div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Play Store Ecosystem</p>
                 </CardContent>
@@ -1123,7 +1132,7 @@ export function AdminKYC({
                           </span>
                         </div>
                         <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                          {stats.platformDistribution.find(p => p.platform?.toLowerCase() === 'unknown')?.count || 0}
+                          {legacyCount}
                         </div>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">LEGACY STUDENTS</p>
                       </CardContent>
@@ -1132,13 +1141,46 @@ export function AdminKYC({
                   <TooltipContent className="bg-slate-900 text-white p-3 rounded-xl max-w-xs text-xs shadow-xl border border-slate-800 z-50">
                     <p className="font-bold mb-1">Legacy Account Distribution</p>
                     <p className="leading-relaxed text-[11px] text-slate-300">
-                      These are legacy students who registered before device platform tracking (iOS/Android detection) was implemented on April 30, 2026.
+                      Students registered before May 1, 2026 whose device platform (iOS/Android) could not be determined. This is a frozen pre-tracking cohort and does not include newer signups.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-rose-50/50 dark:from-slate-900 dark:to-rose-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-rose-500/10 rounded-[2.5rem] cursor-help">
+                      <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-10 transition-all duration-700">
+                        <CircleDashed className="w-24 h-24 text-rose-600" />
+                      </div>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="w-10 h-10 rounded-2xl bg-rose-600 flex items-center justify-center text-white shadow-lg">
+                            <CircleDashed className="w-5 h-5" />
+                          </div>
+                          <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded-full border border-rose-100 dark:border-rose-800">
+                            UNTRACKED (?)
+                          </span>
+                        </div>
+                        <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+                          {displayUntracked}
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">NO PLATFORM DATA</p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-slate-900 text-white p-3 rounded-xl max-w-xs text-xs shadow-xl border border-slate-800 z-50">
+                    <p className="font-bold mb-1">Untracked Platform</p>
+                    <p className="leading-relaxed text-[11px] text-slate-300">
+                      Students registered on or after May 1, 2026 whose iOS/Android platform could not be resolved (signup did not store platform, and no FCM/analytics attribution). They move to iOS/Android once the app sends platform on signup or registers an FCM token with platform. Together with iOS, Android, and Legacy, this accounts for all students.
                     </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-          )}
+            )
+          })()}
 
           <Card className="rounded-[2.5rem] border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900">
             <CardHeader>

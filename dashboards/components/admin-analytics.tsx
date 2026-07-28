@@ -22,7 +22,7 @@ import {
 import { DASHBOARD_COLORS } from "@/lib/colors"
 import { AdminDashboardStats, SignupDropoff } from "@/lib/api-client"
 import { orderStagesForChart } from "@/lib/signup-funnel-display"
-import { TrendingUp, Users, Smartphone, Target, ArrowDownRight, Info, Apple, Download, UserPlus, ShieldCheck, Ticket } from "lucide-react"
+import { TrendingUp, Users, Smartphone, Target, ArrowDownRight, Info, Apple, Download, UserPlus, ShieldCheck, Ticket, HelpCircle, CircleDashed } from "lucide-react"
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface AdminAnalyticsProps {
@@ -355,12 +355,16 @@ export function AdminAnalytics({ stats, signupFunnel, isFiltered }: AdminAnalyti
             {/* Lead Device */}
             {(() => {
               const topPlatformRaw = [...platformData].sort((a, b) => b.count - a.count)[0]?.platform || "N/A";
-              const isUnknown = topPlatformRaw.toLowerCase() === 'unknown';
+              const topPlatform = topPlatformRaw.toLowerCase();
+              const isUnknown = topPlatform === 'unknown';
+              const isUntracked = topPlatform === 'untracked';
+              const displayLabel = isUnknown ? "LEGACY" : isUntracked ? "UNTRACKED" : topPlatformRaw;
+              const needsTooltip = isUnknown || isUntracked;
               return (
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
-                      <Card className={`group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-indigo-50/50 dark:from-slate-900 dark:to-indigo-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 ${isUnknown ? 'cursor-help' : ''}`}>
+                      <Card className={`group relative overflow-hidden border-none shadow-sm bg-gradient-to-br from-white to-indigo-50/50 dark:from-slate-900 dark:to-indigo-900/10 transition-all duration-500 hover:shadow-xl hover:shadow-indigo-500/10 ${needsTooltip ? 'cursor-help' : ''}`}>
                         <div className="absolute -right-4 -top-4 p-8 opacity-5 group-hover:opacity-20 group-hover:scale-110 transition-all duration-700">
                           <Smartphone className="w-24 h-24 text-indigo-600" />
                         </div>
@@ -375,7 +379,7 @@ export function AdminAnalytics({ stats, signupFunnel, isFiltered }: AdminAnalyti
                           </div>
                           <div className="space-y-1">
                             <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
-                              {isUnknown ? "LEGACY" : topPlatformRaw}
+                              {displayLabel}
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Device Engagement</p>
                           </div>
@@ -384,12 +388,18 @@ export function AdminAnalytics({ stats, signupFunnel, isFiltered }: AdminAnalyti
                     </TooltipTrigger>
                     <TooltipContent className="bg-slate-900 text-white p-3 rounded-xl max-w-xs text-xs shadow-xl border border-slate-800 z-50">
                       <p className="font-bold mb-1">
-                        {isUnknown ? 'Legacy Account Distribution' : 'Primary Operating System'}
+                        {isUnknown
+                          ? 'Legacy Account Distribution'
+                          : isUntracked
+                            ? 'Untracked Platform'
+                            : 'Primary Operating System'}
                       </p>
                       <p className="leading-relaxed text-[11px] text-slate-300">
                         {isUnknown
-                          ? 'These are legacy students who registered before device platform tracking (iOS/Android detection) was implemented on April 30, 2026.'
-                          : `Most signup engagement is coming from ${topPlatformRaw} devices.`}
+                          ? 'Students registered before May 1, 2026 whose device platform (iOS/Android) could not be determined. This is a frozen pre-tracking cohort and does not include newer signups.'
+                          : isUntracked
+                            ? 'Students registered on or after May 1, 2026 whose iOS/Android platform could not be resolved (signup did not store platform, and no FCM/analytics attribution). They move to iOS/Android once the app sends platform on signup or registers an FCM token with platform.'
+                            : `Most signup engagement is coming from ${topPlatformRaw} devices.`}
                       </p>
                     </TooltipContent>
                   </UITooltip>
@@ -647,16 +657,28 @@ export function AdminAnalytics({ stats, signupFunnel, isFiltered }: AdminAnalyti
                   </ResponsiveContainer>
                 </div>
                 <div className="grid grid-cols-1 gap-2 mt-2 w-full">
-                  {platformData.map((item: any, idx: number) => (
-                    <div key={item.platform} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                        {item.platform?.toLowerCase() === 'ios' ? <Apple className="h-3 w-3 text-slate-500" /> : <Smartphone className="h-3 w-3 text-green-500" />}
-                        <span className="text-xs font-medium uppercase tracking-tight">{item.platform}</span>
+                  {platformData.map((item: any, idx: number) => {
+                    const platform = item.platform?.toLowerCase()
+                    const label =
+                      platform === 'unknown' ? 'Legacy' :
+                      platform === 'untracked' ? 'Untracked' :
+                      item.platform
+                    const icon =
+                      platform === 'ios' ? <Apple className="h-3 w-3 text-slate-500" /> :
+                      platform === 'android' ? <Smartphone className="h-3 w-3 text-green-500" /> :
+                      platform === 'unknown' ? <HelpCircle className="h-3 w-3 text-amber-500" /> :
+                      <CircleDashed className="h-3 w-3 text-rose-500" />
+                    return (
+                      <div key={item.platform} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                          {icon}
+                          <span className="text-xs font-medium uppercase tracking-tight">{label}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground font-bold">{item.count}</span>
                       </div>
-                      <span className="text-xs text-muted-foreground font-bold">{item.count}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
