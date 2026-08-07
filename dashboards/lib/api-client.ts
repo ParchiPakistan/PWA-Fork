@@ -1496,17 +1496,6 @@ export interface BranchAssignment {
   offerIds: string[];
 }
 
-export interface BonusSettings {
-  redemptionsRequired: number;
-  discountType: 'percentage' | 'fixed' | 'item';
-  discountValue: number;
-  maxDiscountAmount: number | null;
-  additionalItem: string | null;
-  validityDays: number | null;
-  isActive: boolean | null;
-  imageUrl: string | null;
-}
-
 export interface LoyaltyProgram {
   id: string;
   merchantId: string;
@@ -1535,6 +1524,26 @@ export const assignBranchOffers = async (branchId: string, offerIds: string[]) =
   });
 };
 
+/*
+ * Branch-level "Bonus Settings" — disabled, not deleted.
+ * This wrote to branch_bonus_settings, a table the redemption engine never
+ * reads. The real bonus system is loyalty_programs (see
+ * getMerchantLoyaltyProgram / updateMerchantLoyaltyProgram below, surfaced in
+ * Admin -> Offers -> Bonus Program). Hidden from the corporate dashboard so
+ * merchants stop configuring something with no effect. Left here commented
+ * out rather than removed, in case the decision is to wire it up instead.
+
+export interface BonusSettings {
+  redemptionsRequired: number;
+  discountType: 'percentage' | 'fixed' | 'item';
+  discountValue: number;
+  maxDiscountAmount: number | null;
+  additionalItem: string | null;
+  validityDays: number | null;
+  isActive: boolean | null;
+  imageUrl: string | null;
+}
+
 export const getBranchBonusSettings = async (branchId: string): Promise<BonusSettings> => {
   const response = await apiRequest(`/merchants/branches/${branchId}/bonus-settings`, {
     method: 'GET',
@@ -1548,6 +1557,8 @@ export const updateBranchBonusSettings = async (branchId: string, settings: Bonu
     body: JSON.stringify(settings),
   });
 };
+
+ */
 
 export const getMerchantLoyaltyProgram = async (merchantId: string): Promise<LoyaltyProgram[]> => {
   const response = await apiRequest(`/merchants/${merchantId}/loyalty`, {

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Save, Settings, Upload, Check } from "lucide-react"
+import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Save, Upload, Check /*, Settings */ } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -27,8 +27,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import {
   getMerchantOffers, createOffer, updateOffer, deleteMerchantOffer,
   Offer, CreateOfferRequest,
-  getBranchAssignments, assignBranchOffers, getBranchBonusSettings, updateBranchBonusSettings,
-  BranchAssignment, BonusSettings
+  getBranchAssignments, assignBranchOffers,
+  BranchAssignment
+  // getBranchBonusSettings, updateBranchBonusSettings, BonusSettings — bonus settings UI disabled, see below
 } from "@/lib/api-client"
 import { SupabaseStorageService } from "@/lib/storage"
 import { toast } from "sonner"
@@ -68,6 +69,11 @@ export function CorporateOffers() {
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
   const [isImageUploading, setIsImageUploading] = useState(false)
 
+  /*
+   * Bonus Settings state — disabled, not deleted. See the comment above the
+   * commented-out getBranchBonusSettings/updateBranchBonusSettings in
+   * lib/api-client.ts for why: this never affected real redemptions.
+
   // Bonus Settings State
   const [isBonusSettingsOpen, setIsBonusSettingsOpen] = useState(false)
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
@@ -98,6 +104,8 @@ export function CorporateOffers() {
     imageUrl: null
   })
   const [isGlobalBonusSaving, setIsGlobalBonusSaving] = useState(false)
+
+   */
 
   const [formData, setFormData] = useState<Partial<CreateOfferRequest>>({
     discountType: 'percentage',
@@ -267,6 +275,12 @@ export function CorporateOffers() {
     }
   }
 
+  /*
+   * Bonus Settings handlers — disabled, not deleted. Kept alongside the
+   * commented-out state above and the imports/API functions in
+   * lib/api-client.ts, in case this gets wired to the real bonus engine
+   * (loyalty_programs) instead of staying removed.
+
   // ------------------------------------------------------------------
   //  BONUS SETTINGS HANDLERS
   // ------------------------------------------------------------------
@@ -394,6 +408,8 @@ export function CorporateOffers() {
       setIsGlobalBonusSaving(false)
     }
   }
+
+   */
 
   // ------------------------------------------------------------------
   //  BRANCH ASSIGNMENT HANDLERS
@@ -806,22 +822,23 @@ export function CorporateOffers() {
 
       <div className="border-t my-8" />
 
-      {/* SECTION 2: BRANCH ASSIGNMENTS & BONUS SETTINGS */}
+      {/* SECTION 2: BRANCH ASSIGNMENTS */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Branch Assignments</h2>
-            <p className="text-muted-foreground">Assign Standard Offers and configure Bonus Settings for each branch</p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setIsGlobalBonusOpen(true)}
-            disabled={assignments.length === 0}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Set Global Bonus
-          </Button>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Branch Assignments</h2>
+          <p className="text-muted-foreground">Assign a standard offer for each branch</p>
         </div>
+        {/* "Set Global Bonus" button — disabled along with the rest of the
+            bonus settings UI, see the commented-out dialogs below.
+        <Button
+          variant="outline"
+          onClick={() => setIsGlobalBonusOpen(true)}
+          disabled={assignments.length === 0}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Set Global Bonus
+        </Button>
+        */}
 
         <Card>
           {/* Desktop Table */}
@@ -831,7 +848,7 @@ export function CorporateOffers() {
                 <TableRow>
                   <TableHead className="w-[250px]">Branch Name</TableHead>
                   <TableHead>Standard Offer (Required)</TableHead>
-                  <TableHead>Bonus Settings</TableHead>
+                  {/* <TableHead>Bonus Settings</TableHead> — disabled, see commented dialogs below */}
                   <TableHead className="w-[100px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -862,6 +879,7 @@ export function CorporateOffers() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    {/* "Configure Bonus" cell — disabled, see commented dialogs below.
                     <TableCell>
                       <Button
                         variant="outline"
@@ -871,6 +889,7 @@ export function CorporateOffers() {
                         <Settings className="mr-2 h-4 w-4" /> Configure Bonus
                       </Button>
                     </TableCell>
+                    */}
                     <TableCell>
                       <Button
                         size="sm"
@@ -884,7 +903,8 @@ export function CorporateOffers() {
                 ))}
                 {assignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    {/* colSpan was 4 while the Bonus Settings column was visible */}
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                       No branches found. Create branches first.
                     </TableCell>
                   </TableRow>
@@ -922,6 +942,7 @@ export function CorporateOffers() {
                   </Select>
                 </div>
 
+                {/* "Bonus" button — disabled, see commented dialogs below.
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -938,6 +959,14 @@ export function CorporateOffers() {
                     Save
                   </Button>
                 </div>
+                */}
+                <Button
+                  className="w-full"
+                  onClick={() => handleSaveAssignment(assignment)}
+                  disabled={assignment.selectedOfferId === assignment.originalOfferId}
+                >
+                  Save
+                </Button>
               </div>
             ))}
             {assignments.length === 0 && (
@@ -949,7 +978,14 @@ export function CorporateOffers() {
         </Card>
       </div>
 
-      {/* Bonus Settings Dialog */}
+      {/*
+        Bonus Settings & Global Bonus Settings dialogs — disabled, not deleted.
+        Neither ever affected real redemptions (see the comment on the
+        commented-out getBranchBonusSettings/updateBranchBonusSettings in
+        lib/api-client.ts). The real bonus system is loyalty_programs,
+        managed from Admin -> Offers -> Bonus Program. Kept here in case the
+        decision is to wire this screen up to that system instead.
+
       <Dialog open={isBonusSettingsOpen} onOpenChange={setIsBonusSettingsOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -1096,6 +1132,8 @@ export function CorporateOffers() {
         </DialogContent>
       </Dialog>
 
+      */}
+
       <AlertDialog open={!!offerToDelete} onOpenChange={(open) => !open && setOfferToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1113,7 +1151,9 @@ export function CorporateOffers() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Global Bonus Settings Dialog */}
+      {/* Global Bonus Settings dialog — disabled, not deleted. Same reasoning
+          as the Bonus Settings dialog above.
+
       <Dialog open={isGlobalBonusOpen} onOpenChange={setIsGlobalBonusOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -1253,6 +1293,8 @@ export function CorporateOffers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      */}
     </div>
   )
 }
