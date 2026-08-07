@@ -35,6 +35,11 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
 interface BranchAssignmentWithOriginal extends BranchAssignment {
+  // Corporate still manages one "standard" offer per branch through this
+  // screen. Admin → Branches now supports assigning several at once
+  // (offerIds can hold more than one); this UI keeps the simpler single-offer
+  // flow and edits offerIds[0] only, leaving any others Admin assigned intact.
+  selectedOfferId: string | null;
   originalOfferId: string | null;
 }
 
@@ -120,7 +125,8 @@ export function CorporateOffers() {
         const assignmentsRes = await getBranchAssignments()
         setAssignments(assignmentsRes.map(a => ({
           ...a,
-          originalOfferId: a.standardOfferId
+          selectedOfferId: a.offerIds[0] ?? null,
+          originalOfferId: a.offerIds[0] ?? null,
         })))
       } catch (error) {
         console.error("Failed to fetch assignments:", error)
@@ -395,23 +401,29 @@ export function CorporateOffers() {
 
   const handleAssignmentChange = (branchId: string, value: string) => {
     setAssignments(prev => prev.map(a =>
-      a.id === branchId ? { ...a, standardOfferId: value === "none" ? null : value } : a
+      a.id === branchId ? { ...a, selectedOfferId: value === "none" ? null : value } : a
     ))
   }
 
-  const handleSaveAssignment = async (assignment: BranchAssignment) => {
-    if (!assignment.standardOfferId) {
+  const handleSaveAssignment = async (assignment: BranchAssignmentWithOriginal) => {
+    if (!assignment.selectedOfferId) {
       toast.error("A standard offer is required")
       return
     }
 
+    // Preserve any other offers Admin may have assigned to this branch —
+    // this control only manages the one "standard" slot.
+    const otherOfferIds = assignment.offerIds.filter(id => id !== assignment.originalOfferId)
+    const newOfferIds = [assignment.selectedOfferId, ...otherOfferIds]
+
     try {
-      await assignBranchOffers(assignment.id, assignment.standardOfferId)
+      await assignBranchOffers(assignment.id, newOfferIds)
       toast.success(`Offer assigned to ${assignment.branchName}`)
 
-      // Update originalOfferId after successful save
       setAssignments(prev => prev.map(a =>
-        a.id === assignment.id ? { ...a, originalOfferId: a.standardOfferId } : a
+        a.id === assignment.id
+          ? { ...a, offerIds: newOfferIds, originalOfferId: assignment.selectedOfferId }
+          : a
       ))
     } catch (error) {
       toast.error("Failed to assign offer")
@@ -834,7 +846,7 @@ export function CorporateOffers() {
                     </TableCell>
                     <TableCell>
                       <Select
-                        value={assignment.standardOfferId || "none"}
+                        value={assignment.selectedOfferId || "none"}
                         onValueChange={(val) => handleAssignmentChange(assignment.id, val)}
                       >
                         <SelectTrigger className="w-full">
@@ -863,7 +875,7 @@ export function CorporateOffers() {
                       <Button
                         size="sm"
                         onClick={() => handleSaveAssignment(assignment)}
-                        disabled={assignment.standardOfferId === assignment.originalOfferId}
+                        disabled={assignment.selectedOfferId === assignment.originalOfferId}
                       >
                         Save
                       </Button>
@@ -893,7 +905,7 @@ export function CorporateOffers() {
                 <div className="space-y-2">
                   <div className="text-sm text-muted-foreground">Standard Offer</div>
                   <Select
-                    value={assignment.standardOfferId || "none"}
+                    value={assignment.selectedOfferId || "none"}
                     onValueChange={(val) => handleAssignmentChange(assignment.id, val)}
                   >
                     <SelectTrigger className="w-full">
@@ -921,7 +933,7 @@ export function CorporateOffers() {
                   <Button
                     className="flex-1"
                     onClick={() => handleSaveAssignment(assignment)}
-                    disabled={assignment.standardOfferId === assignment.originalOfferId}
+                    disabled={assignment.selectedOfferId === assignment.originalOfferId}
                   >
                     Save
                   </Button>

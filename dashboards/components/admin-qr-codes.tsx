@@ -74,14 +74,15 @@ function downloadQr(branch: AdminBranch) {
 function BranchQrCard({
   branch,
   colors,
-  assignedOfferId,
+  assignedOfferIds,
   onAssignOffer,
 }: {
   branch: AdminBranch
   colors: ReturnType<typeof DASHBOARD_COLORS>
-  assignedOfferId: string | null
+  assignedOfferIds: string[]
   onAssignOffer: (branch: AdminBranch) => void
 }) {
+  const hasOffers = assignedOfferIds.length > 0
   return (
     <Card className="flex flex-col border-2 hover:shadow-md transition-shadow" style={{ borderColor: `${colors.primary}20` }}>
       <CardHeader className="pb-3">
@@ -98,9 +99,14 @@ function BranchQrCard({
           {!branch.is_active && (
             <Badge variant="destructive" className="text-[10px]">Inactive</Badge>
           )}
-          {!assignedOfferId && branch.is_active && (
+          {!hasOffers && branch.is_active && (
             <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300">
-              No offer — QR won&apos;t redeem
+              No offers — QR won&apos;t redeem
+            </Badge>
+          )}
+          {assignedOfferIds.length > 1 && (
+            <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-300">
+              {assignedOfferIds.length} offers
             </Badge>
           )}
         </div>
@@ -127,7 +133,7 @@ function BranchQrCard({
           style={{ borderColor: `${colors.primary}40`, color: colors.primary }}
         >
           <Tag className="w-4 h-4" />
-          {assignedOfferId ? "Change offer" : "Assign offer"}
+          {hasOffers ? "Manage offers" : "Assign offers"}
         </Button>
         <Button
           onClick={() => downloadQr(branch)}
@@ -148,7 +154,7 @@ export function AdminQrCodes() {
   const [branches, setBranches] = useState<AdminBranch[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string | null>>({})
+  const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string[]>>({})
   const [assignOfferBranch, setAssignOfferBranch] = useState<AdminBranch | null>(null)
   const [isAssignOfferOpen, setIsAssignOfferOpen] = useState(false)
 
@@ -160,9 +166,9 @@ export function AdminQrCodes() {
         getBranchAssignments().catch(() => []),
       ])
       setBranches(data)
-      const byBranch: Record<string, string | null> = {}
+      const byBranch: Record<string, string[]> = {}
       assignments.forEach((a) => {
-        byBranch[a.id] = a.standardOfferId
+        byBranch[a.id] = a.offerIds
       })
       setAssignmentByBranchId(byBranch)
     } catch {
@@ -247,7 +253,7 @@ export function AdminQrCodes() {
                     key={b.id}
                     branch={b}
                     colors={colors}
-                    assignedOfferId={assignmentByBranchId[b.id] ?? null}
+                    assignedOfferIds={assignmentByBranchId[b.id] ?? []}
                     onAssignOffer={(branch) => {
                       setAssignOfferBranch(branch)
                       setIsAssignOfferOpen(true)
@@ -269,7 +275,7 @@ export function AdminQrCodes() {
                     key={b.id}
                     branch={b}
                     colors={colors}
-                    assignedOfferId={assignmentByBranchId[b.id] ?? null}
+                    assignedOfferIds={assignmentByBranchId[b.id] ?? []}
                     onAssignOffer={(branch) => {
                       setAssignOfferBranch(branch)
                       setIsAssignOfferOpen(true)
@@ -286,7 +292,7 @@ export function AdminQrCodes() {
         branch={assignOfferBranch}
         open={isAssignOfferOpen}
         onOpenChange={setIsAssignOfferOpen}
-        currentOfferId={assignOfferBranch ? assignmentByBranchId[assignOfferBranch.id] ?? null : null}
+        currentOfferIds={assignOfferBranch ? assignmentByBranchId[assignOfferBranch.id] ?? [] : []}
         onAssigned={load}
       />
     </div>

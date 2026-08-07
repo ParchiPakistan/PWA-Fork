@@ -11,13 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Tag } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -31,7 +25,9 @@ function formatOfferLabel(offer: Offer) {
   const discount =
     offer.discountType === "percentage"
       ? `${offer.discountValue}%`
-      : `Rs. ${offer.discountValue}`
+      : offer.discountType === "item"
+        ? offer.additionalItem || "Free item"
+        : `Rs. ${offer.discountValue}`
   return `${offer.title} (${discount})`
 }
 
@@ -45,7 +41,8 @@ export interface AssignBranchOfferDialogProps {
   branch: AdminBranch | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentOfferId: string | null
+  /** Offer IDs currently live at this branch. */
+  currentOfferIds: string[]
   onAssigned: () => void
 }
 
@@ -53,18 +50,18 @@ export function AssignBranchOfferDialog({
   branch,
   open,
   onOpenChange,
-  currentOfferId,
+  currentOfferIds,
   onAssigned,
 }: AssignBranchOfferDialogProps) {
   const [offers, setOffers] = useState<Offer[]>([])
   const [loadingOffers, setLoadingOffers] = useState(false)
-  const [selectedOfferId, setSelectedOfferId] = useState<string>("")
+  const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open || !branch) return
 
-    setSelectedOfferId(currentOfferId ?? "")
+    setSelectedOfferIds(currentOfferIds)
 
     const loadOffers = async () => {
       setLoadingOffers(true)
@@ -80,22 +77,34 @@ export function AssignBranchOfferDialog({
     }
 
     loadOffers()
-  }, [open, branch, currentOfferId])
+    // currentOfferIds is derived fresh from the parent each time the dialog
+    // opens for a branch; including it would re-run this on every keystroke
+    // elsewhere in the parent's state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, branch])
+
+  const toggleOffer = (offerId: string, checked: boolean) => {
+    setSelectedOfferIds((prev) =>
+      checked ? [...prev, offerId] : prev.filter((id) => id !== offerId),
+    )
+  }
 
   const handleSave = async () => {
-    if (!branch || !selectedOfferId) {
-      toast.error("Select an offer to assign")
-      return
-    }
+    if (!branch) return
 
     try {
       setSaving(true)
-      await assignBranchOffers(branch.id, selectedOfferId)
-      toast.success(`Offer assigned to ${branch.branch_name}`)
+      await assignBranchOffers(branch.id, selectedOfferIds)
+      const count = selectedOfferIds.length
+      toast.success(
+        count === 0
+          ? `Removed all offers from ${branch.branch_name}`
+          : `${count} offer${count === 1 ? "" : "s"} active at ${branch.branch_name}`,
+      )
       onOpenChange(false)
       onAssigned()
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to assign offer"
+      const message = error instanceof Error ? error.message : "Failed to save offers"
       toast.error(message)
     } finally {
       setSaving(false)
@@ -105,32 +114,55 @@ export function AssignBranchOfferDialog({
   const activeOffers = offers.filter((o) => o.status === "active")
   const otherOffers = offers.filter((o) => o.status !== "active")
 
+  const renderOfferRow = (offer: Offer) => {
+    const checked = selectedOfferIds.includes(offer.id)
+    const redeemableNow = isOfferRedeemableNow(offer)
+    return (
+      <label
+        key={offer.id}
+        className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+      >
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => toggleOffer(offer.id, value === true)}
+          className="mt-0.5"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium">{formatOfferLabel(offer)}</div>
+          <div className="text-xs text-muted-foreground">
+            {offer.status !== "active" ? `Status: ${offer.status}` : redeemableNow ? "Live now" : "Outside its valid dates"}
+          </div>
+        </div>
+      </label>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            Assign offer to branch
+            Offers at this branch
           </DialogTitle>
           <DialogDescription>
             {branch ? (
               <>
                 <span className="font-medium text-foreground">{branch.branch_name}</span>
-                {branch.merchant?.business_name && (
-                  <> · {branch.merchant.business_name}</>
-                )}
+                {branch.merchant?.business_name && <> · {branch.merchant.business_name}</>}
                 <br />
-                Required for QR redemption. Replaces any existing offer on this branch.
+                Tick every offer this branch should accept. A branch can have more than one
+                offer active at once — when a student scans the QR code, they'll pick which one
+                to use.
               </>
             ) : (
-              "Select a standard offer for this branch."
+              "Select the offers this branch should accept."
             )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2">
-          <Label>Standard offer</Label>
+          <Label>Offers ({selectedOfferIds.length} selected)</Label>
           {loadingOffers ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -141,24 +173,15 @@ export function AssignBranchOfferDialog({
               No offers found for this merchant. Create and approve an offer first (Admin → Offers).
             </p>
           ) : (
-            <Select value={selectedOfferId || undefined} onValueChange={setSelectedOfferId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select an offer" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeOffers.map((offer) => (
-                  <SelectItem key={offer.id} value={offer.id}>
-                    {formatOfferLabel(offer)}
-                    {!isOfferRedeemableNow(offer) ? " · outside dates" : ""}
-                  </SelectItem>
-                ))}
-                {otherOffers.map((offer) => (
-                  <SelectItem key={offer.id} value={offer.id}>
-                    {formatOfferLabel(offer)} · {offer.status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {activeOffers.map(renderOfferRow)}
+              {otherOffers.length > 0 && (
+                <>
+                  <div className="text-xs text-muted-foreground pt-2">Not currently active</div>
+                  {otherOffers.map(renderOfferRow)}
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -166,12 +189,9 @@ export function AssignBranchOfferDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || loadingOffers || !selectedOfferId || offers.length === 0}
-          >
+          <Button onClick={handleSave} disabled={saving || loadingOffers}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save assignment
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>

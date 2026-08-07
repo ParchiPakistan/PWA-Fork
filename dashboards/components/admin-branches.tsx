@@ -87,7 +87,7 @@ export function AdminBranches() {
   }
 
   // Offer assignment
-  const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string | null>>({})
+  const [assignmentByBranchId, setAssignmentByBranchId] = useState<Record<string, string[]>>({})
   const [offerTitleById, setOfferTitleById] = useState<Record<string, string>>({})
   const [assignOfferBranch, setAssignOfferBranch] = useState<AdminBranch | null>(null)
   const [isAssignOfferOpen, setIsAssignOfferOpen] = useState(false)
@@ -95,9 +95,9 @@ export function AdminBranches() {
   const loadAssignmentsAndOfferTitles = useCallback(async (branchList: AdminBranch[]) => {
     try {
       const assignments = await getBranchAssignments()
-      const byBranch: Record<string, string | null> = {}
+      const byBranch: Record<string, string[]> = {}
       assignments.forEach((a) => {
-        byBranch[a.id] = a.standardOfferId
+        byBranch[a.id] = a.offerIds
       })
       setAssignmentByBranchId(byBranch)
 
@@ -401,20 +401,30 @@ export function AdminBranches() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {assignmentByBranchId[branch.id] ? (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-green-50 text-green-700 border-green-300 max-w-[180px] truncate"
-                              title={offerTitleById[assignmentByBranchId[branch.id]!] ?? undefined}
-                            >
-                              {offerTitleById[assignmentByBranchId[branch.id]!] ?? "Offer linked"}
-                            </Badge>
+                          {(assignmentByBranchId[branch.id]?.length ?? 0) > 0 ? (
+                            <div className="flex flex-wrap gap-1 max-w-[220px]">
+                              {assignmentByBranchId[branch.id].slice(0, 2).map((offerId) => (
+                                <Badge
+                                  key={offerId}
+                                  variant="outline"
+                                  className="text-xs bg-green-50 text-green-700 border-green-300 truncate max-w-[120px]"
+                                  title={offerTitleById[offerId] ?? undefined}
+                                >
+                                  {offerTitleById[offerId] ?? "Offer linked"}
+                                </Badge>
+                              ))}
+                              {assignmentByBranchId[branch.id].length > 2 && (
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                                  +{assignmentByBranchId[branch.id].length - 2} more
+                                </Badge>
+                              )}
+                            </div>
                           ) : (
                             <Badge
                               variant="outline"
                               className="text-xs bg-amber-50 text-amber-700 border-amber-300"
                             >
-                              No offer
+                              No offers
                             </Badge>
                           )}
                         </TableCell>
@@ -430,7 +440,7 @@ export function AdminBranches() {
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => openAssignOfferModal(branch)}>
                                 <Tag className="mr-2 h-4 w-4 text-violet-600" />
-                                {assignmentByBranchId[branch.id] ? "Change offer" : "Assign offer"}
+                                {(assignmentByBranchId[branch.id]?.length ?? 0) > 0 ? "Manage offers" : "Assign offers"}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEditModal(branch)}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
@@ -542,13 +552,15 @@ export function AdminBranches() {
                       >
                         {branch.qr_auto_approve ? "⚡ Auto" : "👁 Manual"}
                       </Badge>
-                      {assignmentByBranchId[branch.id] ? (
+                      {(assignmentByBranchId[branch.id]?.length ?? 0) > 0 ? (
                         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
-                          {offerTitleById[assignmentByBranchId[branch.id]!] ?? "Offer linked"}
+                          {assignmentByBranchId[branch.id].length === 1
+                            ? offerTitleById[assignmentByBranchId[branch.id][0]] ?? "Offer linked"
+                            : `${assignmentByBranchId[branch.id].length} offers`}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
-                          No offer
+                          No offers
                         </Badge>
                       )}
                       <span className="text-muted-foreground">{branch.city}</span>
@@ -561,7 +573,7 @@ export function AdminBranches() {
                       onClick={() => openAssignOfferModal(branch)}
                     >
                       <Tag className="mr-2 h-4 w-4" />
-                      {assignmentByBranchId[branch.id] ? "Change offer" : "Assign offer"}
+                      {(assignmentByBranchId[branch.id]?.length ?? 0) > 0 ? "Manage offers" : "Assign offers"}
                     </Button>
 
                     <div className="text-sm bg-muted/50 p-3 rounded-md space-y-1">
@@ -785,7 +797,7 @@ export function AdminBranches() {
         branch={assignOfferBranch}
         open={isAssignOfferOpen}
         onOpenChange={setIsAssignOfferOpen}
-        currentOfferId={assignOfferBranch ? assignmentByBranchId[assignOfferBranch.id] ?? null : null}
+        currentOfferIds={assignOfferBranch ? assignmentByBranchId[assignOfferBranch.id] ?? [] : []}
         onAssigned={handleOfferAssigned}
       />
 

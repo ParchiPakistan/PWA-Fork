@@ -1492,8 +1492,8 @@ export const getAggregatedRedemptionStats = async (): Promise<AggregatedStats> =
 export interface BranchAssignment {
   id: string; // branchId
   branchName: string;
-  standardOfferId: string | null;
-  bonusOfferId: string | null; // Deprecated/Unused
+  /** Every offer currently live at this branch. A branch can carry several at once. */
+  offerIds: string[];
 }
 
 export interface BonusSettings {
@@ -1527,10 +1527,11 @@ export const getBranchAssignments = async (): Promise<BranchAssignment[]> => {
   return response.data;
 };
 
-export const assignBranchOffers = async (branchId: string, standardOfferId: string) => {
+/** Replaces the branch's full set of live offers with exactly `offerIds`. */
+export const assignBranchOffers = async (branchId: string, offerIds: string[]) => {
   return apiRequest(`/merchants/branches/${branchId}/assign`, {
     method: 'POST',
-    body: JSON.stringify({ standardOfferId, bonusOfferId: null }),
+    body: JSON.stringify({ offerIds }),
   });
 };
 

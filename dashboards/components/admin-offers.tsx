@@ -12,8 +12,9 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp, X, GripVertical, Check, ChevronsUpDown, Search, Filter, Eye, Trash2, Building2, CheckCircle, XCircle, AlertCircle, EyeOff, FileText } from "lucide-react"
+import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp, X, GripVertical, Check, ChevronsUpDown, Search, Filter, Eye, Trash2, Building2, CheckCircle, XCircle, AlertCircle, EyeOff, FileText, MapPin, Zap, Tag } from "lucide-react"
 import { TestMerchantAlert } from "./test-merchant-alert"
+import { AssignBranchOfferDialog } from "./assign-branch-offer-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -21,11 +22,10 @@ import {
   getOffers, createOffer, updateOffer, deleteAdminOffer,
   Offer, CreateOfferRequest,
   getCorporateMerchants, CorporateMerchant,
-  getBranches, AdminBranch,
+  getBranches, AdminBranch, updateBranch,
   getBranchAssignments, assignBranchOffers,
-  getBranchBonusSettings, updateBranchBonusSettings,
   getMerchantLoyaltyProgram, updateMerchantLoyaltyProgram,
-  BranchAssignment, BonusSettings, LoyaltyProgram,
+  LoyaltyProgram,
   getFeaturedOffers, setFeaturedOffers,
   getAllAdminOffers, reviewAdminOffer
 } from "@/lib/api-client"
@@ -47,13 +47,6 @@ import {
 } from "@/components/ui/popover"
 
 // --- Types ---
-
-interface BranchWithAssignment {
-  id: string
-  branchName: string
-  standardOfferId: string | null
-  originalOfferId: string | null
-}
 
 const DAYS_OF_WEEK = [
   { label: 'Sun', value: 0 },
@@ -103,9 +96,17 @@ export function AdminOffers() {
   const [merchants, setMerchants] = useState<CorporateMerchant[]>([])
   const [expandedMerchants, setExpandedMerchants] = useState<string[]>([])
   const [offers, setOffers] = useState<Record<string, Offer[]>>({})
-  const [branchAssignments, setBranchAssignments] = useState<{ [merchantId: string]: BranchWithAssignment[] }>({})
+  const [branchesByMerchant, setBranchesByMerchant] = useState<Record<string, AdminBranch[]>>({})
+  // Every offer currently live at each branch — keyed by branch id, loaded
+  // once for all merchants so opening a merchant card doesn't need a round trip.
+  const [assignedOfferIdsByBranch, setAssignedOfferIdsByBranch] = useState<Record<string, string[]>>({})
   const [loadingMerchants, setLoadingMerchants] = useState<string[]>([])
   const [loading, setLoading] = useState(true) // Initial loading for config tab
+
+  // Assign-offers-to-branch dialog (multi-select: a branch can run several offers at once)
+  const [assignOfferBranch, setAssignOfferBranch] = useState<AdminBranch | null>(null)
+  const [isAssignOfferOpen, setIsAssignOfferOpen] = useState(false)
+  const [togglingAutoApproveId, setTogglingAutoApproveId] = useState<string | null>(null)
 
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -214,13 +215,29 @@ export function AdminOffers() {
 
   // --- CONFIGURATION EFFECTS ---
 
+  // Every branch's live-offer set, loaded once. Refreshed after any assign-dialog save.
+  const refreshBranchAssignments = async () => {
+    try {
+      const assignments = await getBranchAssignments()
+      const byBranch: Record<string, string[]> = {}
+      assignments.forEach((a) => { byBranch[a.id] = a.offerIds })
+      setAssignedOfferIdsByBranch(byBranch)
+    } catch (error) {
+      console.error("Failed to load branch offer assignments:", error)
+    }
+  }
+
   // Fetch Initial Data for Configuration
   const fetchConfigData = async () => {
     setLoading(true)
     try {
-      const merchantsRes = await getCorporateMerchants()
+      const [merchantsRes] = await Promise.all([
+        getCorporateMerchants(),
+        refreshBranchAssignments(),
+      ])
       setMerchants(merchantsRes.data)
       setOffers({})
+      setBranchesByMerchant({})
     } catch (error) {
       console.error("Failed to fetch data:", error)
       toast.error("Failed to load data")
@@ -254,6 +271,15 @@ export function AdminOffers() {
     }
   }
 
+  const formatOfferSchedule = (offer: Offer) => {
+    if (offer.scheduleType !== 'custom') return 'Always available'
+    const days = offer.allowedDays && offer.allowedDays.length > 0 && offer.allowedDays.length < 7
+      ? [...offer.allowedDays].sort().map(d => DAYS_OF_WEEK.find(x => x.value === d)?.label).join(', ')
+      : 'Every day'
+    const time = offer.startTime && offer.endTime ? ` · ${offer.startTime}–${offer.endTime}` : ''
+    return `${days}${time}`
+  }
+
   // --- CONFIGURATION HANDLERS (Existing) ---
 
   const toggleMerchant = async (merchantId: string) => {
@@ -261,20 +287,61 @@ export function AdminOffers() {
 
     if (isExpanding) {
       setExpandedMerchants(prev => [...prev, merchantId])
+      setLoadingMerchants(prev => [...prev, merchantId])
 
-      if (!offers[merchantId]) {
-        try {
-          const offersRes = await getOffers({ merchantId, limit: 100 })
-          setOffers(prev => ({
-            ...prev,
-            [merchantId]: offersRes.data.items || []
-          }))
-        } catch (error) {
-          console.error(`Failed to load offers for merchant ${merchantId}`, error)
-        }
+      try {
+        await Promise.all([
+          offers[merchantId]
+            ? Promise.resolve()
+            : getOffers({ merchantId, limit: 100 })
+                .then((offersRes) => {
+                  setOffers(prev => ({ ...prev, [merchantId]: offersRes.data.items || [] }))
+                })
+                .catch((error) => console.error(`Failed to load offers for merchant ${merchantId}`, error)),
+          branchesByMerchant[merchantId]
+            ? Promise.resolve()
+            : getBranches({ corporateAccountId: merchantId })
+                .then((branches) => {
+                  setBranchesByMerchant(prev => ({ ...prev, [merchantId]: branches }))
+                })
+                .catch((error) => console.error(`Failed to load branches for merchant ${merchantId}`, error)),
+        ])
+      } finally {
+        setLoadingMerchants(prev => prev.filter(id => id !== merchantId))
       }
     } else {
       setExpandedMerchants(prev => prev.filter(id => id !== merchantId))
+    }
+  }
+
+  const openAssignOfferModal = (branch: AdminBranch) => {
+    setAssignOfferBranch(branch)
+    setIsAssignOfferOpen(true)
+  }
+
+  const handleOfferAssignmentsSaved = () => {
+    refreshBranchAssignments()
+  }
+
+  const handleToggleAutoApprove = async (branch: AdminBranch) => {
+    setTogglingAutoApproveId(branch.id)
+    try {
+      const updated = await updateBranch(branch.id, { qrAutoApprove: !branch.qr_auto_approve })
+      setBranchesByMerchant(prev => ({
+        ...prev,
+        [branch.merchant_id]: (prev[branch.merchant_id] || []).map(b =>
+          b.id === branch.id ? { ...b, qr_auto_approve: updated.qr_auto_approve } : b
+        ),
+      }))
+      toast.success(
+        updated.qr_auto_approve
+          ? `${branch.branch_name}: scans now redeem instantly, no staff review`
+          : `${branch.branch_name}: staff must now approve each scan`
+      )
+    } catch (error) {
+      toast.error("Failed to update redemption mode")
+    } finally {
+      setTogglingAutoApproveId(null)
     }
   }
 
@@ -965,7 +1032,15 @@ export function AdminOffers() {
             </CardHeader>
           </Card>
 
-          {merchants.map((merchant) => (
+          {merchants.map((merchant) => {
+            const merchantOffers = getOffersByMerchant(merchant.id)
+            const activeOfferCount = merchantOffers.filter(o => o.status === 'active').length
+            const merchantBranches = branchesByMerchant[merchant.id] || []
+            const branchesWithNoOffers = expandedMerchants.includes(merchant.id)
+              ? merchantBranches.filter(b => b.is_active && (assignedOfferIdsByBranch[b.id]?.length ?? 0) === 0).length
+              : 0
+
+            return (
             <Card key={merchant.id}>
               <CardHeader>
                 <div className="flex justify-between items-center">
@@ -974,11 +1049,20 @@ export function AdminOffers() {
                       {merchant.businessName}
                       <TestMerchantAlert merchantName={merchant.businessName} />
                     </CardTitle>
-                    <CardDescription>{merchant.category || 'Uncategorized'}</CardDescription>
+                    <CardDescription className="flex items-center gap-2 flex-wrap">
+                      {merchant.category || 'Uncategorized'}
+                      <span>·</span>
+                      <span>{activeOfferCount} active offer{activeOfferCount === 1 ? '' : 's'}</span>
+                      {branchesWithNoOffers > 0 && (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300">
+                          {branchesWithNoOffers} branch{branchesWithNoOffers === 1 ? '' : 'es'} can't redeem anything
+                        </Badge>
+                      )}
+                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => handleOpenLoyalty(merchant)}>
-                      <Settings className="h-4 w-4 mr-2" /> Loyalty Settings
+                      <Settings className="h-4 w-4 mr-2" /> Bonus Program
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => toggleMerchant(merchant.id)}>
                       {expandedMerchants.includes(merchant.id) ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -991,79 +1075,45 @@ export function AdminOffers() {
                   {loadingMerchants.includes(merchant.id) ? (
                     <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                   ) : (
-                    <div className="space-y-6">
-                      {/* Merchant-wide Loyalty Summary */}
-                      <div className="bg-muted/30 p-4 rounded-lg border border-primary/10">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-semibold flex items-center gap-2">
-                            <Settings className="h-4 w-4 text-primary" /> Loyalty Programs
-                          </h3>
-                          <Button variant="outline" size="sm" onClick={() => handleOpenLoyalty(merchant)}>
-                            Manage Loyalty
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {loyaltyPrograms.filter(p => p.merchantId === merchant.id).length === 0 ? (
-                            <p className="text-sm text-muted-foreground italic col-span-full">No loyalty programs active for this merchant.</p>
-                          ) : (
-                            loyaltyPrograms.filter(p => p.merchantId === merchant.id).map(program => (
-                              <div key={program.id} className="bg-card p-3 rounded border shadow-sm flex flex-col gap-1">
-                                <div className="flex justify-between items-start">
-                                  <Badge variant="outline" className="capitalize">{program.scope}</Badge>
-                                  <Badge variant={program.isActive ? "default" : "secondary"}>
-                                    {program.isActive ? "Active" : "Inactive"}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm font-medium mt-1">
-                                  {program.scope === 'merchant' ? 'Whole Merchant' : 
-                                    offers[merchant.id]?.find(o => o.id === program.offerId)?.title || 'Offer Reward'}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {program.redemptionsRequired} redemptions → {
-                                    program.discountType === 'percentage' ? `${program.discountValue}% Off` :
-                                    program.discountType === 'fixed' ? `Rs. ${program.discountValue} Off` :
-                                    program.additionalItem || 'Free Item'
-                                  }
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Merchant Offers Section */}
+                    <div className="space-y-8">
+                      {/* 1. Active Offers — what this merchant is currently offering */}
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold">Merchant Offers</h3>
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-lg font-semibold">Offers</h3>
                           <Button size="sm" onClick={() => { setFormData(p => ({ ...p, merchantId: merchant.id })); setIsCreateOpen(true); }}>
                             <Plus className="h-4 w-4 mr-1" /> New Offer
                           </Button>
                         </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          A merchant can run several offers at the same time — students will see all of them.
+                        </p>
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Offer Title</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Value</TableHead>
+                              <TableHead>Offer</TableHead>
+                              <TableHead>Discount</TableHead>
+                              <TableHead>When it's available</TableHead>
                               <TableHead>Status</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {getOffersByMerchant(merchant.id).length === 0 ? (
+                            {merchantOffers.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                                   No offers found for this merchant.
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              getOffersByMerchant(merchant.id).map(offer => (
+                              merchantOffers.map(offer => (
                                 <TableRow key={offer.id}>
                                   <TableCell className="font-medium">{offer.title}</TableCell>
-                                  <TableCell className="capitalize">{offer.discountType}</TableCell>
                                   <TableCell>
-                                    {offer.discountType === 'percentage' ? `${offer.discountValue}%` : 
-                                     offer.discountType === 'item' ? offer.additionalItem : `Rs. ${offer.discountValue}`}
+                                    {offer.discountType === 'percentage' ? `${offer.discountValue}%` :
+                                     offer.discountType === 'item' ? (offer.additionalItem || 'Free item') : `Rs. ${offer.discountValue}`}
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">
+                                    {formatOfferSchedule(offer)}
                                   </TableCell>
                                   <TableCell>{getStatusBadge(offer.status)}</TableCell>
                                   <TableCell className="text-right">
@@ -1108,12 +1158,121 @@ export function AdminOffers() {
                           </TableBody>
                         </Table>
                       </div>
+
+                      {/* 2. Bonus Program — how loyalty redemptions are counted */}
+                      <div className="bg-muted/30 p-4 rounded-lg border border-primary/10">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <Settings className="h-4 w-4 text-primary" /> Bonus Program
+                          </h3>
+                          <Button variant="outline" size="sm" onClick={() => handleOpenLoyalty(merchant)}>
+                            Manage
+                          </Button>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          "Whole merchant" counts a student's redemptions at any branch, on any offer, together.
+                          "One offer" counts redemptions on that offer only — across all branches — separately from everything else.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {loyaltyPrograms.filter(p => p.merchantId === merchant.id).length === 0 ? (
+                            <p className="text-sm text-muted-foreground italic col-span-full">No bonus program set up for this merchant yet.</p>
+                          ) : (
+                            loyaltyPrograms.filter(p => p.merchantId === merchant.id).map(program => (
+                              <div key={program.id} className="bg-card p-3 rounded border shadow-sm flex flex-col gap-1">
+                                <div className="flex justify-between items-start">
+                                  <Badge variant="outline">
+                                    {program.scope === 'merchant' ? 'Whole merchant' : 'One offer'}
+                                  </Badge>
+                                  <Badge variant={program.isActive ? "default" : "secondary"}>
+                                    {program.isActive ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm font-medium mt-1">
+                                  {program.scope === 'merchant' ? 'Every branch, every offer' :
+                                    merchantOffers.find(o => o.id === program.offerId)?.title || 'Offer Reward'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Every {program.redemptionsRequired}th redemption gets {
+                                    program.discountType === 'percentage' ? `${program.discountValue}% off` :
+                                    program.discountType === 'fixed' ? `Rs. ${program.discountValue} off` :
+                                    program.additionalItem || 'a free item'
+                                  }
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 3. Branches & QR Redemption — which offers each branch accepts, and auto vs manual */}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-1">Branches &amp; QR Redemption</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Pick which of the offers above each branch accepts. When a student scans the branch's QR code and
+                          more than one offer applies, they choose which one to use. Turn on auto-redeem to skip staff review,
+                          or leave it off so a staff member approves each scan from the branch dashboard.
+                        </p>
+                        {merchantBranches.length === 0 ? (
+                          <p className="text-sm text-muted-foreground italic">No branches yet for this merchant.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {merchantBranches.map(branch => {
+                              const liveOfferIds = assignedOfferIdsByBranch[branch.id] || []
+                              return (
+                                <div key={branch.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-md">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 font-medium text-sm">
+                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      {branch.branch_name}
+                                      {!branch.is_active && <Badge variant="secondary" className="text-[10px]">Inactive</Badge>}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                      {liveOfferIds.length === 0 ? (
+                                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                                          No offers — QR won't redeem
+                                        </Badge>
+                                      ) : (
+                                        liveOfferIds.map(offerId => (
+                                          <Badge key={offerId} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                                            {merchantOffers.find(o => o.id === offerId)?.title ?? "Offer"}
+                                          </Badge>
+                                        ))
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4 shrink-0">
+                                    <div className="flex items-center gap-2">
+                                      <Switch
+                                        checked={branch.qr_auto_approve}
+                                        disabled={togglingAutoApproveId === branch.id}
+                                        onCheckedChange={() => handleToggleAutoApprove(branch)}
+                                      />
+                                      <span className="text-xs text-muted-foreground w-[150px] flex items-center gap-1">
+                                        {branch.qr_auto_approve ? (
+                                          <><Zap className="h-3 w-3 text-green-600" /> Redeems instantly</>
+                                        ) : (
+                                          <><Eye className="h-3 w-3" /> Staff approves</>
+                                        )}
+                                      </span>
+                                    </div>
+                                    <Button variant="outline" size="sm" onClick={() => openAssignOfferModal(branch)}>
+                                      <Tag className="h-3.5 w-3.5 mr-1.5" />
+                                      {liveOfferIds.length > 0 ? "Manage offers" : "Assign offers"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
               )}
             </Card>
-          ))}
+            )
+          })}
         </TabsContent>
       </Tabs>
 
@@ -1502,6 +1661,14 @@ export function AdminOffers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AssignBranchOfferDialog
+        branch={assignOfferBranch}
+        open={isAssignOfferOpen}
+        onOpenChange={setIsAssignOfferOpen}
+        currentOfferIds={assignOfferBranch ? assignedOfferIdsByBranch[assignOfferBranch.id] ?? [] : []}
+        onAssigned={handleOfferAssignmentsSaved}
+      />
 
     </div>
   )
