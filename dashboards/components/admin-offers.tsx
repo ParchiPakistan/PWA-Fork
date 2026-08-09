@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp, X, GripVertical, Check, ChevronsUpDown, Search, Filter, Eye, Trash2, Building2, CheckCircle, XCircle, AlertCircle, EyeOff, FileText, MapPin, Zap, Tag } from "lucide-react"
+import { Plus, MoreHorizontal, Calendar, Loader2, Store, Pencil, Settings, Upload, ChevronDown, ChevronUp, X, GripVertical, Check, ChevronsUpDown, Search, Filter, Eye, Trash2, Building2, CheckCircle, XCircle, AlertCircle, EyeOff, FileText, MapPin, Zap, Tag, Layers } from "lucide-react"
 import { TestMerchantAlert } from "./test-merchant-alert"
 import { AssignBranchOfferDialog } from "./assign-branch-offer-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -1018,6 +1018,19 @@ export function AdminOffers() {
 
         {/* --- CONFIGURATION TAB --- */}
         <TabsContent value="management" className="space-y-6">
+          <div className="flex items-start gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+            <Layers className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-indigo-900">
+              <p className="font-semibold">A branch can have more than one active offer at the same time.</p>
+              <p className="text-indigo-800/90 mt-0.5">
+                Expand any merchant below, open <span className="font-medium">Branches &amp; QR Redemption</span>, and select
+                several offers for one branch under "Assign offers" / "Manage offers." When a student scans that branch's QR
+                code, the app shows every offer assigned to it and the student picks which one to redeem — no code change
+                needed, this is a checklist, not a single dropdown.
+              </p>
+            </div>
+          </div>
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -1232,11 +1245,18 @@ export function AdminOffers() {
                                           No offers — QR won't redeem
                                         </Badge>
                                       ) : (
-                                        liveOfferIds.map(offerId => (
-                                          <Badge key={offerId} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
-                                            {merchantOffers.find(o => o.id === offerId)?.title ?? "Offer"}
-                                          </Badge>
-                                        ))
+                                        <>
+                                          {liveOfferIds.map(offerId => (
+                                            <Badge key={offerId} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                                              {merchantOffers.find(o => o.id === offerId)?.title ?? "Offer"}
+                                            </Badge>
+                                          ))}
+                                          {liveOfferIds.length > 1 && (
+                                            <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-300 flex items-center gap-1">
+                                              <Layers className="h-3 w-3" /> Student picks one at scan
+                                            </Badge>
+                                          )}
+                                        </>
                                       )}
                                     </div>
                                   </div>
