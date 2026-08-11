@@ -955,26 +955,51 @@ export function AdminKYC({
             </Alert>
           )}
 
-          {pendingLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading pending students...</span>
+          {/* Search bar permanently mounted so it never unmounts/disappears on mobile */}
+          <div className="flex items-center gap-3 py-2">
+            <div className="relative flex-1 w-full sm:max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <Input
+                placeholder="Search pending students by name, email, institute..."
+                className="pl-10 pr-10 h-11 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium text-sm shadow-sm"
+                value={pendingSearch}
+                onChange={(e) => setPendingSearch(e.target.value)}
+              />
+              {pendingSearch && (
+                <button
+                  onClick={() => setPendingSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {pendingLoading && (
+              <Loader2 className="h-5 w-5 animate-spin text-[#007AFF] shrink-0" />
+            )}
+          </div>
+
+          {pendingLoading && pendingStudents.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-[#007AFF]" />
+              <span className="ml-3 text-slate-500 font-bold text-sm">Loading pending students...</span>
+            </div>
+          ) : pendingStudents.length === 0 ? (
+            <div className="text-center py-16 bg-slate-50/50 dark:bg-slate-900/20 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+              <ShieldCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">No Pending Verifications</h3>
+              <p className="text-xs text-slate-400 mt-1 px-4">
+                {pendingSearch ? `No pending students found matching "${pendingSearch}".` : 'All student verifications are up to date!'}
+              </p>
+              {pendingSearch && (
+                <Button variant="link" className="mt-2 text-[#007AFF] font-bold" onClick={() => setPendingSearch("")}>
+                  Clear search
+                </Button>
+              )}
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-4 py-2">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search pending students..."
-                    className="pl-10"
-                    value={pendingSearch}
-                    onChange={(e) => setPendingSearch(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {pendingStudents.map((student) => (
                   <div key={student.id} className="group relative p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-1 transition-all duration-500 overflow-hidden">
                     {/* Background Pattern */}
@@ -1218,22 +1243,38 @@ export function AdminKYC({
                 <div className="flex flex-col lg:flex-row gap-4">
                   <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full lg:max-w-2xl">
                     <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                       <Input
-                        placeholder="Search students..."
-                        className="pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                        placeholder="Search students by name, email, Parchi ID..."
+                        className="pl-10 pr-9 h-11 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium shadow-sm"
                         value={allSearch}
                         onChange={(e) => setAllSearch(e.target.value)}
                       />
+                      {allSearch && (
+                        <button
+                          onClick={() => setAllSearch("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                     <div className="relative flex-1">
-                      <School className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <School className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                       <Input
                         placeholder="Filter by institute..."
-                        className="pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                        className="pl-10 pr-9 h-11 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium shadow-sm"
                         value={instituteQuery}
                         onChange={(e) => setInstituteQuery(e.target.value)}
                       />
+                      {instituteQuery && (
+                        <button
+                          onClick={() => setInstituteQuery("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
