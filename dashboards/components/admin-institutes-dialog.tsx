@@ -142,17 +142,25 @@ export function AdminInstitutesDialog({ open, onOpenChange }: AdminInstitutesDia
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex items-center justify-between gap-4 py-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 py-3">
+                        <div className="relative flex-1 w-full">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                             <Input
-                                placeholder="Search institutes..."
-                                className="pl-8"
+                                placeholder="Search institutes by name..."
+                                className="pl-9 pr-9 h-11 rounded-xl text-sm font-medium shadow-sm"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
-                        <Button onClick={() => setIsAdding(true)} disabled={isAdding}>
+                        <Button onClick={() => setIsAdding(true)} disabled={isAdding} className="h-11 rounded-xl font-bold shrink-0">
                             <Plus className="mr-2 h-4 w-4" /> Add Institute
                         </Button>
                     </div>

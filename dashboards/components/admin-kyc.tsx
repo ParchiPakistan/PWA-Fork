@@ -343,60 +343,55 @@ export function AdminKYC({
                 <div className="space-y-5">
                   <div className="space-y-2.5">
                     <Label className="text-[10px] font-black uppercase text-slate-500 ml-2 tracking-[0.1em]">Target Institution *</Label>
-                    {/* Mobile: native select with large tap targets */}
-                    <select
-                      className="md:hidden w-full h-14 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 font-bold text-base px-5 shadow-sm"
-                      value={selectedInstituteId}
-                      onChange={(e) => setSelectedInstituteId(e.target.value)}
-                    >
-                      <option value="">Select verified institute</option>
-                      {availableInstitutes.map((inst) => (
-                        <option key={inst.id} value={inst.id}>{inst.name}</option>
-                      ))}
-                    </select>
-                    {/* Desktop: searchable combobox */}
-                    <div className="hidden md:block">
-                      <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full h-14 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 justify-between font-bold text-sm shadow-sm hover:bg-slate-50 transition-all px-5"
-                          >
-                            <span className="truncate">
-                              {selectedInstituteId
-                                ? availableInstitutes.find((inst) => inst.id === selectedInstituteId)?.name
-                                : "Select verified institute"}
-                            </span>
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[350px] p-0 rounded-2xl border-2 shadow-2xl" align="start">
-                          <Command className="rounded-xl">
-                            <CommandInput placeholder="Search..." className="h-12 font-bold" />
-                            <CommandList className="max-h-[300px]">
-                              <CommandEmpty className="py-6 text-center text-sm font-bold text-slate-500">No institute found.</CommandEmpty>
-                              <CommandGroup>
-                                {availableInstitutes.map((inst) => (
-                                  <CommandItem
-                                    key={inst.id}
-                                    value={inst.name}
-                                    onSelect={() => {
-                                      setSelectedInstituteId(inst.id === selectedInstituteId ? "" : inst.id)
-                                      setIsComboboxOpen(false)
-                                    }}
-                                    className="py-3 px-4 rounded-xl my-1 mx-1 font-bold cursor-pointer"
-                                  >
-                                    <Check className={cn("mr-3 h-4 w-4 text-[#007AFF]", selectedInstituteId === inst.id ? "opacity-100" : "opacity-0")} />
-                                    {inst.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isComboboxOpen}
+                          className="w-full h-14 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 justify-between font-bold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all px-4 sm:px-5"
+                        >
+                          <span className="truncate text-left flex-1">
+                            {selectedInstituteId
+                              ? availableInstitutes.find((inst) => inst.id === selectedInstituteId)?.name
+                              : "Search & select institute..."}
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        className="w-[calc(100vw-3rem)] sm:w-[360px] max-w-[420px] p-0 rounded-2xl border-2 shadow-2xl z-[100] bg-white dark:bg-slate-900" 
+                        align="start"
+                      >
+                        <Command className="rounded-xl overflow-hidden">
+                          <CommandInput 
+                            placeholder="Type to search institute (e.g. NUST, IBA, FAST)..." 
+                            className="h-12 font-bold text-xs sm:text-sm" 
+                          />
+                          <CommandList className="max-h-[220px] sm:max-h-[280px] overflow-y-auto custom-scrollbar">
+                            <CommandEmpty className="py-6 text-center text-xs font-bold text-slate-500">
+                              No institute found matching search.
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {availableInstitutes.map((inst) => (
+                                <CommandItem
+                                  key={inst.id}
+                                  value={inst.name}
+                                  onSelect={() => {
+                                    setSelectedInstituteId(inst.id === selectedInstituteId ? "" : inst.id)
+                                    setIsComboboxOpen(false)
+                                  }}
+                                  className="py-3 px-3.5 rounded-xl my-0.5 mx-1 font-bold text-xs sm:text-sm cursor-pointer"
+                                >
+                                  <Check className={cn("mr-2.5 h-4 w-4 text-[#007AFF] shrink-0", selectedInstituteId === inst.id ? "opacity-100" : "opacity-0")} />
+                                  <span className="truncate">{inst.name}</span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-2.5">
