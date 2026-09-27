@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell, UserX, Settings, TrendingUp, Activity, Briefcase, QrCode, Tag } from "lucide-react"
+import { LayoutDashboard, Users, FileText, LogOut, CheckCircle2, ShoppingCart, Loader2, Store, Bell, UserX, Settings, TrendingUp, Activity, Briefcase, QrCode, Tag, Inbox } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 import { DASHBOARD_COLORS } from "@/lib/colors"
@@ -60,6 +60,11 @@ export function AdminSidebarContent({ activeTab, onTabChange, onLogout }: AdminS
       id: "financials",
       label: "Financials",
       icon: CheckCircle2, // Using CheckCircle2 for now, or DollarSign if imported. Let's check imports.
+    },
+    {
+      id: "applications",
+      label: "Applications",
+      icon: Inbox,
     },
     {
       id: "merchants",

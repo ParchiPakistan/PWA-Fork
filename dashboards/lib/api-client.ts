@@ -182,6 +182,99 @@ export async function deleteAdminDeletionRequest(id: string): Promise<{ message:
   });
 }
 
+// ── Landing-page conversion forms (Become a Merchant / Campus Ambassador) ───
+
+export type ApplicationStatus = 'new' | 'contacted' | 'approved' | 'rejected';
+
+export interface MerchantApplication {
+  id: string;
+  business_name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  city: string;
+  category: string;
+  branch_count: string;
+  website: string | null;
+  message: string | null;
+  status: ApplicationStatus;
+  created_at: string;
+}
+
+export interface AmbassadorApplication {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  institute: string;
+  year_of_study: string;
+  city: string;
+  instagram: string | null;
+  motivation: string;
+  status: ApplicationStatus;
+  created_at: string;
+}
+
+export interface AdminApplicationsResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Admin: Get paginated "Become a Merchant" applications
+ */
+export async function getMerchantApplications(
+  page: number = 1,
+  limit: number = 20,
+  status?: string,
+): Promise<AdminApplicationsResponse<MerchantApplication>> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status && status !== 'all') params.set('status', status);
+  return apiRequest(`/applications/merchants?${params.toString()}`);
+}
+
+/**
+ * Admin: Update a merchant application's status
+ */
+export async function updateMerchantApplicationStatus(
+  id: string,
+  status: ApplicationStatus,
+): Promise<{ message: string; application: MerchantApplication }> {
+  return apiRequest(`/applications/merchants/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+/**
+ * Admin: Get paginated "Become a Campus Ambassador" applications
+ */
+export async function getAmbassadorApplications(
+  page: number = 1,
+  limit: number = 20,
+  status?: string,
+): Promise<AdminApplicationsResponse<AmbassadorApplication>> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status && status !== 'all') params.set('status', status);
+  return apiRequest(`/applications/ambassadors?${params.toString()}`);
+}
+
+/**
+ * Admin: Update an ambassador application's status
+ */
+export async function updateAmbassadorApplicationStatus(
+  id: string,
+  status: ApplicationStatus,
+): Promise<{ message: string; application: AmbassadorApplication }> {
+  return apiRequest(`/applications/ambassadors/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export interface AppConfig {
   id: string;
   min_android_build_number: number;

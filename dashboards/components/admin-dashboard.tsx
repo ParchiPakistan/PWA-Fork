@@ -91,6 +91,7 @@ import { AdminRedemptionEngine } from "./admin-redemption-engine"
 import { AdminBrandPortfolio } from "./admin-brand-portfolio"
 import { AdminStudents } from "./admin-students"
 import { AdminQrCodes } from "./admin-qr-codes"
+import { AdminApplications } from "./admin-applications"
 import { getAdminDashboardStats, getTopPerformingMerchants, getTopWeeklyRedeemers, AdminDashboardStats, TopWeeklyRedeemer, getSignupDropoff, SignupDropoff } from "@/lib/api-client"
 import { orderStagesForChart, signupStepNumber } from "@/lib/signup-funnel-display"
 
@@ -958,6 +959,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             />
           )}
 
+
+          {activeTab === "applications" && <AdminApplications />}
 
           {activeTab === "merchants" && <AdminMerchants />}
 
