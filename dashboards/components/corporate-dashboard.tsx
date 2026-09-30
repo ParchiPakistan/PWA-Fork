@@ -37,7 +37,8 @@ import {
   BranchPerformance,
   OfferPerformance,
   getCorporateMerchant,
-  getCorporateRedemptionReport
+  getCorporateRedemptionReport,
+  downloadCorporateDigestPdf,
 } from "@/lib/api-client"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
@@ -573,10 +574,10 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2" style={{ color: colors.primary }}>
                   <Download className="w-5 h-5" />
-                  Monthly Redemption Reports
+                  Monthly Digest Reports
                 </CardTitle>
                 <CardDescription>
-                  Download detailed PDF reports of monthly redemptions and payables
+                  Download the same month-end digest PDF that is emailed to your contact address (redemptions, branches, top offers — no payable)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -608,69 +609,24 @@ export function CorporateDashboard({ onLogout }: { onLogout: () => void }) {
                       if (!select) return;
 
                       const [year, month] = select.value.split('-').map(Number);
-                      const startDate = new Date(year, month - 1, 1);
-                      const endDate = new Date(year, month, 0, 23, 59, 59);
 
                       try {
-                        toast.loading("Generating report...");
-                        const response = await getCorporateRedemptionReport(startDate, endDate);
-                        const reportData = response.data;
-
-                        // Import jsPDF dynamically
-                        const jsPDF = (await import('jspdf')).default;
-                        const autoTable = (await import('jspdf-autotable')).default;
-
-                        const doc = new jsPDF();
-
-                        // Header
-                        doc.setFontSize(20);
-                        doc.setTextColor(colors.primary);
-                        doc.text(reportData.merchantDetails.businessName || "Merchant Report", 14, 22);
-
-                        doc.setFontSize(14);
-                        doc.setTextColor(100);
-                        const monthName = startDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-                        doc.text(`Redemption Report - ${monthName}`, 14, 32);
-
-                        // Summary Box
-                        doc.setFillColor(245, 245, 245);
-                        doc.rect(14, 40, 182, 30, 'F');
-
-                        doc.setFontSize(10);
-                        doc.setTextColor(0);
-                        doc.text("Total Redemptions", 20, 50);
-                        doc.text("Redemption Fee", 80, 50);
-                        doc.text("Total Payable", 140, 50);
-
-                        doc.setFontSize(12);
-                        doc.setFont("helvetica", "bold");
-                        doc.text(String(reportData.summary.totalRedemptions), 20, 60);
-                        doc.text(`PKR ${reportData.merchantDetails.redemptionFee}`, 80, 60);
-                        doc.text(`PKR ${reportData.summary.totalPayable}`, 140, 60);
-
-                        // Table
-                        const tableData = reportData.redemptions.map((r: any) => [
-                          new Date(r.date).toLocaleDateString() + ' ' + new Date(r.date).toLocaleTimeString(),
-                          r.branchName,
-                          r.offerTitle,
-                          r.studentInfo
-                        ]);
-
-                        autoTable(doc, {
-                          startY: 80,
-                          head: [['Date', 'Branch', 'Offer', 'Student ID/Email']],
-                          body: tableData,
-                          headStyles: { fillColor: colors.primary },
-                          theme: 'grid'
-                        });
-
-                        doc.save(`Redemption_Report_${select.value}.pdf`);
+                        toast.loading("Generating digest PDF...");
+                        const { blob, fileName } = await downloadCorporateDigestPdf(year, month);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
                         toast.dismiss();
-                        toast.success("Report downloaded successfully");
+                        toast.success("Digest PDF downloaded");
                       } catch (error) {
-                        console.error("Report generation failed:", error);
+                        console.error("Digest PDF download failed:", error);
                         toast.dismiss();
-                        toast.error("Failed to generate report");
+                        toast.error("Failed to download digest PDF");
                       }
                     }}
                   >

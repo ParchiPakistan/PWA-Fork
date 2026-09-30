@@ -508,6 +508,56 @@ export async function getCorporateRedemptionReport(
   });
 }
 
+/**
+ * Download the same month-end digest PDF that is emailed by cron
+ * (stats/analytics only — no payable). Calendar year/month.
+ */
+export async function downloadCorporateDigestPdf(
+  year: number,
+  month: number,
+): Promise<{ blob: Blob; fileName: string }> {
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
+  const queryParams = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+
+  const response = await fetch(
+    `${API_BASE_URL}/merchants/dashboard/reports/digest-pdf?${queryParams}`,
+    {
+      method: 'GET',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    let message = 'Failed to download digest PDF';
+    try {
+      const json = JSON.parse(text);
+      message = Array.isArray(json.message)
+        ? json.message.join(', ')
+        : json.message || message;
+    } catch {
+      message = text || message;
+    }
+    throw { statusCode: response.status, message, error: 'DigestPdfError' };
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  const fileName =
+    match?.[1] ||
+    `Parchi_Month_End_Digest_${year}-${String(month).padStart(2, '0')}.pdf`;
+
+  return { blob, fileName };
+}
+
 export interface Branch {
   id: string
   merchant_id: string
