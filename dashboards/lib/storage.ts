@@ -161,4 +161,32 @@ export class SupabaseStorageService {
       throw new Error('Failed to upload event image')
     }
   }
+
+  static async uploadAdImage(file: File): Promise<string> {
+    try {
+      const timestamp = Date.now()
+      const extension = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const filePath = `ads/ad-${timestamp}.${extension}`
+
+      const { error: uploadError } = await supabase.storage
+        .from(this.BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const { data } = supabase.storage
+        .from(this.BUCKET_NAME)
+        .getPublicUrl(filePath)
+
+      return data.publicUrl
+    } catch (e) {
+      console.error('Failed to upload ad image:', e)
+      throw new Error('Failed to upload ad image')
+    }
+  }
 }

@@ -286,6 +286,7 @@ export interface AppConfig {
   is_under_maintenance: boolean;
   auto_queue_offers: boolean;
   auto_queue_partners: boolean;
+  home_ad_interval_seconds: number;
   created_at: string;
   updated_at: string;
 }
@@ -300,6 +301,7 @@ export interface UpdateAppConfigDto {
   is_under_maintenance?: boolean;
   auto_queue_offers?: boolean;
   auto_queue_partners?: boolean;
+  home_ad_interval_seconds?: number;
 }
 
 /**
@@ -3107,3 +3109,55 @@ export const getAdminEventTicketSales = async (): Promise<AdminEventTicketSale[]
   return Array.isArray(response) ? response : (response?.data || []);
 };
 
+// ── Home ads (auto-rotating carousel under Top Brands in the student app) ────
+
+export interface AdminAd {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  displayOrder: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAdInput {
+  title: string;
+  imageUrl: string;
+  linkUrl?: string | null;
+  isActive?: boolean;
+  displayOrder?: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export const getAdminAds = async (): Promise<AdminAd[]> => {
+  const response = await apiRequest('/admin/ads', { method: 'GET' });
+  return Array.isArray(response) ? response : (response?.data || []);
+};
+
+export const createAdminAd = async (input: AdminAdInput): Promise<AdminAd> => {
+  const response = await apiRequest('/admin/ads', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return response?.data || response;
+};
+
+export const updateAdminAd = async (
+  id: string,
+  input: Partial<AdminAdInput>,
+): Promise<AdminAd> => {
+  const response = await apiRequest(`/admin/ads/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  return response?.data || response;
+};
+
+export const deleteAdminAd = async (id: string): Promise<void> => {
+  await apiRequest(`/admin/ads/${id}`, { method: 'DELETE' });
+};
