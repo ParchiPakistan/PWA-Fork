@@ -39,6 +39,7 @@ import {
     Users,
     FileText,
     Activity,
+    X,
 } from "lucide-react"
 import {
     getAuditLogs,
@@ -126,7 +127,15 @@ export function AdminAuditLogs() {
     }
 
     const handleSearch = () => {
-        setFilters((prev) => ({ ...prev, search: searchInput || undefined, page: 1 }))
+        setFilters((prev) => ({
+            ...prev,
+            search: searchInput.trim() || undefined,
+            category: selectedCategory === "all" ? undefined : selectedCategory,
+            action: selectedAction === "all" ? undefined : selectedAction,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            page: 1,
+        }))
     }
 
     const handleCategoryFilter = (category: string) => {
@@ -134,8 +143,11 @@ export function AdminAuditLogs() {
         setSelectedAction("all")
         setFilters((prev) => ({
             ...prev,
+            search: searchInput.trim() || undefined,
             category: category === "all" ? undefined : category,
             action: undefined,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
             page: 1,
         }))
     }
@@ -144,7 +156,11 @@ export function AdminAuditLogs() {
         setSelectedAction(action)
         setFilters((prev) => ({
             ...prev,
+            search: searchInput.trim() || undefined,
+            category: selectedCategory === "all" ? undefined : selectedCategory,
             action: action === "all" ? undefined : action,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
             page: 1,
         }))
     }
@@ -152,6 +168,9 @@ export function AdminAuditLogs() {
     const handleDateFilter = () => {
         setFilters((prev) => ({
             ...prev,
+            search: searchInput.trim() || undefined,
+            category: selectedCategory === "all" ? undefined : selectedCategory,
+            action: selectedAction === "all" ? undefined : selectedAction,
             startDate: startDate || undefined,
             endDate: endDate || undefined,
             page: 1,
@@ -367,8 +386,29 @@ export function AdminAuditLogs() {
                                         value={searchInput}
                                         onChange={(e) => setSearchInput(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                        className="pl-10"
+                                        className="pl-10 pr-9"
                                     />
+                                    {searchInput && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSearchInput("")
+                                                setFilters((prev) => ({
+                                                    ...prev,
+                                                    search: undefined,
+                                                    category: selectedCategory === "all" ? undefined : selectedCategory,
+                                                    action: selectedAction === "all" ? undefined : selectedAction,
+                                                    startDate: startDate || undefined,
+                                                    endDate: endDate || undefined,
+                                                    page: 1,
+                                                }))
+                                            }}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded"
+                                            title="Clear search"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                                 <Button onClick={handleSearch} style={{ backgroundColor: colors.primary }}>
                                     Search
@@ -418,6 +458,7 @@ export function AdminAuditLogs() {
                                             type="date"
                                             value={startDate}
                                             onChange={(e) => setStartDate(e.target.value)}
+                                            onKeyDown={(e) => e.key === "Enter" && handleDateFilter()}
                                             className="pl-10"
                                         />
                                     </div>
@@ -431,6 +472,7 @@ export function AdminAuditLogs() {
                                             type="date"
                                             value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
+                                            onKeyDown={(e) => e.key === "Enter" && handleDateFilter()}
                                             className="pl-10"
                                         />
                                     </div>

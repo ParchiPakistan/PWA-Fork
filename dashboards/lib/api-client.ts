@@ -1857,6 +1857,7 @@ export interface AuditStatistics {
 export interface AuditLogsQuery {
   userId?: string;
   action?: string;
+  category?: string;
   tableName?: string;
   recordId?: string;
   startDate?: string;
